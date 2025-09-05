@@ -1,10 +1,7 @@
-
 # backend/api/posts.py
-from http.server import BaseHTTPRequestHandler
 import json
 import os
-import pyodbc
-from urllib.parse import urlparse, parse_qs
+import pymssql
 from pydantic import BaseModel
 
 # --- Database connection setup ---
@@ -12,12 +9,14 @@ server = os.environ.get("DB_SERVER")
 database = os.environ.get("DB_NAME")
 username = os.environ.get("DB_USER")
 password = os.environ.get("DB_PASSWORD")
-driver = '{ODBC Driver 18 for SQL Server}'
 
-conn = pyodbc.connect(
-    f'DRIVER={driver};SERVER={server};DATABASE={database};UID={username};PWD={password};Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;'
+conn = pymssql.connect(
+    server=server,
+    user=username,
+    password=password,
+    database=database
 )
-cursor = conn.cursor()
+cursor = conn.cursor(as_dict=True)
 
 # --- Pydantic model ---
 class Post(BaseModel):
@@ -25,77 +24,53 @@ class Post(BaseModel):
     subject_id: int
     content: str
 
-# --- Vercel handler ---
-class handler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        try:
-            # Parse query string
-            parsed_url = urlparse(self.path)
-            query = parse_qs(parsed_url.query)
-            subject_id = int(query.get("subject_id", [0])[0])
-
+# --- Vercel serverless handler ---
+def handler(request, response):
+    try:
+        if request.method == "GET":
+            subject_id = int(request.query.get("subject_id", [0])[0])
             cursor.execute("""
                 SELECT p.PostID, p.Content, p.CreatedAt, u.Username
                 FROM Posts p
                 JOIN Users u ON p.UserID = u.UserID
-                WHERE p.SubjectID = ?
+                WHERE p.SubjectID = %s
                 ORDER BY p.CreatedAt ASC
             """, (subject_id,))
-
             posts = [
                 {
-                    "id": row.PostID,
-                    "content": row.Content,
-                    "created_at": str(row.CreatedAt),
-                    "user": row.Username
+                    "id": row["PostID"],
+                    "content": row["Content"],
+                    "created_at": str(row["CreatedAt"]),
+                    "user": row["Username"]
                 }
                 for row in cursor.fetchall()
             ]
+            response.status_code = 200
+            response.write(json.dumps(posts))
 
-            self.send_response(200)
-            self.send_header("Content-type", "application/json")
-            self.end_headers()
-            self.wfile.write(json.dumps(posts).encode())
-        except Exception as e:
-            self.send_response(500)
-            self.end_headers()
-            self.wfile.write(json.dumps({"error": str(e)}).encode())
-
-    def do_POST(self):
-        try:
-            content_length = int(self.headers.get("Content-Length", 0))
-            body = self.rfile.read(content_length)
-            data = json.loads(body)
-
-            user_id = data.get("user_id")
-            subject_id = data.get("subject_id")
-            content = data.get("content")
+        elif request.method == "POST":
+            body = json.loads(request.body)
+            user_id = body.get("user_id")
+            subject_id = body.get("subject_id")
+            content = body.get("content")
 
             if not (user_id and subject_id and content):
-                self.send_response(400)
-                self.end_headers()
-                self.wfile.write(json.dumps({"error": "Missing fields"}).encode())
+                response.status_code = 400
+                response.write(json.dumps({"error": "Missing fields"}))
                 return
 
             cursor.execute(
-                "INSERT INTO Posts (UserID, SubjectID, Content) VALUES (?, ?, ?)",
+                "INSERT INTO Posts (UserID, SubjectID, Content) VALUES (%s, %s, %s)",
                 (user_id, subject_id, content)
             )
             conn.commit()
+            response.status_code = 201
+            response.write(json.dumps({"message": "Post created"}))
 
-            self.send_response(201)
-            self.send_header("Content-type", "application/json")
-            self.end_headers()
-            self.wfile.write(json.dumps({"message": "Post created"}).encode())
-        except Exception as e:
-            self.send_response(500)
-            self.end_headers()
-            self.wfile.write(json.dumps({"error": str(e)}).encode())
+        else:
+            response.status_code = 405
+            response.write(json.dumps({"error": "Method not allowed"}))
 
-    def do_OPTIONS(self):
-        # Enable CORS preflight if needed
-        self.send_response(204)
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type")
-        self.end_headers()
+    except Exception as e:
+        response.status_code = 500
+        response.write(json.dumps({"error": str(e)}))

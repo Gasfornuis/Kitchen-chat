@@ -1,7 +1,7 @@
 {
   "functions": {
     "backend/api/*.py": {
-      "runtime": "python3.11"
+      "runtime": "@vercel/python"
     }
   },
   "routes": [

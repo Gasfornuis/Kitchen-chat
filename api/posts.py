@@ -28,7 +28,7 @@ class handler(BaseHTTPRequestHandler):
                 self.wfile.write(json.dumps({"error": "Missing subjectId"}).encode())
                 return
 
-            posts_ref = db.collection("posts").where("SubjectId", "==", f"/subjects/{subject_id}").order_by("CreatedAt")
+            posts_ref = db.collection("Posts").where("SubjectId", "==", f"/subjects/{subject_id}").order_by("CreatedAt")
             docs = posts_ref.stream()
 
             posts = []

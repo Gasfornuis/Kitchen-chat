@@ -20,7 +20,7 @@ class handler(BaseHTTPRequestHandler):
         try:
             parsed_url = urlparse(self.path)
             query = parse_qs(parsed_url.query)
-            subject_id = query.get("subjectId", [None])[0]
+            subject_id = query.get("SubjectId", [None])[0]
 
             if not subject_id:
                 self.send_response(400)

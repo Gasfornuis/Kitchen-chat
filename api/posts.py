@@ -3,8 +3,16 @@ import json
 import os
 from google.cloud import firestore
 from urllib.parse import urlparse, parse_qs
+import firebase_admin
+from firebase_admin import credentials, firestore
 
-db = firestore.Client()
+if not firebase_admin._apps:
+    # Load service account from environment variable
+    sa_json = os.environ.get("FIREBASE_SERVICE_ACCOUNT")
+    cred = credentials.Certificate(json.loads(sa_json))
+    firebase_admin.initialize_app(cred)
+
+db = firestore.client()
 FIREBASE_SECRET = os.environ.get("FIREBASE_SECRET")
 
 class handler(BaseHTTPRequestHandler):

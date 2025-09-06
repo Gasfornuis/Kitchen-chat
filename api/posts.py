@@ -1,76 +1,87 @@
-# backend/api/posts.py
+from http.server import BaseHTTPRequestHandler
 import json
 import os
-import pymssql
-from pydantic import BaseModel
+from google.cloud import firestore
+from urllib.parse import urlparse, parse_qs
 
-# --- Database connection setup ---
-server = os.environ.get("DB_SERVER")
-database = os.environ.get("DB_NAME")
-username = os.environ.get("DB_USER")
-password = os.environ.get("DB_PASSWORD")
+db = firestore.Client()
+FIREBASE_SECRET = os.environ.get("FIREBASE_SECRET")
 
-conn = pymssql.connect(
-    server=server,
-    user=username,
-    password=password,
-    database=database
-)
-cursor = conn.cursor(as_dict=True)
+class handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        try:
+            parsed_url = urlparse(self.path)
+            query = parse_qs(parsed_url.query)
+            subject_id = query.get("subjectId", [None])[0]
 
-# --- Pydantic model ---
-class Post(BaseModel):
-    user_id: int
-    subject_id: int
-    content: str
-
-# --- Vercel serverless handler ---
-def handler(request, response):
-    try:
-        if request.method == "GET":
-            subject_id = int(request.query.get("subject_id", [0])[0])
-            cursor.execute("""
-                SELECT p.PostID, p.Content, p.CreatedAt, u.Username
-                FROM Posts p
-                JOIN Users u ON p.UserID = u.UserID
-                WHERE p.SubjectID = %s
-                ORDER BY p.CreatedAt ASC
-            """, (subject_id,))
-            posts = [
-                {
-                    "id": row["PostID"],
-                    "content": row["Content"],
-                    "created_at": str(row["CreatedAt"]),
-                    "user": row["Username"]
-                }
-                for row in cursor.fetchall()
-            ]
-            response.status_code = 200
-            response.write(json.dumps(posts))
-
-        elif request.method == "POST":
-            body = json.loads(request.body)
-            user_id = body.get("user_id")
-            subject_id = body.get("subject_id")
-            content = body.get("content")
-
-            if not (user_id and subject_id and content):
-                response.status_code = 400
-                response.write(json.dumps({"error": "Missing fields"}))
+            if not subject_id:
+                self.send_response(400)
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": "Missing subjectId"}).encode())
                 return
 
-            cursor.execute(
-                "INSERT INTO Posts (UserID, SubjectID, Content) VALUES (%s, %s, %s)",
-                (user_id, subject_id, content)
-            )
-            conn.commit()
-            response.status_code = 201
-            response.write(json.dumps({"message": "Post created"}))
+            posts_ref = db.collection("posts").where("SubjectId", "==", f"/subjects/{subject_id}").order_by("CreatedAt")
+            docs = posts_ref.stream()
 
-        else:
-            response.status_code = 405
-            response.write(json.dumps({"error": "Method not allowed"}))
+            posts = []
+            for doc in docs:
+                data = doc.to_dict()
+                posts.append({
+                    "id": doc.id,
+                    "Content": data.get("Content"),
+                    "CreatedAt": str(data.get("CreatedAt")),
+                    "PostedBy": data.get("PostedBy"),
+                    "SubjectId": data.get("SubjectId")
+                })
 
-    except Exception as e:
-        response.status_code = 500
-        response.write(json.dumps({"error": str(e)}))
+            self.send_response(200)
+            self.send_header("Content-type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps(posts).encode())
+
+        except Exception as e:
+            self.send_response(500)
+            self.end_headers()
+            self.wfile.write(json.dumps({"error": str(e)}).encode())
+
+    def do_POST(self):
+        try:
+            content_length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(content_length)
+            data = json.loads(body)
+
+            content = data.get("Content")
+            subject_id = data.get("SubjectId")
+            posted_by = data.get("PostedBy", "Anonymous")
+
+            if not content or not subject_id:
+                self.send_response(400)
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": "Missing Content or SubjectId"}).encode())
+                return
+
+            db.collection("posts").add({
+                "Content": content,
+                "CreatedAt": firestore.SERVER_TIMESTAMP,
+                "PostedBy": posted_by,
+                "SubjectId": f"/subjects/{subject_id}",
+                "secret": FIREBASE_SECRET
+            })
+
+            self.send_response(201)
+            self.send_header("Content-type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({"message": "Post created"}).encode())
+
+        except Exception as e:
+            self.send_response(500)
+            self.end_headers()
+            self.wfile.write(json.dumps({"error": str(e)}).encode())
+
+    def do_OPTIONS(self):
+        self.send_response(204)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.end_headers()
+

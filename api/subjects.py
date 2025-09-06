@@ -1,55 +1,75 @@
-# backend/api/subjects.py
+from http.server import BaseHTTPRequestHandler
 import json
 import os
-import pymssql
-from pydantic import BaseModel
+from google.cloud import firestore
 
-# --- Database connection setup ---
-server = os.environ.get("DB_SERVER")      # e.g., "myserver.database.windows.net"
-database = os.environ.get("DB_NAME")      # your database name
-username = os.environ.get("DB_USER")
-password = os.environ.get("DB_PASSWORD")
+# Initialize Firestore client once (cold start optimization)
+db = firestore.Client()
+FIREBASE_SECRET = os.environ.get("FIREBASE_SECRET")
 
-conn = pymssql.connect(
-    server=server,
-    user=username,
-    password=password,
-    database=database
-)
-cursor = conn.cursor(as_dict=True)
+class handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        try:
+            # Query subjects ordered by CreatedAt descending
+            subjects_ref = db.collection("subjects").order_by("CreatedAt", direction=firestore.Query.DESCENDING)
+            docs = subjects_ref.stream()
 
-# --- Pydantic model ---
-class Subject(BaseModel):
-    title: str
+            subjects = []
+            for doc in docs:
+                data = doc.to_dict()
+                subjects.append({
+                    "id": doc.id,
+                    "Title": data.get("Title"),
+                    "CreatedAt": str(data.get("CreatedAt")),
+                    "CreatedBy": data.get("CreatedBy")
+                })
 
-# --- Vercel serverless handler ---
-def handler(request, response):
-    try:
-        if request.method == "GET":
-            cursor.execute("SELECT SubjectID, Title FROM Subjects ORDER BY CreatedAt DESC")
-            subjects = [{"id": row["SubjectID"], "title": row["Title"]} for row in cursor.fetchall()]
-            response.status_code = 200
-            response.write(json.dumps(subjects))
+            self.send_response(200)
+            self.send_header("Content-type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps(subjects).encode())
 
-        elif request.method == "POST":
-            data = json.loads(request.body)
-            title = data.get("title")
+        except Exception as e:
+            self.send_response(500)
+            self.end_headers()
+            self.wfile.write(json.dumps({"error": str(e)}).encode())
+
+    def do_POST(self):
+        try:
+            content_length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(content_length)
+            data = json.loads(body)
+
+            title = data.get("Title")
+            created_by = data.get("CreatedBy", "Anonymous")  # default until you add users
 
             if not title:
-                response.status_code = 400
-                response.write(json.dumps({"error": "Missing title"}))
+                self.send_response(400)
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": "Missing Title"}).encode())
                 return
 
-            cursor.execute("INSERT INTO Subjects (Title) VALUES (%s)", (title,))
-            conn.commit()
-            response.status_code = 201
-            response.write(json.dumps({"message": "Subject created"}))
+            db.collection("subjects").add({
+                "Title": title,
+                "CreatedAt": firestore.SERVER_TIMESTAMP,
+                "CreatedBy": created_by,
+                "secret": FIREBASE_SECRET
+            })
 
-        else:
-            response.status_code = 405
-            response.write(json.dumps({"error": "Method not allowed"}))
+            self.send_response(201)
+            self.send_header("Content-type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({"message": "Subject created"}).encode())
 
-    except Exception as e:
-        response.status_code = 500
-        response.write(json.dumps({"error": str(e)}))
+        except Exception as e:
+            self.send_response(500)
+            self.end_headers()
+            self.wfile.write(json.dumps({"error": str(e)}).encode())
+
+    def do_OPTIONS(self):
+        self.send_response(204)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.end_headers()
 

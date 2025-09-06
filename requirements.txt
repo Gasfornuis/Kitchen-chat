@@ -1,2 +1,1 @@
-pydantic
-pymssql
+firebase-admin

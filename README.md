@@ -1,155 +1,155 @@
 # Kitchen Chat 🍳💬
 
-Een moderne, real-time chat applicatie voor keuken discussies, gebouwd met Python (Flask/Vercel) backend en vanilla JavaScript frontend.
+A modern, real-time chat application for kitchen discussions, built with Python (Flask/Vercel) backend and vanilla JavaScript frontend.
 
 ## 🌟 Features
 
-### ✨ Gebruikersinterface
-- **Modern Design**: Gradient backgrounds, glasmorphism effecten, en smooth animaties
-- **Responsive Layout**: Werkt perfect op desktop, tablet, en mobiele apparaten
-- **Dark Mode Ready**: Voorbereiding voor toekomstige dark mode implementatie
-- **Real-time Updates**: Automatische refresh van berichten en onderwerpen
+### ✨ User Interface
+- **Modern Design**: Gradient backgrounds, glassmorphism effects, and smooth animations
+- **Responsive Layout**: Works perfectly on desktop, tablet, and mobile devices
+- **Dark Mode Ready**: Preparation for future dark mode implementation
+- **Real-time Updates**: Automatic refresh of messages and topics
 
-### 💬 Chat Functionaliteit
-- **Onderwerpen Maken**: Start nieuwe gesprekken met aangepaste titels
-- **Real-time Berichten**: Instant messaging met directe feedback
-- **Gebruikersnamen**: Personalisatie met opgeslagen gebruikersvoorkeuren
-- **Zoekfunctie**: Vind snel specifieke onderwerpen
-- **Auto-refresh**: Berichten worden automatisch ververst elke 30 seconden
+### 💬 Chat Functionality
+- **Create Topics**: Start new conversations with custom titles
+- **Real-time Messages**: Instant messaging with immediate feedback
+- **User Names**: Personalization with saved user preferences
+- **Search Feature**: Quickly find specific topics
+- **Auto-refresh**: Messages automatically refresh every 30 seconds
 
-### 🔧 Technische Features
-- **Offline Detectie**: Meldt internetverbindingsstatus
-- **Loading States**: Duidelijke feedback tijdens API calls
-- **Error Handling**: Gebruiksvriendelijke foutmeldingen
-- **PWA Ready**: Service Worker ondersteuning (uitbreidbaar)
-- **Toegankelijkheid**: Keyboard navigation en screen reader support
+### 🔧 Technical Features
+- **Offline Detection**: Reports internet connection status
+- **Loading States**: Clear feedback during API calls
+- **Error Handling**: User-friendly error messages
+- **PWA Ready**: Service Worker support (expandable)
+- **Accessibility**: Keyboard navigation and screen reader support
 
 ## 🚀 Live Demo
 
 **Frontend URL**: [kitchen-chat.vercel.app](https://kitchen-chat.vercel.app)
 
-## 📁 Project Structuur
+## 📁 Project Structure
 
 ```
 Kitchen-chat/
-├── index.html          # Hoofd HTML bestand
-├── styles.css          # Moderne CSS styling
-├── script.js           # Frontend JavaScript logica
-├── vercel.json         # Vercel configuratie
+├── index.html          # Main HTML file
+├── styles.css          # Modern CSS styling
+├── script.js           # Frontend JavaScript logic
+├── vercel.json         # Vercel configuration
 ├── requirements.txt    # Python dependencies
 ├── api/
-│   ├── posts.py       # API voor berichten
-│   └── subjects.py    # API voor onderwerpen
-└── README.md          # Deze documentatie
+│   ├── posts.py       # API for messages
+│   └── subjects.py    # API for topics
+└── README.md          # This documentation
 ```
 
 ## 🛠 Technology Stack
 
 ### Frontend
-- **HTML5**: Semantische markup met moderne structuur
+- **HTML5**: Semantic markup with modern structure
 - **CSS3**: 
-  - Custom CSS properties (variabelen)
-  - Flexbox en Grid layouts
-  - CSS animations en transitions
-  - Responsive design met media queries
-  - Glassmorphism effecten
+  - Custom CSS properties (variables)
+  - Flexbox and Grid layouts
+  - CSS animations and transitions
+  - Responsive design with media queries
+  - Glassmorphism effects
 - **JavaScript (ES6+)**:
-  - Modern class-based architectuur
-  - Async/await voor API calls
-  - LocalStorage voor gebruikersvoorkeuren
-  - Event delegation voor performance
+  - Modern class-based architecture
+  - Async/await for API calls
+  - LocalStorage for user preferences
+  - Event delegation for performance
 
 ### Backend
-- **Python**: Serverless functions op Vercel
-- **Firebase Firestore**: NoSQL database voor berichten en onderwerpen
-- **Firebase Admin SDK**: Beveiligde database toegang
+- **Python**: Serverless functions on Vercel
+- **Firebase Firestore**: NoSQL database for messages and topics
+- **Firebase Admin SDK**: Secure database access
 
 ### Deployment
-- **Vercel**: Hosting voor frontend en API
+- **Vercel**: Hosting for frontend and API
 - **Firebase**: Cloud database service
 
-## 🎨 Design Systeem
+## 🎨 Design System
 
-### Kleurenpalet
+### Color Palette
 ```css
-/* Primaire kleuren */
+/* Primary colors */
 --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 --primary-blue: #667eea;
 --primary-purple: #764ba2;
 
-/* Grijstinten */
+/* Gray scale */
 --gray-900: #2d3748;
 --gray-600: #718096;
 --gray-400: #a0aec0;
 --gray-100: #f7fafc;
 
-/* Status kleuren */
+/* Status colors */
 --success: #38a169;
 --error: #e53e3e;
 --warning: #d69e2e;
 ```
 
-### Typografie
-- **Font**: Inter (fallback naar systeem fonts)
+### Typography
+- **Font**: Inter (fallback to system fonts)
 - **Weights**: 400 (regular), 500 (medium), 600 (semibold), 700 (bold)
-- **Responsive font sizes**: Schaalbaar voor alle schermformaten
+- **Responsive font sizes**: Scalable for all screen sizes
 
-### Spacing Systeem
+### Spacing System
 - **Base unit**: 0.25rem (4px)
 - **Scale**: 0.5rem, 0.75rem, 1rem, 1.5rem, 2rem, etc.
-- **Consistent margins en padding** door hele applicatie
+- **Consistent margins and padding** throughout application
 
 ## 📱 Responsive Design
 
 ### Desktop (1200px+)
-- **Sidebar**: 320px vaste breedte voor onderwerpen
-- **Chat Area**: Flexibele breedte voor berichten
-- **Two-column layout**: Optimaal voor grote schermen
+- **Sidebar**: 320px fixed width for topics
+- **Chat Area**: Flexible width for messages
+- **Two-column layout**: Optimal for large screens
 
 ### Tablet (768px - 1199px)
-- **Sidebar**: Volledige breedte, 40vh hoogte
-- **Chat Area**: Volledige breedte, 60vh hoogte
-- **Stacked layout**: Verticale organisatie
+- **Sidebar**: Full width, 40vh height
+- **Chat Area**: Full width, 60vh height
+- **Stacked layout**: Vertical organization
 
 ### Mobile (< 768px)
-- **Single column**: Alle elementen op volledige breedte
-- **Touch-friendly**: Grotere knoppen en input velden
-- **Optimized spacing**: Aangepaste margins en padding
+- **Single column**: All elements at full width
+- **Touch-friendly**: Larger buttons and input fields
+- **Optimized spacing**: Adjusted margins and padding
 
-## ⚡ Performance Optimalisaties
+## ⚡ Performance Optimizations
 
 ### Frontend
-- **Lazy Loading**: Berichten worden alleen geladen wanneer nodig
-- **Event Delegation**: Efficiënte event handling
-- **Minimal DOM Manipulation**: Batch updates voor betere performance
-- **CSS Hardware Acceleration**: Transform3d voor smooth animaties
-- **Debounced Search**: Optimalized zoekfunctionaliteit
+- **Lazy Loading**: Messages loaded only when needed
+- **Event Delegation**: Efficient event handling
+- **Minimal DOM Manipulation**: Batch updates for better performance
+- **CSS Hardware Acceleration**: Transform3d for smooth animations
+- **Debounced Search**: Optimized search functionality
 
-### API Optimalisatie
-- **Efficient Queries**: Firestore queries geoptimaliseerd voor snelheid
-- **Caching**: Browser caching van statische assets
-- **Compression**: Gzip compressie op Vercel
+### API Optimization
+- **Efficient Queries**: Firestore queries optimized for speed
+- **Caching**: Browser caching of static assets
+- **Compression**: Gzip compression on Vercel
 
-## 🔐 Beveiliging
+## 🔐 Security
 
-### Frontend Beveiliging
-- **XSS Preventie**: Alle gebruikersinput wordt ge-escaped
-- **Input Validatie**: Client-side validatie voor alle formulieren
-- **HTTPS**: Vercel zorgt automatisch voor SSL certificaten
+### Frontend Security
+- **XSS Prevention**: All user input is escaped
+- **Input Validation**: Client-side validation for all forms
+- **HTTPS**: Vercel automatically provides SSL certificates
 
-### Backend Beveiliging
-- **Firebase Rules**: Database toegang beperkt via regels
-- **Environment Variables**: Gevoelige data veilig opgeslagen
-- **CORS Headers**: Juiste Cross-Origin configuratie
+### Backend Security
+- **Firebase Rules**: Database access restricted via rules
+- **Environment Variables**: Sensitive data stored securely
+- **CORS Headers**: Proper Cross-Origin configuration
 
 ## 🚀 Deployment
 
-### Automatische Deployment
-1. **Git Push**: Elke push naar main branch triggert nieuwe deployment
-2. **Build Process**: Vercel bouwt automatisch frontend en API
-3. **Environment**: Productie environment met Firebase configuratie
+### Automatic Deployment
+1. **Git Push**: Every push to main branch triggers new deployment
+2. **Build Process**: Vercel automatically builds frontend and API
+3. **Environment**: Production environment with Firebase configuration
 
-### Handmatige Deployment
+### Manual Deployment
 ```bash
 # 1. Install Vercel CLI
 npm i -g vercel
@@ -164,12 +164,12 @@ vercel --prod
 ## 🔧 Development Setup
 
 ### Prerequisites
-- **Node.js** (voor development tools)
-- **Python 3.9+** (voor lokale API testing)
-- **Firebase Account** (voor database)
-- **Vercel Account** (voor deployment)
+- **Node.js** (for development tools)
+- **Python 3.9+** (for local API testing)
+- **Firebase Account** (for database)
+- **Vercel Account** (for deployment)
 
-### Lokale Development
+### Local Development
 ```bash
 # 1. Clone repository
 git clone https://github.com/Gasfornuis/Kitchen-chat.git
@@ -195,114 +195,114 @@ FIREBASE_SECRET='your-firebase-secret-key'
 
 ## 📊 Browser Support
 
-### Volledig Ondersteund
+### Fully Supported
 - **Chrome** 80+
 - **Firefox** 75+
 - **Safari** 13+
 - **Edge** 80+
 
-### Basis Functionaliteit
-- **IE 11**: Basis chat functionaliteit (zonder moderne CSS effecten)
-- **Oudere mobiele browsers**: Core functionaliteit werkt
+### Basic Functionality
+- **IE 11**: Basic chat functionality (without modern CSS effects)
+- **Older mobile browsers**: Core functionality works
 
-## 🔄 API Documentatie
+## 🔄 API Documentation
 
 ### Subjects Endpoint (`/api/subjects`)
 
 #### GET /api/subjects
-Haalt alle onderwerpen op, gesorteerd op aanmaakdatum (nieuwste eerst).
+Retrieves all topics, sorted by creation date (newest first).
 
 **Response:**
 ```json
 [
   {
     "id": "subject-id",
-    "Title": "Onderwerp titel",
+    "Title": "Topic title",
     "CreatedAt": "2025-09-18T19:30:00Z",
-    "CreatedBy": "Gebruikersnaam"
+    "CreatedBy": "Username"
   }
 ]
 ```
 
 #### POST /api/subjects
-Maakt een nieuw onderwerp aan.
+Creates a new topic.
 
 **Request Body:**
 ```json
 {
-  "Title": "Nieuw onderwerp",
-  "CreatedBy": "Jouw naam"
+  "Title": "New topic",
+  "CreatedBy": "Your name"
 }
 ```
 
 ### Posts Endpoint (`/api/posts`)
 
 #### GET /api/posts?SubjectId={id}
-Haalt alle berichten voor een specifiek onderwerp op.
+Retrieves all messages for a specific topic.
 
 **Response:**
 ```json
 [
   {
     "id": "message-id",
-    "Content": "Bericht inhoud",
+    "Content": "Message content",
     "CreatedAt": "2025-09-18T19:35:00Z",
-    "PostedBy": "Gebruikersnaam",
+    "PostedBy": "Username",
     "SubjectId": "/subjects/subject-id"
   }
 ]
 ```
 
 #### POST /api/posts
-Verzend een nieuw bericht.
+Send a new message.
 
 **Request Body:**
 ```json
 {
-  "Content": "Je bericht hier",
+  "Content": "Your message here",
   "SubjectId": "subject-id",
-  "PostedBy": "Jouw naam"
+  "PostedBy": "Your name"
 }
 ```
 
-## 🎯 Toekomstige Features
+## 🎯 Future Features
 
 ### V2.0 Roadmap
-- [ ] **Gebruikersaccounts**: Authenticatie en profielen
-- [ ] **Real-time WebSocket**: Live updates zonder polling
-- [ ] **Bestand Uploads**: Afbeeldingen en documenten delen
-- [ ] **Emoji Support**: Reacties en emoji picker
-- [ ] **Dark Mode**: Volledige dark theme implementatie
-- [ ] **Push Notifications**: Browser notificaties voor nieuwe berichten
-- [ ] **Message Threading**: Antwoorden op specifieke berichten
-- [ ] **Gebruikers Status**: Online/offline indicatoren
+- [ ] **User Accounts**: Authentication and profiles
+- [ ] **Real-time WebSocket**: Live updates without polling
+- [ ] **File Uploads**: Share images and documents
+- [ ] **Emoji Support**: Reactions and emoji picker
+- [ ] **Dark Mode**: Complete dark theme implementation
+- [ ] **Push Notifications**: Browser notifications for new messages
+- [ ] **Message Threading**: Reply to specific messages
+- [ ] **User Status**: Online/offline indicators
 
-### V2.1 Uitbreidingen
-- [ ] **Admin Panel**: Moderatie tools
-- [ ] **Message Search**: Zoeken in bericht geschiedenis
-- [ ] **Export Functie**: Chat geschiedenis downloaden
-- [ ] **Integraties**: Slack, Discord webhooks
-- [ ] **Mobile App**: PWA naar native app
+### V2.1 Extensions
+- [ ] **Admin Panel**: Moderation tools
+- [ ] **Message Search**: Search through message history
+- [ ] **Export Function**: Download chat history
+- [ ] **Integrations**: Slack, Discord webhooks
+- [ ] **Mobile App**: PWA to native app
 
-## 🐛 Bekende Issues
+## 🐛 Known Issues
 
-- **Message Polling**: Berichten worden elke 30 seconden ververst (geen real-time)
-- **Offline Mode**: Beperkte functionaliteit zonder internetverbinding
-- **Long Messages**: Geen ondersteuning voor multi-line berichten
+- **Message Polling**: Messages refresh every 30 seconds (not real-time)
+- **Offline Mode**: Limited functionality without internet connection
+- **Long Messages**: No support for multi-line messages
 
 ## 📄 License
 
-MIT License - zie [LICENSE](LICENSE) bestand voor details.
+MIT License - see [LICENSE](LICENSE) file for details.
 
 ## 🤝 Contributing
 
-Contributies zijn welkom! Zie onze contributing guidelines:
+Contributions are welcome! See our contributing guidelines:
 
-1. **Fork** het repository
-2. **Create** een feature branch (`git checkout -b feature/AmazingFeature`)
-3. **Commit** je wijzigingen (`git commit -m 'Add some AmazingFeature'`)
-4. **Push** naar de branch (`git push origin feature/AmazingFeature`)
-5. **Open** een Pull Request
+1. **Fork** the repository
+2. **Create** a feature branch (`git checkout -b feature/AmazingFeature`)
+3. **Commit** your changes (`git commit -m 'Add some AmazingFeature'`)
+4. **Push** to the branch (`git push origin feature/AmazingFeature`)
+5. **Open** a Pull Request
 
 ## 👥 Team
 
@@ -312,10 +312,10 @@ Contributies zijn welkom! Zie onze contributing guidelines:
 
 ## 📞 Support
 
-Voor vragen en ondersteuning:
+For questions and support:
 - **GitHub Issues**: [Create an issue](https://github.com/Gasfornuis/Kitchen-chat/issues)
 - **Discussion**: [GitHub Discussions](https://github.com/Gasfornuis/Kitchen-chat/discussions)
 
 ---
 
-**Kitchen Chat** - Waar culinaire gesprekken samenkomen! 🍳✨
+**Kitchen Chat** - Where culinary conversations come together! 🍳✨

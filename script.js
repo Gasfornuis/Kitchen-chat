@@ -6,14 +6,72 @@ class KitchenChat {
         this.messages = [];
         this.userName = localStorage.getItem('kitchenChatUserName') || '';
         this.emojiPicker = new EmojiPicker();
+        this.isInitialized = false;
         this.init();
     }
 
-    init() {
-        this.bindEvents();
-        this.loadSubjects();
-        this.setupAutoRefresh();
-        this.emojiPicker.init();
+    async init() {
+        try {
+            // Show loading screen initially
+            this.showLoadingScreen();
+            
+            // Wait a bit for a nice loading experience
+            await this.delay(1500);
+            
+            // Initialize components
+            this.bindEvents();
+            await this.loadSubjects();
+            this.setupAutoRefresh();
+            this.emojiPicker.init();
+            
+            // Mark as initialized
+            this.isInitialized = true;
+            
+            // Hide loading screen and show app
+            this.hideLoadingScreen();
+            
+            console.log('Kitchen Chat initialized successfully!');
+        } catch (error) {
+            console.error('Failed to initialize Kitchen Chat:', error);
+            this.hideLoadingScreen();
+            this.showToast('Failed to load Kitchen Chat. Please refresh the page.', 'error');
+        }
+    }
+
+    delay(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    showLoadingScreen() {
+        const loadingScreen = document.getElementById('loadingScreen');
+        const appContainer = document.getElementById('appContainer');
+        
+        if (loadingScreen) {
+            loadingScreen.classList.remove('hidden');
+        }
+        
+        if (appContainer) {
+            appContainer.classList.remove('loaded');
+        }
+    }
+
+    hideLoadingScreen() {
+        const loadingScreen = document.getElementById('loadingScreen');
+        const appContainer = document.getElementById('appContainer');
+        
+        if (loadingScreen) {
+            loadingScreen.classList.add('hidden');
+            // Remove from DOM after animation
+            setTimeout(() => {
+                if (loadingScreen.parentNode) {
+                    loadingScreen.style.display = 'none';
+                }
+            }, 800);
+        }
+        
+        if (appContainer) {
+            appContainer.classList.add('loaded');
+        }
     }
 
     bindEvents() {
@@ -60,6 +118,14 @@ class KitchenChat {
             this.emojiPicker.toggle();
         });
 
+        // Emoji picker close button
+        const emojiCloseBtn = document.getElementById('emojiClose');
+        if (emojiCloseBtn) {
+            emojiCloseBtn.addEventListener('click', () => {
+                this.emojiPicker.hide();
+            });
+        }
+
         // Refresh button
         document.getElementById('refreshBtn').addEventListener('click', () => this.refreshMessages());
 
@@ -68,11 +134,27 @@ class KitchenChat {
             this.filterSubjects(e.target.value);
         });
 
-        // ESC key to close modal and emoji picker
+        // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
+            // ESC key to close modal and emoji picker
             if (e.key === 'Escape') {
                 this.closeModal();
                 this.emojiPicker.hide();
+            }
+            
+            // Ctrl+K to focus search
+            if (e.ctrlKey && e.key === 'k') {
+                e.preventDefault();
+                const searchInput = document.getElementById('searchInput');
+                if (searchInput) {
+                    searchInput.focus();
+                }
+            }
+            
+            // Ctrl+N to create new topic
+            if (e.ctrlKey && e.key === 'n') {
+                e.preventDefault();
+                this.openModal();
             }
         });
 
@@ -82,6 +164,40 @@ class KitchenChat {
                 this.emojiPicker.hide();
             }
         });
+
+        // Handle connection status
+        this.updateConnectionStatus(navigator.onLine);
+        
+        window.addEventListener('online', () => {
+            this.updateConnectionStatus(true);
+            this.showToast('Connection restored', 'success');
+            if (this.isInitialized) {
+                this.loadSubjects();
+                if (this.currentSubjectId) {
+                    this.loadMessages(this.currentSubjectId);
+                }
+            }
+        });
+
+        window.addEventListener('offline', () => {
+            this.updateConnectionStatus(false);
+            this.showToast('No internet connection', 'error');
+        });
+    }
+
+    updateConnectionStatus(isOnline) {
+        const connectionStatus = document.getElementById('connectionStatus');
+        const statusText = connectionStatus?.querySelector('.status-text');
+        
+        if (connectionStatus) {
+            if (isOnline) {
+                connectionStatus.classList.remove('disconnected');
+                if (statusText) statusText.textContent = 'Connected';
+            } else {
+                connectionStatus.classList.add('disconnected');
+                if (statusText) statusText.textContent = 'Disconnected';
+            }
+        }
     }
 
     // API calls
@@ -107,7 +223,9 @@ class KitchenChat {
             return await response.json();
         } catch (error) {
             console.error('API call failed:', error);
-            this.showToast(`Error: ${error.message}`, 'error');
+            if (this.isInitialized) {
+                this.showToast(`Error: ${error.message}`, 'error');
+            }
             throw error;
         }
     }
@@ -223,7 +341,7 @@ class KitchenChat {
         }
 
         subjectsList.innerHTML = this.subjects.map(subject => `
-            <div class="subject-item" data-id="${subject.id}" onclick="kitchenChat.selectSubject('${subject.id}', '${subject.Title}')">
+            <div class="subject-item" data-id="${subject.id}" onclick="kitchenChat.selectSubject('${subject.id}', '${this.escapeHtml(subject.Title)}')">
                 <h3>${this.escapeHtml(subject.Title)}</h3>
                 <div class="meta">
                     <span class="creator">by ${this.escapeHtml(subject.CreatedBy)}</span>
@@ -419,20 +537,24 @@ class KitchenChat {
     setupAutoRefresh() {
         // Refresh messages every 30 seconds if a subject is selected
         setInterval(() => {
-            if (this.currentSubjectId) {
+            if (this.currentSubjectId && this.isInitialized) {
                 this.loadMessages(this.currentSubjectId);
             }
         }, 30000);
 
         // Refresh subjects every 2 minutes
         setInterval(() => {
-            this.loadSubjects();
+            if (this.isInitialized) {
+                this.loadSubjects();
+            }
         }, 120000);
     }
 
     // Toast notifications
     showToast(message, type = 'info') {
         const container = document.getElementById('toastContainer');
+        if (!container) return;
+        
         const toast = document.createElement('div');
         toast.className = `toast ${type}`;
         toast.textContent = message;
@@ -652,6 +774,7 @@ class EmojiPicker {
         
         if (emojiBtn) {
             emojiBtn.classList.add('active');
+            emojiBtn.setAttribute('aria-expanded', 'true');
         }
         
         this.isVisible = true;
@@ -676,9 +799,11 @@ class EmojiPicker {
         
         picker.classList.remove('show');
         picker.style.display = 'none';
+        picker.setAttribute('aria-hidden', 'true');
         
         if (emojiBtn) {
             emojiBtn.classList.remove('active');
+            emojiBtn.setAttribute('aria-expanded', 'false');
         }
         
         this.isVisible = false;
@@ -695,11 +820,13 @@ class EmojiPicker {
         // Update active category button
         document.querySelectorAll('.emoji-category').forEach(btn => {
             btn.classList.remove('active');
+            btn.setAttribute('aria-selected', 'false');
         });
         
         const activeBtn = document.querySelector(`[data-category="${category}"]`);
         if (activeBtn) {
             activeBtn.classList.add('active');
+            activeBtn.setAttribute('aria-selected', 'true');
         }
         
         this.currentCategory = category;
@@ -717,7 +844,7 @@ class EmojiPicker {
         const emojis = this.emojiData[category] || [];
         
         grid.innerHTML = emojis.map(emoji => `
-            <button class="emoji-item" onclick="kitchenChat.emojiPicker.selectEmoji('${emoji}')">
+            <button class="emoji-item" onclick="kitchenChat.emojiPicker.selectEmoji('${emoji}')" aria-label="${emoji} emoji">
                 ${emoji}
             </button>
         `).join('');
@@ -742,7 +869,7 @@ class EmojiPicker {
         });
         
         grid.innerHTML = filteredEmojis.slice(0, 64).map(emoji => `
-            <button class="emoji-item" onclick="kitchenChat.emojiPicker.selectEmoji('${emoji}')">
+            <button class="emoji-item" onclick="kitchenChat.emojiPicker.selectEmoji('${emoji}')" aria-label="${emoji} emoji">
                 ${emoji}
             </button>
         `).join('');
@@ -831,39 +958,36 @@ class EmojiPicker {
         if (!container) return;
         
         if (this.recentEmojis.length === 0) {
-            container.innerHTML = '<span style="color: #a0aec0; font-size: 0.8rem;">None yet</span>';
+            container.innerHTML = '<span style="color: rgba(255, 255, 255, 0.6); font-size: 0.8rem;">None yet</span>';
             return;
         }
         
         container.innerHTML = this.recentEmojis.map(emoji => `
-            <button class="recent-emoji" onclick="kitchenChat.emojiPicker.selectEmoji('${emoji}')">
+            <button class="recent-emoji" onclick="kitchenChat.emojiPicker.selectEmoji('${emoji}')" aria-label="${emoji} recent emoji">
                 ${emoji}
             </button>
         `).join('');
     }
 }
 
-// Initialize the application
-const kitchenChat = new KitchenChat();
+// Initialize the application when DOM is loaded
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        window.kitchenChat = new KitchenChat();
+    });
+} else {
+    window.kitchenChat = new KitchenChat();
+}
 
 // Service Worker registration for PWA capabilities
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js').catch(() => {
-            console.log('Service Worker registration failed');
-        });
+        navigator.serviceWorker.register('/sw.js')
+            .then(registration => {
+                console.log('SW registered: ', registration);
+            })
+            .catch(registrationError => {
+                console.log('SW registration failed: ', registrationError);
+            });
     });
 }
-
-// Handle online/offline status
-window.addEventListener('online', () => {
-    kitchenChat.showToast('Connection restored', 'success');
-    kitchenChat.loadSubjects();
-    if (kitchenChat.currentSubjectId) {
-        kitchenChat.loadMessages(kitchenChat.currentSubjectId);
-    }
-});
-
-window.addEventListener('offline', () => {
-    kitchenChat.showToast('No internet connection', 'error');
-});

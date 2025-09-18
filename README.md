@@ -363,6 +363,6 @@ We welcome contributions! Here's how:
     </a>
   </p>
   
-  <p><em>Built with ❤️ by <a href="https://github.com/Gasfornuis">Gasfornuis</a></em></p>
+  <p><em>Built with ❤️ by <a href="https://github.com/Gasfornuis">Gasfornuis</a></em <em>and <a href="https://github.com/Daan-25">Daan-25</a></em></p>
   <p><em>Modernized with ✨ cutting-edge web technologies</em></p>
 </div>

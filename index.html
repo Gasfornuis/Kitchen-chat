@@ -3,83 +3,195 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kitchen Chat</title>
+    <meta name="description" content="Kitchen Chat - The ultimate modern real-time chat application for culinary discussions. Connect with fellow food enthusiasts in style.">
+    <meta name="keywords" content="kitchen chat, cooking, culinary, real-time chat, food discussion, recipes">
+    <meta name="theme-color" content="#667eea">
+    <meta name="msapplication-navbutton-color" content="#667eea">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Kitchen Chat - Modern Culinary Conversations">
+    <meta property="og:description" content="Join the most beautiful chat platform for food lovers. Experience real-time conversations with stunning glassmorphism design.">
+    <meta property="og:image" content="https://kitchen-chat.vercel.app/og-image.png">
+    <meta property="og:url" content="https://kitchen-chat.vercel.app">
+    
+    <!-- Twitter Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Kitchen Chat - Modern Culinary Conversations">
+    <meta name="twitter:description" content="The most beautiful chat platform for food enthusiasts">
+    <meta name="twitter:image" content="https://kitchen-chat.vercel.app/og-image.png">
+    
+    <title>Kitchen Chat - Modern Culinary Conversations 🍳✨</title>
+    
+    <!-- Preload critical resources -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    
+    <!-- Stylesheets -->
     <link rel="stylesheet" href="styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json">
+    
+    <!-- Favicons -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Kitchen Chat",
+      "description": "Modern real-time chat application for culinary discussions",
+      "url": "https://kitchen-chat.vercel.app",
+      "applicationCategory": "CommunicationApplication",
+      "operatingSystem": "Web Browser",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      }
+    }
+    </script>
 </head>
 <body>
-    <div class="app-container">
-        <header class="header">
+    <!-- Loading Screen -->
+    <div class="loading-screen" id="loadingScreen">
+        <div class="loading-content">
+            <div class="loading-logo">
+                <i class="fas fa-utensils"></i>
+            </div>
+            <h2>Kitchen Chat</h2>
+            <div class="loading-dots">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+            <p>Preparing your culinary conversation space...</p>
+        </div>
+    </div>
+
+    <div class="app-container" id="appContainer">
+        <header class="header" role="banner">
             <div class="header-content">
                 <div class="logo">
-                    <i class="fas fa-utensils"></i>
+                    <i class="fas fa-utensils" aria-hidden="true"></i>
                     <h1>Kitchen Chat</h1>
                 </div>
-                <button class="new-subject-btn" id="newSubjectBtn">
-                    <i class="fas fa-plus"></i>
-                    New Topic
+                <button class="new-subject-btn" id="newSubjectBtn" aria-label="Create new topic">
+                    <i class="fas fa-plus" aria-hidden="true"></i>
+                    <span>New Topic</span>
                 </button>
             </div>
         </header>
 
         <div class="main-container">
             <!-- Sidebar with subjects -->
-            <aside class="sidebar">
+            <aside class="sidebar" role="complementary" aria-label="Topics sidebar">
                 <div class="sidebar-header">
                     <h2>Topics</h2>
                     <div class="search-container">
-                        <i class="fas fa-search"></i>
-                        <input type="text" placeholder="Search topics..." id="searchInput">
+                        <i class="fas fa-search" aria-hidden="true"></i>
+                        <input 
+                            type="text" 
+                            placeholder="Search topics..." 
+                            id="searchInput"
+                            aria-label="Search topics"
+                            autocomplete="off"
+                        >
                     </div>
                 </div>
-                <div class="subjects-list" id="subjectsList">
+                <div class="subjects-list" id="subjectsList" role="list" aria-label="Available topics">
                     <div class="loading">
-                        <i class="fas fa-spinner fa-spin"></i>
+                        <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
                         <span>Loading topics...</span>
                     </div>
                 </div>
             </aside>
 
             <!-- Main chat area -->
-            <main class="chat-container">
+            <main class="chat-container" role="main">
                 <div class="welcome-screen" id="welcomeScreen">
                     <div class="welcome-content">
-                        <i class="fas fa-comments"></i>
+                        <i class="fas fa-comments" aria-hidden="true"></i>
                         <h2>Welcome to Kitchen Chat!</h2>
-                        <p>Select a topic to start chatting or create a new topic to begin a conversation.</p>
+                        <p>Select a topic to start chatting or create a new topic to begin a conversation. Experience the future of culinary discussions with our stunning interface.</p>
+                        <div class="welcome-stats">
+                            <div class="stat-item">
+                                <i class="fas fa-users" aria-hidden="true"></i>
+                                <span>Connect</span>
+                            </div>
+                            <div class="stat-item">
+                                <i class="fas fa-utensils" aria-hidden="true"></i>
+                                <span>Cook</span>
+                            </div>
+                            <div class="stat-item">
+                                <i class="fas fa-heart" aria-hidden="true"></i>
+                                <span>Share</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 <div class="chat-area" id="chatArea" style="display: none;">
                     <div class="chat-header" id="chatHeader">
-                        <h2 id="currentSubjectTitle">Topic</h2>
+                        <div class="chat-title">
+                            <h2 id="currentSubjectTitle">Topic</h2>
+                            <div class="chat-status">
+                                <span class="status-indicator"></span>
+                                <span class="status-text">Active</span>
+                            </div>
+                        </div>
                         <div class="chat-actions">
-                            <button class="refresh-btn" id="refreshBtn" title="Refresh messages">
-                                <i class="fas fa-sync-alt"></i>
+                            <button class="refresh-btn" id="refreshBtn" title="Refresh messages" aria-label="Refresh messages">
+                                <i class="fas fa-sync-alt" aria-hidden="true"></i>
                             </button>
                         </div>
                     </div>
 
-                    <div class="messages-container" id="messagesContainer">
+                    <div class="messages-container" id="messagesContainer" role="log" aria-label="Chat messages" aria-live="polite">
                         <div class="loading">
-                            <i class="fas fa-spinner fa-spin"></i>
+                            <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
                             <span>Loading messages...</span>
                         </div>
                     </div>
 
                     <div class="message-input-container">
-                        <div class="message-input">
-                            <input type="text" placeholder="Type your message..." id="messageInput" maxlength="500">
-                            <button class="emoji-btn" id="emojiBtn" title="Add emoji">
-                                <i class="fas fa-smile"></i>
+                        <div class="typing-indicator" id="typingIndicator" style="display: none;">
+                            <div class="typing-dots">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                            </div>
+                            <span class="typing-text">Someone is typing...</span>
+                        </div>
+                        
+                        <div class="message-input" role="group" aria-label="Message input">
+                            <input 
+                                type="text" 
+                                placeholder="Type your message..." 
+                                id="messageInput" 
+                                maxlength="500"
+                                aria-label="Type your message"
+                                autocomplete="off"
+                            >
+                            <button class="emoji-btn" id="emojiBtn" title="Add emoji" aria-label="Add emoji" aria-expanded="false">
+                                <i class="fas fa-smile" aria-hidden="true"></i>
                             </button>
-                            <button id="sendBtn" disabled>
-                                <i class="fas fa-paper-plane"></i>
+                            <button id="sendBtn" disabled aria-label="Send message">
+                                <i class="fas fa-paper-plane" aria-hidden="true"></i>
                             </button>
                         </div>
                         <div class="input-info">
-                            <span class="char-count" id="charCount">0/500</span>
+                            <span class="char-count" id="charCount" aria-live="polite">0/500</span>
                         </div>
                     </div>
                 </div>
@@ -87,81 +199,156 @@
         </div>
     </div>
 
-    <!-- Emoji Picker -->
-    <div class="emoji-picker" id="emojiPicker">
+    <!-- Enhanced Emoji Picker -->
+    <div class="emoji-picker" id="emojiPicker" role="dialog" aria-label="Emoji picker" aria-hidden="true">
         <div class="emoji-header">
-            <div class="emoji-categories">
-                <button class="emoji-category active" data-category="smileys" title="Smileys & Emotion">
-                    <i class="fas fa-smile"></i>
+            <div class="emoji-categories" role="tablist" aria-label="Emoji categories">
+                <button class="emoji-category active" data-category="smileys" title="Smileys & Emotion" role="tab" aria-selected="true">
+                    <i class="fas fa-smile" aria-hidden="true"></i>
                 </button>
-                <button class="emoji-category" data-category="people" title="People & Body">
-                    <i class="fas fa-user"></i>
+                <button class="emoji-category" data-category="people" title="People & Body" role="tab" aria-selected="false">
+                    <i class="fas fa-user" aria-hidden="true"></i>
                 </button>
-                <button class="emoji-category" data-category="food" title="Food & Drink">
-                    <i class="fas fa-utensils"></i>
+                <button class="emoji-category" data-category="food" title="Food & Drink" role="tab" aria-selected="false">
+                    <i class="fas fa-utensils" aria-hidden="true"></i>
                 </button>
-                <button class="emoji-category" data-category="animals" title="Animals & Nature">
-                    <i class="fas fa-leaf"></i>
+                <button class="emoji-category" data-category="animals" title="Animals & Nature" role="tab" aria-selected="false">
+                    <i class="fas fa-leaf" aria-hidden="true"></i>
                 </button>
-                <button class="emoji-category" data-category="activities" title="Activities">
-                    <i class="fas fa-football-ball"></i>
+                <button class="emoji-category" data-category="activities" title="Activities" role="tab" aria-selected="false">
+                    <i class="fas fa-football-ball" aria-hidden="true"></i>
                 </button>
-                <button class="emoji-category" data-category="objects" title="Objects">
-                    <i class="fas fa-lightbulb"></i>
+                <button class="emoji-category" data-category="objects" title="Objects" role="tab" aria-selected="false">
+                    <i class="fas fa-lightbulb" aria-hidden="true"></i>
                 </button>
-                <button class="emoji-category" data-category="symbols" title="Symbols">
-                    <i class="fas fa-heart"></i>
+                <button class="emoji-category" data-category="symbols" title="Symbols" role="tab" aria-selected="false">
+                    <i class="fas fa-heart" aria-hidden="true"></i>
                 </button>
             </div>
             <div class="emoji-search">
-                <input type="text" placeholder="Search emoji..." id="emojiSearch">
+                <input 
+                    type="text" 
+                    placeholder="Search emoji..." 
+                    id="emojiSearch"
+                    aria-label="Search emoji"
+                    autocomplete="off"
+                >
             </div>
         </div>
         <div class="emoji-content">
-            <div class="emoji-grid" id="emojiGrid">
+            <div class="emoji-grid" id="emojiGrid" role="grid" aria-label="Available emojis">
                 <!-- Emoji grid will be populated by JavaScript -->
             </div>
         </div>
         <div class="emoji-footer">
             <div class="recent-emojis">
                 <span class="recent-label">Recently used:</span>
-                <div class="recent-emoji-list" id="recentEmojiList">
+                <div class="recent-emoji-list" id="recentEmojiList" role="list">
                     <!-- Recent emojis will be populated by JavaScript -->
                 </div>
             </div>
         </div>
+        <button class="emoji-close" id="emojiClose" aria-label="Close emoji picker">
+            <i class="fas fa-times" aria-hidden="true"></i>
+        </button>
     </div>
 
-    <!-- Modal for new subject -->
-    <div class="modal-overlay" id="modalOverlay">
+    <!-- Enhanced Modal for new subject -->
+    <div class="modal-overlay" id="modalOverlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
         <div class="modal">
             <div class="modal-header">
-                <h3>Create New Topic</h3>
-                <button class="close-btn" id="closeModalBtn">
-                    <i class="fas fa-times"></i>
+                <h3 id="modalTitle">Create New Topic</h3>
+                <button class="close-btn" id="closeModalBtn" aria-label="Close modal">
+                    <i class="fas fa-times" aria-hidden="true"></i>
                 </button>
             </div>
             <div class="modal-body">
-                <div class="form-group">
-                    <label for="subjectTitle">Topic Title</label>
-                    <input type="text" id="subjectTitle" placeholder="e.g., Weekly Menu Planning" maxlength="100">
-                    <div class="char-count" id="titleCharCount">0/100</div>
-                </div>
-                <div class="form-group">
-                    <label for="createdBy">Your Name</label>
-                    <input type="text" id="createdBy" placeholder="Your name" maxlength="50">
-                </div>
+                <form id="newTopicForm" novalidate>
+                    <div class="form-group">
+                        <label for="subjectTitle">Topic Title</label>
+                        <input 
+                            type="text" 
+                            id="subjectTitle" 
+                            placeholder="e.g., Weekly Menu Planning" 
+                            maxlength="100"
+                            required
+                            aria-describedby="titleCharCount"
+                        >
+                        <div class="char-count" id="titleCharCount" aria-live="polite">0/100</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="createdBy">Your Name</label>
+                        <input 
+                            type="text" 
+                            id="createdBy" 
+                            placeholder="Your name" 
+                            maxlength="50"
+                            required
+                        >
+                    </div>
+                </form>
             </div>
             <div class="modal-footer">
-                <button class="btn-secondary" id="cancelBtn">Cancel</button>
-                <button class="btn-primary" id="createSubjectBtn" disabled>Create Topic</button>
+                <button class="btn-secondary" id="cancelBtn" type="button">Cancel</button>
+                <button class="btn-primary" id="createSubjectBtn" type="submit" form="newTopicForm" disabled>
+                    <span class="btn-text">Create Topic</span>
+                    <i class="fas fa-sparkles btn-icon" aria-hidden="true"></i>
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- Toast notifications -->
-    <div class="toast-container" id="toastContainer"></div>
+    <!-- Enhanced Toast notifications -->
+    <div class="toast-container" id="toastContainer" role="status" aria-live="polite"></div>
 
+    <!-- Connection Status -->
+    <div class="connection-status" id="connectionStatus">
+        <div class="status-indicator"></div>
+        <span class="status-text">Connected</span>
+    </div>
+
+    <!-- Shortcuts Help -->
+    <div class="shortcuts-help" id="shortcutsHelp" style="display: none;">
+        <h3>Keyboard Shortcuts</h3>
+        <div class="shortcut-list">
+            <div class="shortcut-item">
+                <kbd>Enter</kbd>
+                <span>Send message</span>
+            </div>
+            <div class="shortcut-item">
+                <kbd>Ctrl</kbd> + <kbd>K</kbd>
+                <span>Search topics</span>
+            </div>
+            <div class="shortcut-item">
+                <kbd>Ctrl</kbd> + <kbd>N</kbd>
+                <span>New topic</span>
+            </div>
+            <div class="shortcut-item">
+                <kbd>Esc</kbd>
+                <span>Close dialogs</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
     <script src="script.js"></script>
+    
+    <!-- Analytics placeholder (uncomment when ready) -->
+    <!-- <script async src="https://www.googletagmanager.com/gtag/js?id=GA_TRACKING_ID"></script> -->
+    
+    <!-- Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => {
+                        console.log('SW registered: ', registration);
+                    })
+                    .catch(registrationError => {
+                        console.log('SW registration failed: ', registrationError);
+                    });
+            });
+        }
+    </script>
 </body>
 </html>

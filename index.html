@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="nl">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -19,7 +19,7 @@
                 </div>
                 <button class="new-subject-btn" id="newSubjectBtn">
                     <i class="fas fa-plus"></i>
-                    Nieuw Onderwerp
+                    New Topic
                 </button>
             </div>
         </header>
@@ -28,16 +28,16 @@
             <!-- Sidebar with subjects -->
             <aside class="sidebar">
                 <div class="sidebar-header">
-                    <h2>Onderwerpen</h2>
+                    <h2>Topics</h2>
                     <div class="search-container">
                         <i class="fas fa-search"></i>
-                        <input type="text" placeholder="Zoek onderwerpen..." id="searchInput">
+                        <input type="text" placeholder="Search topics..." id="searchInput">
                     </div>
                 </div>
                 <div class="subjects-list" id="subjectsList">
                     <div class="loading">
                         <i class="fas fa-spinner fa-spin"></i>
-                        <span>Onderwerpen laden...</span>
+                        <span>Loading topics...</span>
                     </div>
                 </div>
             </aside>
@@ -47,16 +47,16 @@
                 <div class="welcome-screen" id="welcomeScreen">
                     <div class="welcome-content">
                         <i class="fas fa-comments"></i>
-                        <h2>Welkom bij Kitchen Chat!</h2>
-                        <p>Selecteer een onderwerp om te beginnen met chatten of maak een nieuw onderwerp aan.</p>
+                        <h2>Welcome to Kitchen Chat!</h2>
+                        <p>Select a topic to start chatting or create a new topic to begin a conversation.</p>
                     </div>
                 </div>
 
                 <div class="chat-area" id="chatArea" style="display: none;">
                     <div class="chat-header" id="chatHeader">
-                        <h2 id="currentSubjectTitle">Onderwerp</h2>
+                        <h2 id="currentSubjectTitle">Topic</h2>
                         <div class="chat-actions">
-                            <button class="refresh-btn" id="refreshBtn" title="Ververs berichten">
+                            <button class="refresh-btn" id="refreshBtn" title="Refresh messages">
                                 <i class="fas fa-sync-alt"></i>
                             </button>
                         </div>
@@ -65,13 +65,13 @@
                     <div class="messages-container" id="messagesContainer">
                         <div class="loading">
                             <i class="fas fa-spinner fa-spin"></i>
-                            <span>Berichten laden...</span>
+                            <span>Loading messages...</span>
                         </div>
                     </div>
 
                     <div class="message-input-container">
                         <div class="message-input">
-                            <input type="text" placeholder="Typ je bericht..." id="messageInput" maxlength="500">
+                            <input type="text" placeholder="Type your message..." id="messageInput" maxlength="500">
                             <button id="sendBtn" disabled>
                                 <i class="fas fa-paper-plane"></i>
                             </button>
@@ -89,25 +89,25 @@
     <div class="modal-overlay" id="modalOverlay">
         <div class="modal">
             <div class="modal-header">
-                <h3>Nieuw Onderwerp Maken</h3>
+                <h3>Create New Topic</h3>
                 <button class="close-btn" id="closeModalBtn">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label for="subjectTitle">Onderwerp Titel</label>
-                    <input type="text" id="subjectTitle" placeholder="Bijvoorbeeld: Weekmenu Planning" maxlength="100">
+                    <label for="subjectTitle">Topic Title</label>
+                    <input type="text" id="subjectTitle" placeholder="e.g., Weekly Menu Planning" maxlength="100">
                     <div class="char-count" id="titleCharCount">0/100</div>
                 </div>
                 <div class="form-group">
-                    <label for="createdBy">Jouw Naam</label>
-                    <input type="text" id="createdBy" placeholder="Jouw naam" maxlength="50">
+                    <label for="createdBy">Your Name</label>
+                    <input type="text" id="createdBy" placeholder="Your name" maxlength="50">
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn-secondary" id="cancelBtn">Annuleren</button>
-                <button class="btn-primary" id="createSubjectBtn" disabled>Onderwerp Maken</button>
+                <button class="btn-secondary" id="cancelBtn">Cancel</button>
+                <button class="btn-primary" id="createSubjectBtn" disabled>Create Topic</button>
             </div>
         </div>
     </div>

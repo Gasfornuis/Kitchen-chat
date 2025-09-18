@@ -5,6 +5,7 @@ class KitchenChat {
         this.subjects = [];
         this.messages = [];
         this.userName = localStorage.getItem('kitchenChatUserName') || '';
+        this.emojiPicker = new EmojiPicker();
         this.init();
     }
 
@@ -12,6 +13,7 @@ class KitchenChat {
         this.bindEvents();
         this.loadSubjects();
         this.setupAutoRefresh();
+        this.emojiPicker.init();
     }
 
     bindEvents() {
@@ -51,6 +53,9 @@ class KitchenChat {
             }
         });
 
+        // Emoji button
+        document.getElementById('emojiBtn').addEventListener('click', () => this.emojiPicker.toggle());
+
         // Refresh button
         document.getElementById('refreshBtn').addEventListener('click', () => this.refreshMessages());
 
@@ -59,10 +64,18 @@ class KitchenChat {
             this.filterSubjects(e.target.value);
         });
 
-        // ESC key to close modal
+        // ESC key to close modal and emoji picker
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 this.closeModal();
+                this.emojiPicker.hide();
+            }
+        });
+
+        // Click outside to close emoji picker
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.emoji-picker') && !e.target.closest('.emoji-btn')) {
+                this.emojiPicker.hide();
             }
         });
     }
@@ -251,7 +264,7 @@ class KitchenChat {
                         <span class="message-author">${this.escapeHtml(message.PostedBy)}</span>
                         <span class="message-time">${this.formatTime(message.CreatedAt)}</span>
                     </div>
-                    <div class="message-content">${this.escapeHtml(message.Content)}</div>
+                    <div class="message-content">${this.processEmojis(this.escapeHtml(message.Content))}</div>
                 </div>
             `;
         }).join('');
@@ -278,7 +291,7 @@ class KitchenChat {
                 <span class="message-author">${this.escapeHtml(author)}</span>
                 <span class="message-time">Sending...</span>
             </div>
-            <div class="message-content">${this.escapeHtml(content)}</div>
+            <div class="message-content">${this.processEmojis(this.escapeHtml(content))}</div>
         `;
         
         messagesContainer.appendChild(tempMessage);
@@ -290,6 +303,13 @@ class KitchenChat {
         if (tempMessage) {
             tempMessage.remove();
         }
+    }
+
+    // Process emojis in messages
+    processEmojis(text) {
+        // This function can be extended to handle custom emoji codes if needed
+        // For now, it just returns the text as-is since browsers handle Unicode emojis natively
+        return text;
     }
 
     // Subject selection
@@ -492,6 +512,287 @@ class KitchenChat {
         } catch (e) {
             return 'Unknown';
         }
+    }
+}
+
+// Emoji Picker Class
+class EmojiPicker {
+    constructor() {
+        this.isVisible = false;
+        this.currentCategory = 'smileys';
+        this.recentEmojis = JSON.parse(localStorage.getItem('recentEmojis') || '[]');
+        this.searchTimeout = null;
+        
+        // Emoji data - comprehensive list organized by categories
+        this.emojiData = {
+            smileys: [
+                '😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂', '🙂', '🙃',
+                '😉', '😊', '😇', '🥰', '😍', '🤩', '😘', '😗', '☺️', '😚',
+                '😙', '🥲', '😋', '😛', '😜', '🤪', '😝', '🤑', '🤗', '🤭',
+                '🤫', '🤔', '🤐', '🤨', '😐', '😑', '😶', '😏', '😒', '🙄',
+                '😬', '🤥', '😔', '😪', '🤤', '😴', '😷', '🤒', '🤕', '🤢',
+                '🤮', '🤧', '🥵', '🥶', '🥴', '😵', '🤯', '🤠', '🥳', '🥸'
+            ],
+            people: [
+                '👶', '🧒', '👦', '👧', '🧑', '👱', '👨', '🧔', '👩', '🧓',
+                '👴', '👵', '🙍', '🙎', '🙅', '🙆', '💁', '🙋', '🧏', '🙇',
+                '🤦', '🤷', '👮', '🕵️', '💂', '🥷', '👷', '🤴', '👸', '👳',
+                '👲', '🧕', '🤵', '👰', '🤰', '🤱', '👼', '🎅', '🤶', '🦸',
+                '🦹', '🧙', '🧚', '🧛', '🧜', '🧝', '🧞', '🧟', '💆', '💇',
+                '🚶', '🧍', '🏃', '🧎', '🧘', '🏋️', '🤸', '⛹️', '🤺', '🏌️'
+            ],
+            food: [
+                '🍎', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🫐', '🍈',
+                '🍒', '🍑', '🥭', '🍍', '🥥', '🥝', '🍅', '🍆', '🥑', '🥦',
+                '🥬', '🥒', '🌶️', '🫑', '🌽', '🥕', '🫒', '🧄', '🧅', '🥔',
+                '🍠', '🥐', '🥖', '🍞', '🥨', '🥯', '🧀', '🥚', '🍳', '🧈',
+                '🥞', '🧇', '🥓', '🥩', '🍗', '🍖', '🌭', '🍔', '🍟', '🍕',
+                '🥪', '🥙', '🧆', '🌮', '🌯', '🫔', '🥗', '🥘', '🫕', '🍝',
+                '🍜', '🍲', '🍛', '🍣', '🍱', '🥟', '🦪', '🍤', '🍙', '🍚',
+                '🍘', '🍥', '🥠', '🥮', '🍢', '🍡', '🍧', '🍨', '🍦', '🥧',
+                '🧁', '🍰', '🎂', '🍮', '🍭', '🍬', '🍫', '🍿', '🍩', '🍪'
+            ],
+            animals: [
+                '🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐻‍❄️', '🐨',
+                '🐯', '🦁', '🐮', '🐷', '🐽', '🐸', '🐵', '🙈', '🙉', '🙊',
+                '🐒', '🐔', '🐧', '🐦', '🐤', '🐣', '🐥', '🦆', '🦅', '🦉',
+                '🦇', '🐺', '🐗', '🐴', '🦄', '🐝', '🪱', '🐛', '🦋', '🐌',
+                '🐞', '🐜', '🪰', '🪲', '🪳', '🦟', '🦗', '🕷️', '🕸️', '🦂',
+                '🐢', '🐍', '🦎', '🦖', '🦕', '🐙', '🦑', '🦐', '🦞', '🦀',
+                '🐡', '🐠', '🐟', '🐬', '🐳', '🐋', '🦈', '🐊', '🐅', '🐆',
+                '🦓', '🦍', '🦧', '🐘', '🦣', '🦏', '🦛', '🦌', '🐪', '🐫'
+            ],
+            activities: [
+                '⚽', '🏀', '🏈', '⚾', '🥎', '🎾', '🏐', '🏉', '🥏', '🎱',
+                '🪀', '🏓', '🏸', '🏒', '🏑', '🥍', '🏏', '🪃', '🥅', '⛳',
+                '🪁', '🏹', '🎣', '🤿', '🥊', '🥋', '🎽', '🛹', '🛷', '⛸️',
+                '🥌', '🎿', '⛷️', '🏂', '🪂', '🏋️‍♀️', '🏋️‍♂️', '🤸‍♀️', '🤸‍♂️', '⛹️‍♀️',
+                '⛹️‍♂️', '🤺', '🤾‍♀️', '🤾‍♂️', '🏌️‍♀️', '🏌️‍♂️', '🏇', '🧘‍♀️', '🧘‍♂️', '🏄‍♀️',
+                '🏄‍♂️', '🏊‍♀️', '🏊‍♂️', '🤽‍♀️', '🤽‍♂️', '🚣‍♀️', '🚣‍♂️', '🧗‍♀️', '🧗‍♂️', '🚵‍♀️'
+            ],
+            objects: [
+                '⌚', '📱', '📲', '💻', '⌨️', '🖥️', '🖨️', '🖱️', '🖲️', '🕹️',
+                '🗜️', '💽', '💾', '💿', '📀', '📼', '📷', '📸', '📹', '🎥',
+                '📽️', '🎞️', '📞', '☎️', '📟', '📠', '📺', '📻', '🎙️', '🎚️',
+                '🎛️', '🧭', '⏱️', '⏲️', '⏰', '🕰️', '⏳', '⌛', '📡', '🔋',
+                '🔌', '💡', '🔦', '🕯️', '🪔', '🧯', '🛢️', '💸', '💵', '💴',
+                '💶', '💷', '🪙', '💰', '💳', '💎', '⚖️', '🪜', '🧰', '🔧',
+                '🔨', '⚒️', '🛠️', '⛏️', '🪚', '🔩', '⚙️', '🪤', '🧱', '⛓️'
+            ],
+            symbols: [
+                '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔',
+                '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '☮️',
+                '✝️', '☪️', '🕉️', '☸️', '✡️', '🔯', '🕎', '☯️', '☦️', '🛐',
+                '⛎', '♈', '♉', '♊', '♋', '♌', '♍', '♎', '♏', '♐',
+                '♑', '♒', '♓', '🆔', '⚛️', '🉑', '☢️', '☣️', '📴', '📳',
+                '🈶', '🈚', '🈸', '🈺', '🈷️', '✴️', '🆚', '💮', '🉐', '㊙️',
+                '㊗️', '🈴', '🈵', '🈹', '🈲', '🅰️', '🅱️', '🆎', '🆑', '🅾️',
+                '🆘', '❌', '⭕', '🛑', '⛔', '📛', '🚫', '💯', '💢', '♨️'
+            ]
+        };
+    }
+
+    init() {
+        this.bindEvents();
+        this.renderCategories();
+        this.renderEmojis(this.currentCategory);
+        this.renderRecentEmojis();
+    }
+
+    bindEvents() {
+        // Category buttons
+        document.querySelectorAll('.emoji-category').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const category = e.currentTarget.dataset.category;
+                this.selectCategory(category);
+            });
+        });
+
+        // Emoji search
+        const emojiSearch = document.getElementById('emojiSearch');
+        if (emojiSearch) {
+            emojiSearch.addEventListener('input', (e) => {
+                clearTimeout(this.searchTimeout);
+                this.searchTimeout = setTimeout(() => {
+                    this.searchEmojis(e.target.value);
+                }, 300);
+            });
+        }
+    }
+
+    toggle() {
+        const picker = document.getElementById('emojiPicker');
+        const emojiBtn = document.getElementById('emojiBtn');
+        
+        if (this.isVisible) {
+            this.hide();
+        } else {
+            this.show();
+        }
+    }
+
+    show() {
+        const picker = document.getElementById('emojiPicker');
+        const emojiBtn = document.getElementById('emojiBtn');
+        
+        picker.classList.add('show');
+        emojiBtn.classList.add('active');
+        this.isVisible = true;
+        
+        // Focus search input
+        setTimeout(() => {
+            const searchInput = document.getElementById('emojiSearch');
+            if (searchInput) {
+                searchInput.focus();
+            }
+        }, 100);
+    }
+
+    hide() {
+        const picker = document.getElementById('emojiPicker');
+        const emojiBtn = document.getElementById('emojiBtn');
+        
+        picker.classList.remove('show');
+        emojiBtn.classList.remove('active');
+        this.isVisible = false;
+        
+        // Clear search
+        const searchInput = document.getElementById('emojiSearch');
+        if (searchInput) {
+            searchInput.value = '';
+            this.renderEmojis(this.currentCategory);
+        }
+    }
+
+    selectCategory(category) {
+        // Update active category button
+        document.querySelectorAll('.emoji-category').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        document.querySelector(`[data-category="${category}"]`).classList.add('active');
+        
+        this.currentCategory = category;
+        this.renderEmojis(category);
+    }
+
+    renderEmojis(category) {
+        const grid = document.getElementById('emojiGrid');
+        const emojis = this.emojiData[category] || [];
+        
+        grid.innerHTML = emojis.map(emoji => `
+            <button class="emoji-item" data-emoji="${emoji}" onclick="kitchenChat.emojiPicker.selectEmoji('${emoji}')">
+                ${emoji}
+            </button>
+        `).join('');
+    }
+
+    searchEmojis(query) {
+        if (!query.trim()) {
+            this.renderEmojis(this.currentCategory);
+            return;
+        }
+
+        const grid = document.getElementById('emojiGrid');
+        const allEmojis = Object.values(this.emojiData).flat();
+        
+        // Simple search - you could enhance this with emoji names/keywords
+        const filteredEmojis = allEmojis.filter(emoji => {
+            // This is a basic implementation - in a real app you'd want emoji name matching
+            return emoji.includes(query) || this.getEmojiKeywords(emoji).some(keyword => 
+                keyword.toLowerCase().includes(query.toLowerCase())
+            );
+        });
+        
+        grid.innerHTML = filteredEmojis.slice(0, 64).map(emoji => `
+            <button class="emoji-item" data-emoji="${emoji}" onclick="kitchenChat.emojiPicker.selectEmoji('${emoji}')">
+                ${emoji}
+            </button>
+        `).join('');
+    }
+
+    getEmojiKeywords(emoji) {
+        // Basic emoji keyword mapping - this could be much more comprehensive
+        const keywords = {
+            '😀': ['happy', 'smile', 'joy'],
+            '😍': ['love', 'heart', 'eyes'],
+            '🍕': ['pizza', 'food', 'slice'],
+            '🎉': ['party', 'celebration', 'confetti'],
+            '❤️': ['heart', 'love', 'red'],
+            '🔥': ['fire', 'hot', 'flame'],
+            '👍': ['thumbs', 'up', 'good', 'like'],
+            '😂': ['laugh', 'cry', 'funny', 'lol'],
+            '🤔': ['think', 'hmm', 'wondering'],
+            '💯': ['hundred', 'perfect', 'score']
+        };
+        return keywords[emoji] || [];
+    }
+
+    selectEmoji(emoji) {
+        const messageInput = document.getElementById('messageInput');
+        const cursorPos = messageInput.selectionStart;
+        const textBefore = messageInput.value.substring(0, cursorPos);
+        const textAfter = messageInput.value.substring(messageInput.selectionEnd);
+        
+        // Insert emoji at cursor position
+        messageInput.value = textBefore + emoji + textAfter;
+        
+        // Update cursor position
+        const newCursorPos = cursorPos + emoji.length;
+        messageInput.setSelectionRange(newCursorPos, newCursorPos);
+        
+        // Update character count
+        document.getElementById('charCount').textContent = `${messageInput.value.length}/500`;
+        
+        // Validate input
+        kitchenChat.validateMessageInput();
+        
+        // Add to recent emojis
+        this.addToRecent(emoji);
+        
+        // Focus back on input
+        messageInput.focus();
+        
+        // Hide picker on mobile
+        if (window.innerWidth <= 768) {
+            this.hide();
+        }
+    }
+
+    addToRecent(emoji) {
+        // Remove if already exists
+        this.recentEmojis = this.recentEmojis.filter(e => e !== emoji);
+        
+        // Add to beginning
+        this.recentEmojis.unshift(emoji);
+        
+        // Keep only last 10
+        this.recentEmojis = this.recentEmojis.slice(0, 10);
+        
+        // Save to localStorage
+        localStorage.setItem('recentEmojis', JSON.stringify(this.recentEmojis));
+        
+        // Re-render recent emojis
+        this.renderRecentEmojis();
+    }
+
+    renderRecentEmojis() {
+        const container = document.getElementById('recentEmojiList');
+        
+        if (this.recentEmojis.length === 0) {
+            container.innerHTML = '<span style="color: #a0aec0; font-size: 0.8rem;">None yet</span>';
+            return;
+        }
+        
+        container.innerHTML = this.recentEmojis.map(emoji => `
+            <button class="recent-emoji" data-emoji="${emoji}" onclick="kitchenChat.emojiPicker.selectEmoji('${emoji}')">
+                ${emoji}
+            </button>
+        `).join('');
+    }
+
+    renderCategories() {
+        // This method could be used to dynamically render categories if needed
+        // For now, categories are defined in HTML
     }
 }
 

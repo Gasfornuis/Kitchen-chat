@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kitchen Chat</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-utensils"></i>
+                    <h1>Kitchen Chat</h1>
+                </div>
+                <button class="new-subject-btn" id="newSubjectBtn">
+                    <i class="fas fa-plus"></i>
+                    Nieuw Onderwerp
+                </button>
+            </div>
+        </header>
+
+        <div class="main-container">
+            <!-- Sidebar with subjects -->
+            <aside class="sidebar">
+                <div class="sidebar-header">
+                    <h2>Onderwerpen</h2>
+                    <div class="search-container">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="Zoek onderwerpen..." id="searchInput">
+                    </div>
+                </div>
+                <div class="subjects-list" id="subjectsList">
+                    <div class="loading">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <span>Onderwerpen laden...</span>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main chat area -->
+            <main class="chat-container">
+                <div class="welcome-screen" id="welcomeScreen">
+                    <div class="welcome-content">
+                        <i class="fas fa-comments"></i>
+                        <h2>Welkom bij Kitchen Chat!</h2>
+                        <p>Selecteer een onderwerp om te beginnen met chatten of maak een nieuw onderwerp aan.</p>
+                    </div>
+                </div>
+
+                <div class="chat-area" id="chatArea" style="display: none;">
+                    <div class="chat-header" id="chatHeader">
+                        <h2 id="currentSubjectTitle">Onderwerp</h2>
+                        <div class="chat-actions">
+                            <button class="refresh-btn" id="refreshBtn" title="Ververs berichten">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="messages-container" id="messagesContainer">
+                        <div class="loading">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <span>Berichten laden...</span>
+                        </div>
+                    </div>
+
+                    <div class="message-input-container">
+                        <div class="message-input">
+                            <input type="text" placeholder="Typ je bericht..." id="messageInput" maxlength="500">
+                            <button id="sendBtn" disabled>
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
+                        <div class="input-info">
+                            <span class="char-count" id="charCount">0/500</span>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Modal for new subject -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Nieuw Onderwerp Maken</h3>
+                <button class="close-btn" id="closeModalBtn">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="subjectTitle">Onderwerp Titel</label>
+                    <input type="text" id="subjectTitle" placeholder="Bijvoorbeeld: Weekmenu Planning" maxlength="100">
+                    <div class="char-count" id="titleCharCount">0/100</div>
+                </div>
+                <div class="form-group">
+                    <label for="createdBy">Jouw Naam</label>
+                    <input type="text" id="createdBy" placeholder="Jouw naam" maxlength="50">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" id="cancelBtn">Annuleren</button>
+                <button class="btn-primary" id="createSubjectBtn" disabled>Onderwerp Maken</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast notifications -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="script.js"></script>
+</body>
+</html>

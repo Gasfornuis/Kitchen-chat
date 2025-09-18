@@ -75,12 +75,101 @@ body::before {
   66% { transform: translateY(10px) rotate(240deg); }
 }
 
+/* Loading Screen */
+.loading-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  opacity: 1;
+  transition: opacity 0.8s ease, visibility 0.8s ease;
+}
+
+.loading-screen.hidden {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.loading-content {
+  text-align: center;
+  color: white;
+  animation: loadingFloat 2s ease-in-out infinite;
+}
+
+@keyframes loadingFloat {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+.loading-logo {
+  font-size: 4rem;
+  margin-bottom: 1.5rem;
+  animation: logoRotate 3s ease-in-out infinite;
+}
+
+@keyframes logoRotate {
+  0%, 100% { transform: rotate(0deg) scale(1); }
+  50% { transform: rotate(180deg) scale(1.1); }
+}
+
+.loading-content h2 {
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin-bottom: 2rem;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.6));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.loading-dots {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.loading-dots span {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.7);
+  animation: loadingDots 1.5s ease-in-out infinite;
+}
+
+.loading-dots span:nth-child(1) { animation-delay: 0s; }
+.loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+.loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes loadingDots {
+  0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+  40% { transform: scale(1.2); opacity: 1; }
+}
+
+.loading-content p {
+  font-size: 1.2rem;
+  opacity: 0.8;
+  font-weight: 400;
+}
+
 .app-container {
   display: flex;
   flex-direction: column;
   height: 100vh;
   position: relative;
   z-index: 1;
+  opacity: 0;
+  transition: opacity 0.8s ease 0.3s;
+}
+
+.app-container.loaded {
+  opacity: 1;
 }
 
 /* Header with premium glassmorphism */
@@ -401,7 +490,7 @@ body::before {
 
 .welcome-content {
   text-align: center;
-  max-width: 500px;
+  max-width: 600px;
   animation: welcomeFloat 4s ease-in-out infinite;
 }
 
@@ -443,6 +532,44 @@ body::before {
   line-height: 1.8;
   font-size: 1.2rem;
   font-weight: 400;
+  margin-bottom: 2rem;
+}
+
+.welcome-stats {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.3s var(--animation-smooth);
+}
+
+.stat-item:hover {
+  transform: translateY(-5px);
+  background: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.stat-item i {
+  font-size: 1.5rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.stat-item span {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.7);
 }
 
 /* Chat area */
@@ -461,18 +588,40 @@ body::before {
   background: rgba(255, 255, 255, 0.05);
 }
 
-.chat-header h2 {
+.chat-title h2 {
   font-size: 1.5rem;
   font-weight: 700;
   color: var(--text-light);
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  margin-bottom: 0.5rem;
 }
 
-.chat-header h2::before {
+.chat-title h2::before {
   content: '🎯';
   font-size: 1.2rem;
+}
+
+.chat-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--success-gradient);
+  animation: statusPulse 2s ease-in-out infinite;
+}
+
+@keyframes statusPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.2); }
 }
 
 .refresh-btn {
@@ -577,6 +726,42 @@ body::before {
   word-wrap: break-word;
   font-size: 1.1rem;
   font-weight: 400;
+}
+
+/* Typing indicator */
+.typing-indicator {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1.5rem;
+  margin-bottom: 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+}
+
+.typing-dots {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.typing-dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  animation: typingDots 1.5s ease-in-out infinite;
+}
+
+.typing-dots span:nth-child(1) { animation-delay: 0s; }
+.typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+.typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes typingDots {
+  0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+  40% { transform: scale(1.2); opacity: 1; }
 }
 
 /* Enhanced message input */
@@ -708,6 +893,83 @@ body::before {
   font-weight: 500;
 }
 
+/* Connection Status */
+.connection-status {
+  position: fixed;
+  top: 1rem;
+  left: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--text-light);
+  font-size: 0.9rem;
+  font-weight: 500;
+  z-index: 1000;
+  transition: all 0.3s var(--animation-smooth);
+}
+
+.connection-status .status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--success-gradient);
+  animation: statusPulse 2s ease-in-out infinite;
+}
+
+.connection-status.disconnected .status-indicator {
+  background: var(--accent-gradient);
+}
+
+/* Shortcuts Help */
+.shortcuts-help {
+  position: fixed;
+  bottom: 2rem;
+  left: 2rem;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(40px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  padding: 1.5rem;
+  color: var(--text-light);
+  z-index: 1000;
+  max-width: 300px;
+}
+
+.shortcuts-help h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.shortcut-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.shortcut-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+kbd {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8rem;
+  font-family: 'Inter', monospace;
+  color: rgba(255, 255, 255, 0.8);
+}
+
 /* Ultra-modern emoji picker */
 .emoji-picker {
   position: fixed !important;
@@ -757,6 +1019,30 @@ body::before {
   border-right: 12px solid transparent !important;
   border-top: 12px solid rgba(255, 255, 255, 0.1) !important;
   backdrop-filter: blur(40px) !important;
+}
+
+.emoji-close {
+  position: absolute !important;
+  top: 1rem !important;
+  right: 1rem !important;
+  width: 32px !important;
+  height: 32px !important;
+  border: none !important;
+  border-radius: 50% !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: rgba(255, 255, 255, 0.7) !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.3s var(--animation-smooth) !important;
+  z-index: 10 !important;
+}
+
+.emoji-close:hover {
+  background: rgba(245, 87, 108, 0.2) !important;
+  color: #f5576c !important;
+  transform: rotate(90deg) !important;
 }
 
 .emoji-header {
@@ -1075,6 +1361,9 @@ body::before {
   box-shadow: 0 8px 32px rgba(245, 87, 108, 0.4);
   position: relative;
   overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .btn-primary::before {
@@ -1102,6 +1391,10 @@ body::before {
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
+}
+
+.btn-icon {
+  font-size: 0.9rem;
 }
 
 /* Enhanced loading states */
@@ -1266,6 +1559,16 @@ body::before {
   .logo i {
     font-size: 2rem;
   }
+  
+  .welcome-stats {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .connection-status,
+  .shortcuts-help {
+    display: none !important;
+  }
 }
 
 @media (max-width: 480px) {
@@ -1291,6 +1594,14 @@ body::before {
   .toast {
     min-width: 280px;
     margin: 0 1rem;
+  }
+  
+  .loading-content h2 {
+    font-size: 2rem;
+  }
+  
+  .loading-logo {
+    font-size: 3rem;
   }
 }
 

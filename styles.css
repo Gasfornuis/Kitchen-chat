@@ -793,11 +793,12 @@ body::before {
   font-weight: 500;
 }
 
-/* Connection Status - Moved to top-right to prevent overlap */
+/* Connection Status - Centered at the top */
 .connection-status {
   position: fixed;
   top: 16px;
-  right: 16px;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
   align-items: center;
   gap: 8px;

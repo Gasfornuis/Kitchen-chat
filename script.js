@@ -53,8 +53,13 @@ class KitchenChat {
             }
         });
 
-        // Emoji button
-        document.getElementById('emojiBtn').addEventListener('click', () => this.emojiPicker.toggle());
+        // Emoji button - IMPROVED
+        document.getElementById('emojiBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Emoji button clicked'); // Debug log
+            this.emojiPicker.toggle();
+        });
 
         // Refresh button
         document.getElementById('refreshBtn').addEventListener('click', () => this.refreshMessages());
@@ -72,7 +77,7 @@ class KitchenChat {
             }
         });
 
-        // Click outside to close emoji picker
+        // Click outside to close emoji picker - IMPROVED
         document.addEventListener('click', (e) => {
             if (!e.target.closest('.emoji-picker') && !e.target.closest('.emoji-btn')) {
                 this.emojiPicker.hide();
@@ -515,7 +520,7 @@ class KitchenChat {
     }
 }
 
-// Emoji Picker Class
+// Emoji Picker Class - COMPLETELY REWRITTEN FOR BETTER DEBUGGING
 class EmojiPicker {
     constructor() {
         this.isVisible = false;
@@ -593,17 +598,24 @@ class EmojiPicker {
     }
 
     init() {
+        console.log('EmojiPicker init started'); // Debug log
         this.bindEvents();
         this.renderCategories();
         this.renderEmojis(this.currentCategory);
         this.renderRecentEmojis();
+        console.log('EmojiPicker init completed'); // Debug log
     }
 
     bindEvents() {
+        console.log('EmojiPicker bindEvents started'); // Debug log
+        
         // Category buttons
         document.querySelectorAll('.emoji-category').forEach(btn => {
             btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 const category = e.currentTarget.dataset.category;
+                console.log('Category selected:', category); // Debug log
                 this.selectCategory(category);
             });
         });
@@ -614,15 +626,25 @@ class EmojiPicker {
             emojiSearch.addEventListener('input', (e) => {
                 clearTimeout(this.searchTimeout);
                 this.searchTimeout = setTimeout(() => {
+                    console.log('Searching emojis:', e.target.value); // Debug log
                     this.searchEmojis(e.target.value);
                 }, 300);
             });
+        } else {
+            console.warn('Emoji search input not found!'); // Debug log
         }
+        
+        console.log('EmojiPicker bindEvents completed'); // Debug log
     }
 
     toggle() {
+        console.log('EmojiPicker toggle called, current state:', this.isVisible); // Debug log
         const picker = document.getElementById('emojiPicker');
-        const emojiBtn = document.getElementById('emojiBtn');
+        
+        if (!picker) {
+            console.error('Emoji picker element not found!'); // Debug log
+            return;
+        }
         
         if (this.isVisible) {
             this.hide();
@@ -632,12 +654,33 @@ class EmojiPicker {
     }
 
     show() {
+        console.log('EmojiPicker show called'); // Debug log
         const picker = document.getElementById('emojiPicker');
         const emojiBtn = document.getElementById('emojiBtn');
         
+        if (!picker) {
+            console.error('Emoji picker element not found in show()!'); // Debug log
+            return;
+        }
+        
+        // Force display and visibility
+        picker.style.display = 'flex';
+        picker.style.visibility = 'visible';
+        picker.style.opacity = '1';
         picker.classList.add('show');
-        emojiBtn.classList.add('active');
+        
+        if (emojiBtn) {
+            emojiBtn.classList.add('active');
+        }
+        
         this.isVisible = true;
+        
+        console.log('EmojiPicker should now be visible'); // Debug log
+        console.log('Picker element:', picker); // Debug log
+        console.log('Picker computed style:', window.getComputedStyle(picker)); // Debug log
+        
+        // Make sure we have emojis rendered
+        this.renderEmojis(this.currentCategory);
         
         // Focus search input
         setTimeout(() => {
@@ -649,11 +692,22 @@ class EmojiPicker {
     }
 
     hide() {
+        console.log('EmojiPicker hide called'); // Debug log
         const picker = document.getElementById('emojiPicker');
         const emojiBtn = document.getElementById('emojiBtn');
         
+        if (!picker) {
+            console.error('Emoji picker element not found in hide()!'); // Debug log
+            return;
+        }
+        
         picker.classList.remove('show');
-        emojiBtn.classList.remove('active');
+        picker.style.display = 'none';
+        
+        if (emojiBtn) {
+            emojiBtn.classList.remove('active');
+        }
+        
         this.isVisible = false;
         
         // Clear search
@@ -662,37 +716,62 @@ class EmojiPicker {
             searchInput.value = '';
             this.renderEmojis(this.currentCategory);
         }
+        
+        console.log('EmojiPicker hidden'); // Debug log
     }
 
     selectCategory(category) {
+        console.log('Selecting category:', category); // Debug log
+        
         // Update active category button
         document.querySelectorAll('.emoji-category').forEach(btn => {
             btn.classList.remove('active');
         });
-        document.querySelector(`[data-category="${category}"]`).classList.add('active');
+        
+        const activeBtn = document.querySelector(`[data-category="${category}"]`);
+        if (activeBtn) {
+            activeBtn.classList.add('active');
+        }
         
         this.currentCategory = category;
         this.renderEmojis(category);
     }
 
     renderEmojis(category) {
+        console.log('Rendering emojis for category:', category); // Debug log
         const grid = document.getElementById('emojiGrid');
+        
+        if (!grid) {
+            console.error('Emoji grid element not found!'); // Debug log
+            return;
+        }
+        
         const emojis = this.emojiData[category] || [];
+        console.log('Emojis to render:', emojis.length); // Debug log
         
         grid.innerHTML = emojis.map(emoji => `
             <button class="emoji-item" data-emoji="${emoji}" onclick="kitchenChat.emojiPicker.selectEmoji('${emoji}')">
                 ${emoji}
             </button>
         `).join('');
+        
+        console.log('Emojis rendered, grid innerHTML length:', grid.innerHTML.length); // Debug log
     }
 
     searchEmojis(query) {
+        console.log('Searching emojis with query:', query); // Debug log
+        
         if (!query.trim()) {
             this.renderEmojis(this.currentCategory);
             return;
         }
 
         const grid = document.getElementById('emojiGrid');
+        if (!grid) {
+            console.error('Emoji grid not found for search!'); // Debug log
+            return;
+        }
+        
         const allEmojis = Object.values(this.emojiData).flat();
         
         // Simple search - you could enhance this with emoji names/keywords
@@ -702,6 +781,8 @@ class EmojiPicker {
                 keyword.toLowerCase().includes(query.toLowerCase())
             );
         });
+        
+        console.log('Filtered emojis:', filteredEmojis.length); // Debug log
         
         grid.innerHTML = filteredEmojis.slice(0, 64).map(emoji => `
             <button class="emoji-item" data-emoji="${emoji}" onclick="kitchenChat.emojiPicker.selectEmoji('${emoji}')">
@@ -728,7 +809,14 @@ class EmojiPicker {
     }
 
     selectEmoji(emoji) {
+        console.log('Emoji selected:', emoji); // Debug log
+        
         const messageInput = document.getElementById('messageInput');
+        if (!messageInput) {
+            console.error('Message input not found!'); // Debug log
+            return;
+        }
+        
         const cursorPos = messageInput.selectionStart;
         const textBefore = messageInput.value.substring(0, cursorPos);
         const textAfter = messageInput.value.substring(messageInput.selectionEnd);
@@ -741,7 +829,10 @@ class EmojiPicker {
         messageInput.setSelectionRange(newCursorPos, newCursorPos);
         
         // Update character count
-        document.getElementById('charCount').textContent = `${messageInput.value.length}/500`;
+        const charCount = document.getElementById('charCount');
+        if (charCount) {
+            charCount.textContent = `${messageInput.value.length}/500`;
+        }
         
         // Validate input
         kitchenChat.validateMessageInput();
@@ -756,6 +847,8 @@ class EmojiPicker {
         if (window.innerWidth <= 768) {
             this.hide();
         }
+        
+        console.log('Emoji inserted successfully'); // Debug log
     }
 
     addToRecent(emoji) {
@@ -778,6 +871,11 @@ class EmojiPicker {
     renderRecentEmojis() {
         const container = document.getElementById('recentEmojiList');
         
+        if (!container) {
+            console.warn('Recent emoji container not found!'); // Debug log
+            return;
+        }
+        
         if (this.recentEmojis.length === 0) {
             container.innerHTML = '<span style="color: #a0aec0; font-size: 0.8rem;">None yet</span>';
             return;
@@ -793,6 +891,7 @@ class EmojiPicker {
     renderCategories() {
         // This method could be used to dynamically render categories if needed
         // For now, categories are defined in HTML
+        console.log('Categories rendered (using HTML structure)'); // Debug log
     }
 }
 
@@ -820,3 +919,22 @@ window.addEventListener('online', () => {
 window.addEventListener('offline', () => {
     kitchenChat.showToast('No internet connection', 'error');
 });
+
+// Debug function to test emoji picker manually
+window.debugEmojiPicker = () => {
+    console.log('Manual emoji picker test');
+    const picker = document.getElementById('emojiPicker');
+    console.log('Picker element:', picker);
+    if (picker) {
+        picker.style.display = 'flex';
+        picker.style.visibility = 'visible';
+        picker.style.opacity = '1';
+        picker.style.zIndex = '99999';
+        picker.style.position = 'fixed';
+        picker.style.top = '100px';
+        picker.style.right = '100px';
+        picker.style.background = 'white';
+        picker.style.border = '2px solid red';
+        console.log('Picker should be visible now');
+    }
+};

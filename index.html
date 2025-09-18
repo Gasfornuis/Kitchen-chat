@@ -71,6 +71,9 @@
                     <div class="message-input-container">
                         <div class="message-input">
                             <input type="text" placeholder="Type your message..." id="messageInput" maxlength="500">
+                            <button class="emoji-btn" id="emojiBtn" title="Add emoji">
+                                <i class="fas fa-smile"></i>
+                            </button>
                             <button id="sendBtn" disabled>
                                 <i class="fas fa-paper-plane"></i>
                             </button>
@@ -81,6 +84,51 @@
                     </div>
                 </div>
             </main>
+        </div>
+    </div>
+
+    <!-- Emoji Picker -->
+    <div class="emoji-picker" id="emojiPicker">
+        <div class="emoji-header">
+            <div class="emoji-categories">
+                <button class="emoji-category active" data-category="smileys" title="Smileys & Emotion">
+                    <i class="fas fa-smile"></i>
+                </button>
+                <button class="emoji-category" data-category="people" title="People & Body">
+                    <i class="fas fa-user"></i>
+                </button>
+                <button class="emoji-category" data-category="food" title="Food & Drink">
+                    <i class="fas fa-utensils"></i>
+                </button>
+                <button class="emoji-category" data-category="animals" title="Animals & Nature">
+                    <i class="fas fa-leaf"></i>
+                </button>
+                <button class="emoji-category" data-category="activities" title="Activities">
+                    <i class="fas fa-football-ball"></i>
+                </button>
+                <button class="emoji-category" data-category="objects" title="Objects">
+                    <i class="fas fa-lightbulb"></i>
+                </button>
+                <button class="emoji-category" data-category="symbols" title="Symbols">
+                    <i class="fas fa-heart"></i>
+                </button>
+            </div>
+            <div class="emoji-search">
+                <input type="text" placeholder="Search emoji..." id="emojiSearch">
+            </div>
+        </div>
+        <div class="emoji-content">
+            <div class="emoji-grid" id="emojiGrid">
+                <!-- Emoji grid will be populated by JavaScript -->
+            </div>
+        </div>
+        <div class="emoji-footer">
+            <div class="recent-emojis">
+                <span class="recent-label">Recently used:</span>
+                <div class="recent-emoji-list" id="recentEmojiList">
+                    <!-- Recent emojis will be populated by JavaScript -->
+                </div>
+            </div>
         </div>
     </div>
 

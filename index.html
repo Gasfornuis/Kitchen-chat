@@ -3,28 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Kitchen Chat - The ultimate modern real-time chat application for culinary discussions. Connect with fellow food enthusiasts in style.">
-    <meta name="keywords" content="kitchen chat, cooking, culinary, real-time chat, food discussion, recipes">
-    <meta name="theme-color" content="#667eea">
-    <meta name="msapplication-navbutton-color" content="#667eea">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="description" content="Kitchen Chat - Professional real-time communication platform for culinary professionals and teams. Modern interface, secure conversations.">
+    <meta name="keywords" content="professional chat, team communication, culinary platform, business messaging, secure chat">
+    <meta name="theme-color" content="#0F1419">
+    <meta name="msapplication-navbutton-color" content="#0F1419">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     
     <!-- Open Graph Meta Tags -->
     <meta property="og:type" content="website">
-    <meta property="og:title" content="Kitchen Chat - Modern Culinary Conversations">
-    <meta property="og:description" content="Join the most beautiful chat platform for food lovers. Experience real-time conversations with stunning glassmorphism design.">
+    <meta property="og:title" content="Kitchen Chat - Professional Communication Platform">
+    <meta property="og:description" content="Modern, secure real-time communication platform for culinary professionals and teams.">
     <meta property="og:image" content="https://kitchen-chat.vercel.app/og-image.png">
     <meta property="og:url" content="https://kitchen-chat.vercel.app">
     
     <!-- Twitter Meta Tags -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Kitchen Chat - Modern Culinary Conversations">
-    <meta name="twitter:description" content="The most beautiful chat platform for food enthusiasts">
+    <meta name="twitter:title" content="Kitchen Chat - Professional Communication Platform">
+    <meta name="twitter:description" content="Modern, secure platform for professional team communication">
     <meta name="twitter:image" content="https://kitchen-chat.vercel.app/og-image.png">
     
-    <title>Kitchen Chat - Modern Culinary Conversations 🍳✨</title>
+    <title>Kitchen Chat - Professional Communication Platform</title>
     
     <!-- Preload critical resources -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -33,7 +33,7 @@
     
     <!-- Stylesheets -->
     <link rel="stylesheet" href="styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     
     <!-- PWA Manifest -->
@@ -50,9 +50,9 @@
       "@context": "https://schema.org",
       "@type": "WebApplication",
       "name": "Kitchen Chat",
-      "description": "Modern real-time chat application for culinary discussions",
+      "description": "Professional real-time communication platform for culinary teams",
       "url": "https://kitchen-chat.vercel.app",
-      "applicationCategory": "CommunicationApplication",
+      "applicationCategory": "BusinessApplication",
       "operatingSystem": "Web Browser",
       "offers": {
         "@type": "Offer",
@@ -63,11 +63,11 @@
     </script>
 </head>
 <body>
-    <!-- Loading Screen -->
+    <!-- Professional Loading Screen -->
     <div class="loading-screen" id="loadingScreen">
         <div class="loading-content">
             <div class="loading-logo">
-                <i class="fas fa-utensils"></i>
+                <i class="fas fa-comments"></i>
             </div>
             <h2>Kitchen Chat</h2>
             <div class="loading-dots">
@@ -75,7 +75,7 @@
                 <span></span>
                 <span></span>
             </div>
-            <p>Preparing your culinary conversation space...</p>
+            <p>Initializing secure connection...</p>
         </div>
     </div>
 
@@ -83,59 +83,59 @@
         <header class="header" role="banner">
             <div class="header-content">
                 <div class="logo">
-                    <i class="fas fa-utensils" aria-hidden="true"></i>
+                    <i class="fas fa-comments" aria-hidden="true"></i>
                     <h1>Kitchen Chat</h1>
                 </div>
-                <button class="new-subject-btn" id="newSubjectBtn" aria-label="Create new topic">
+                <button class="new-subject-btn" id="newSubjectBtn" aria-label="Create new conversation">
                     <i class="fas fa-plus" aria-hidden="true"></i>
-                    <span>New Topic</span>
+                    <span>New Conversation</span>
                 </button>
             </div>
         </header>
 
         <div class="main-container">
-            <!-- Sidebar with subjects -->
-            <aside class="sidebar" role="complementary" aria-label="Topics sidebar">
+            <!-- Professional Sidebar -->
+            <aside class="sidebar" role="complementary" aria-label="Conversations sidebar">
                 <div class="sidebar-header">
-                    <h2>Topics</h2>
+                    <h2>Conversations</h2>
                     <div class="search-container">
                         <i class="fas fa-search" aria-hidden="true"></i>
                         <input 
                             type="text" 
-                            placeholder="Search topics..." 
+                            placeholder="Search conversations..." 
                             id="searchInput"
-                            aria-label="Search topics"
+                            aria-label="Search conversations"
                             autocomplete="off"
                         >
                     </div>
                 </div>
-                <div class="subjects-list" id="subjectsList" role="list" aria-label="Available topics">
+                <div class="subjects-list" id="subjectsList" role="list" aria-label="Available conversations">
                     <div class="loading">
                         <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
-                        <span>Loading topics...</span>
+                        <span>Loading conversations...</span>
                     </div>
                 </div>
             </aside>
 
-            <!-- Main chat area -->
+            <!-- Professional Main Chat Area -->
             <main class="chat-container" role="main">
                 <div class="welcome-screen" id="welcomeScreen">
                     <div class="welcome-content">
-                        <i class="fas fa-comments" aria-hidden="true"></i>
-                        <h2>Welcome to Kitchen Chat!</h2>
-                        <p>Select a topic to start chatting or create a new topic to begin a conversation. Experience the future of culinary discussions with our stunning interface.</p>
+                        <i class="fas fa-users" aria-hidden="true"></i>
+                        <h2>Welcome to Kitchen Chat</h2>
+                        <p>Professional communication platform designed for teams. Select a conversation to get started or create a new one to begin collaborating.</p>
                         <div class="welcome-stats">
                             <div class="stat-item">
+                                <i class="fas fa-shield-alt" aria-hidden="true"></i>
+                                <span>Secure</span>
+                            </div>
+                            <div class="stat-item">
+                                <i class="fas fa-bolt" aria-hidden="true"></i>
+                                <span>Fast</span>
+                            </div>
+                            <div class="stat-item">
                                 <i class="fas fa-users" aria-hidden="true"></i>
-                                <span>Connect</span>
-                            </div>
-                            <div class="stat-item">
-                                <i class="fas fa-utensils" aria-hidden="true"></i>
-                                <span>Cook</span>
-                            </div>
-                            <div class="stat-item">
-                                <i class="fas fa-heart" aria-hidden="true"></i>
-                                <span>Share</span>
+                                <span>Team-First</span>
                             </div>
                         </div>
                     </div>
@@ -144,10 +144,10 @@
                 <div class="chat-area" id="chatArea" style="display: none;">
                     <div class="chat-header" id="chatHeader">
                         <div class="chat-title">
-                            <h2 id="currentSubjectTitle">Topic</h2>
+                            <h2 id="currentSubjectTitle">Conversation</h2>
                             <div class="chat-status">
                                 <span class="status-indicator"></span>
-                                <span class="status-text">Active</span>
+                                <span class="status-text">Online</span>
                             </div>
                         </div>
                         <div class="chat-actions">
@@ -177,7 +177,7 @@
                         <div class="message-input" role="group" aria-label="Message input">
                             <input 
                                 type="text" 
-                                placeholder="Type your message..." 
+                                placeholder="Type a message..." 
                                 id="messageInput" 
                                 maxlength="500"
                                 aria-label="Type your message"
@@ -199,7 +199,7 @@
         </div>
     </div>
 
-    <!-- Enhanced Emoji Picker -->
+    <!-- Professional Emoji Picker -->
     <div class="emoji-picker" id="emojiPicker" role="dialog" aria-label="Emoji picker" aria-hidden="true">
         <div class="emoji-header">
             <div class="emoji-categories" role="tablist" aria-label="Emoji categories">
@@ -216,7 +216,7 @@
                     <i class="fas fa-leaf" aria-hidden="true"></i>
                 </button>
                 <button class="emoji-category" data-category="activities" title="Activities" role="tab" aria-selected="false">
-                    <i class="fas fa-football-ball" aria-hidden="true"></i>
+                    <i class="fas fa-gamepad" aria-hidden="true"></i>
                 </button>
                 <button class="emoji-category" data-category="objects" title="Objects" role="tab" aria-selected="false">
                     <i class="fas fa-lightbulb" aria-hidden="true"></i>
@@ -242,7 +242,7 @@
         </div>
         <div class="emoji-footer">
             <div class="recent-emojis">
-                <span class="recent-label">Recently used:</span>
+                <span class="recent-label">Recent:</span>
                 <div class="recent-emoji-list" id="recentEmojiList" role="list">
                     <!-- Recent emojis will be populated by JavaScript -->
                 </div>
@@ -253,11 +253,11 @@
         </button>
     </div>
 
-    <!-- Enhanced Modal for new subject -->
+    <!-- Professional Modal -->
     <div class="modal-overlay" id="modalOverlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
         <div class="modal">
             <div class="modal-header">
-                <h3 id="modalTitle">Create New Topic</h3>
+                <h3 id="modalTitle">New Conversation</h3>
                 <button class="close-btn" id="closeModalBtn" aria-label="Close modal">
                     <i class="fas fa-times" aria-hidden="true"></i>
                 </button>
@@ -265,11 +265,11 @@
             <div class="modal-body">
                 <form id="newTopicForm" novalidate>
                     <div class="form-group">
-                        <label for="subjectTitle">Topic Title</label>
+                        <label for="subjectTitle">Conversation Title</label>
                         <input 
                             type="text" 
                             id="subjectTitle" 
-                            placeholder="e.g., Weekly Menu Planning" 
+                            placeholder="e.g., Project Planning, Team Updates" 
                             maxlength="100"
                             required
                             aria-describedby="titleCharCount"
@@ -291,14 +291,14 @@
             <div class="modal-footer">
                 <button class="btn-secondary" id="cancelBtn" type="button">Cancel</button>
                 <button class="btn-primary" id="createSubjectBtn" type="submit" form="newTopicForm" disabled>
-                    <span class="btn-text">Create Topic</span>
-                    <i class="fas fa-sparkles btn-icon" aria-hidden="true"></i>
+                    <span class="btn-text">Create Conversation</span>
+                    <i class="fas fa-arrow-right btn-icon" aria-hidden="true"></i>
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- Enhanced Toast notifications -->
+    <!-- Toast Notifications -->
     <div class="toast-container" id="toastContainer" role="status" aria-live="polite"></div>
 
     <!-- Connection Status -->
@@ -307,7 +307,7 @@
         <span class="status-text">Connected</span>
     </div>
 
-    <!-- Shortcuts Help -->
+    <!-- Keyboard Shortcuts Help -->
     <div class="shortcuts-help" id="shortcutsHelp" style="display: none;">
         <h3>Keyboard Shortcuts</h3>
         <div class="shortcut-list">
@@ -317,11 +317,11 @@
             </div>
             <div class="shortcut-item">
                 <kbd>Ctrl</kbd> + <kbd>K</kbd>
-                <span>Search topics</span>
+                <span>Search</span>
             </div>
             <div class="shortcut-item">
                 <kbd>Ctrl</kbd> + <kbd>N</kbd>
-                <span>New topic</span>
+                <span>New conversation</span>
             </div>
             <div class="shortcut-item">
                 <kbd>Esc</kbd>
@@ -332,9 +332,6 @@
 
     <!-- Scripts -->
     <script src="script.js"></script>
-    
-    <!-- Analytics placeholder (uncomment when ready) -->
-    <!-- <script async src="https://www.googletagmanager.com/gtag/js?id=GA_TRACKING_ID"></script> -->
     
     <!-- Service Worker Registration -->
     <script>

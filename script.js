@@ -110,7 +110,7 @@ class KitchenChat {
     async loadMessages(subjectId) {
         try {
             const messagesContainer = document.getElementById('messagesContainer');
-            messagesContainer.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i><span>Berichten laden...</span></div>';
+            messagesContainer.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i><span>Loading messages...</span></div>';
             
             this.messages = await this.apiCall(`/api/posts?SubjectId=${subjectId}`);
             this.renderMessages();
@@ -126,7 +126,7 @@ class KitchenChat {
         const createdBy = document.getElementById('createdBy').value.trim();
 
         if (!title || !createdBy) {
-            this.showToast('Vul alle velden in', 'error');
+            this.showToast('Please fill in all fields', 'error');
             return;
         }
 
@@ -140,7 +140,7 @@ class KitchenChat {
                 CreatedBy: createdBy
             });
 
-            this.showToast('Onderwerp succesvol aangemaakt!', 'success');
+            this.showToast('Topic created successfully!', 'success');
             this.closeModal();
             this.clearModalForm();
             
@@ -162,7 +162,7 @@ class KitchenChat {
         // Get or ask for username
         let postedBy = this.userName;
         if (!postedBy) {
-            postedBy = prompt('Wat is je naam?');
+            postedBy = prompt('What is your name?');
             if (!postedBy) return;
             
             localStorage.setItem('kitchenChatUserName', postedBy);
@@ -199,7 +199,7 @@ class KitchenChat {
             subjectsList.innerHTML = `
                 <div class="loading">
                     <i class="fas fa-comments"></i>
-                    <span>Geen onderwerpen gevonden. Maak er een aan!</span>
+                    <span>No topics found. Create one to get started!</span>
                 </div>
             `;
             return;
@@ -209,7 +209,7 @@ class KitchenChat {
             <div class="subject-item" data-id="${subject.id}" onclick="kitchenChat.selectSubject('${subject.id}', '${subject.Title}')">
                 <h3>${this.escapeHtml(subject.Title)}</h3>
                 <div class="meta">
-                    <span class="creator">door ${this.escapeHtml(subject.CreatedBy)}</span>
+                    <span class="creator">by ${this.escapeHtml(subject.CreatedBy)}</span>
                     <span class="date">${this.formatDate(subject.CreatedAt)}</span>
                 </div>
             </div>
@@ -220,7 +220,7 @@ class KitchenChat {
         document.getElementById('subjectsList').innerHTML = `
             <div class="loading">
                 <i class="fas fa-exclamation-triangle"></i>
-                <span>Fout bij laden onderwerpen</span>
+                <span>Error loading topics</span>
             </div>
         `;
     }
@@ -232,7 +232,7 @@ class KitchenChat {
             messagesContainer.innerHTML = `
                 <div class="loading">
                     <i class="fas fa-comments"></i>
-                    <span>Nog geen berichten. Stuur het eerste bericht!</span>
+                    <span>No messages yet. Send the first message!</span>
                 </div>
             `;
             return;
@@ -264,7 +264,7 @@ class KitchenChat {
         document.getElementById('messagesContainer').innerHTML = `
             <div class="loading">
                 <i class="fas fa-exclamation-triangle"></i>
-                <span>Fout bij laden berichten</span>
+                <span>Error loading messages</span>
             </div>
         `;
     }
@@ -276,7 +276,7 @@ class KitchenChat {
         tempMessage.innerHTML = `
             <div class="message-header">
                 <span class="message-author">${this.escapeHtml(author)}</span>
-                <span class="message-time">Verzenden...</span>
+                <span class="message-time">Sending...</span>
             </div>
             <div class="message-content">${this.escapeHtml(content)}</div>
         `;
@@ -444,19 +444,19 @@ class KitchenChat {
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
             
             if (diffDays === 1) {
-                return 'Vandaag';
+                return 'Today';
             } else if (diffDays === 2) {
-                return 'Gisteren';
+                return 'Yesterday';
             } else if (diffDays <= 7) {
-                return `${diffDays - 1} dagen geleden`;
+                return `${diffDays - 1} days ago`;
             } else {
-                return date.toLocaleDateString('nl-NL', {
+                return date.toLocaleDateString('en-US', {
                     day: 'numeric',
                     month: 'short'
                 });
             }
         } catch (e) {
-            return 'Onbekend';
+            return 'Unknown';
         }
     }
 
@@ -470,27 +470,27 @@ class KitchenChat {
             const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
             
             if (diffMinutes < 1) {
-                return 'Nu';
+                return 'Now';
             } else if (diffMinutes < 60) {
-                return `${diffMinutes}m geleden`;
+                return `${diffMinutes}m ago`;
             } else if (diffHours < 24) {
-                return `${diffHours}u geleden`;
+                return `${diffHours}h ago`;
             } else if (diffDays === 1) {
-                return 'Gisteren ' + date.toLocaleTimeString('nl-NL', {
+                return 'Yesterday ' + date.toLocaleTimeString('en-US', {
                     hour: '2-digit',
                     minute: '2-digit'
                 });
             } else {
-                return date.toLocaleDateString('nl-NL', {
+                return date.toLocaleDateString('en-US', {
                     day: 'numeric',
                     month: 'short'
-                }) + ' ' + date.toLocaleTimeString('nl-NL', {
+                }) + ' ' + date.toLocaleTimeString('en-US', {
                     hour: '2-digit',
                     minute: '2-digit'
                 });
             }
         } catch (e) {
-            return 'Onbekend';
+            return 'Unknown';
         }
     }
 }
@@ -509,7 +509,7 @@ if ('serviceWorker' in navigator) {
 
 // Handle online/offline status
 window.addEventListener('online', () => {
-    kitchenChat.showToast('Verbinding hersteld', 'success');
+    kitchenChat.showToast('Connection restored', 'success');
     kitchenChat.loadSubjects();
     if (kitchenChat.currentSubjectId) {
         kitchenChat.loadMessages(kitchenChat.currentSubjectId);
@@ -517,5 +517,5 @@ window.addEventListener('online', () => {
 });
 
 window.addEventListener('offline', () => {
-    kitchenChat.showToast('Geen internetverbinding', 'error');
+    kitchenChat.showToast('No internet connection', 'error');
 });

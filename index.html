@@ -37,10 +37,41 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <!-- Firebase SDK - Optional, loads only if config is available -->
+    <script>
+        // Check if Firebase config is available (you can set this in your environment)
+        const firebaseConfig = window.FIREBASE_CONFIG || null;
+        
+        // Only load Firebase if config is available
+        if (firebaseConfig) {
+            // Load Firebase scripts dynamically
+            const firebaseScripts = [
+                'https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js',
+                'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js',
+                'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js'
+            ];
+            
+            let loadedScripts = 0;
+            firebaseScripts.forEach(src => {
+                const script = document.createElement('script');
+                script.src = src;
+                script.onload = () => {
+                    loadedScripts++;
+                    if (loadedScripts === firebaseScripts.length) {
+                        // Initialize Firebase after all scripts are loaded
+                        firebase.initializeApp(firebaseConfig);
+                        console.log('Firebase initialized');
+                    }
+                };
+                script.onerror = () => {
+                    console.warn('Failed to load Firebase script:', src);
+                };
+                document.head.appendChild(script);
+            });
+        } else {
+            console.log('Firebase config not found, running in demo mode');
+        }
+    </script>
     
     <!-- PWA Manifest -->
     <link rel="manifest" href="/manifest.json">
@@ -49,22 +80,6 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="icon" type="image/png" href="/favicon.png">
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-    
-    <!-- Firebase Config -->
-    <script>
-        // Firebase configuration
-        const firebaseConfig = {
-            apiKey: "your-api-key",
-            authDomain: "your-auth-domain",
-            projectId: "your-project-id",
-            storageBucket: "your-storage-bucket",
-            messagingSenderId: "your-sender-id",
-            appId: "your-app-id"
-        };
-        
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-    </script>
     
     <!-- Structured Data -->
     <script type="application/ld+json">

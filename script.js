@@ -1,4 +1,4 @@
-// Kitchen Chat Frontend JavaScript with Advanced Features Integration
+// Kitchen Chat Frontend JavaScript with Real-time Synchronization
 class KitchenChat {
     constructor() {
         this.currentSubjectId = null;
@@ -9,7 +9,8 @@ class KitchenChat {
         this.isInitialized = false;
         this.authManager = null;
         this.authUI = null;
-        this.pendingMediaMessages = new Map(); // Store media messages temporarily
+        this.messagePollingInterval = null;
+        this.lastMessageTimestamp = null;
         this.init();
     }
 
@@ -29,7 +30,6 @@ class KitchenChat {
             
             // Initialize components
             this.bindEvents();
-            this.setupAutoRefresh();
             this.emojiPicker.init();
             
             // Mark as initialized
@@ -38,7 +38,7 @@ class KitchenChat {
             // Hide loading screen and show app
             this.hideLoadingScreen();
             
-            console.log('Kitchen Chat with Advanced Features initialized successfully!');
+            console.log('🚀 Kitchen Chat with Real-time Sync initialized successfully!');
         } catch (error) {
             console.error('Failed to initialize Kitchen Chat:', error);
             this.hideLoadingScreen();
@@ -102,6 +102,9 @@ class KitchenChat {
             this.currentSubjectId = null;
             this.subjects = [];
             this.messages = [];
+            
+            // Stop polling
+            this.stopMessagePolling();
             
             // Show welcome screen
             document.getElementById('welcomeScreen').style.display = 'block';
@@ -275,7 +278,7 @@ class KitchenChat {
         if (connectionStatus) {
             if (isOnline) {
                 connectionStatus.classList.remove('disconnected');
-                if (statusText) statusText.textContent = 'Advanced Mode Ready';
+                if (statusText) statusText.textContent = 'Connected - Real-time';
             } else {
                 connectionStatus.classList.add('disconnected');
                 if (statusText) statusText.textContent = 'Disconnected';
@@ -343,17 +346,83 @@ class KitchenChat {
         }
     }
 
-    // Load messages for a subject
+    // Load messages for a subject with real-time polling
     async loadMessages(subjectId) {
         try {
             const messagesContainer = document.getElementById('messagesContainer');
             messagesContainer.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i><span>Loading messages...</span></div>';
             
+            // Stop previous polling
+            this.stopMessagePolling();
+            
+            // Load initial messages
             this.messages = await this.apiCall(`/api/posts?SubjectId=${subjectId}`);
             this.renderMessages();
+            
+            // Start real-time polling
+            this.startMessagePolling(subjectId);
+            
         } catch (error) {
             console.error('Failed to load messages:', error);
             this.renderMessagesError();
+        }
+    }
+
+    // Start real-time message polling
+    startMessagePolling(subjectId) {
+        if (this.messagePollingInterval) {
+            clearInterval(this.messagePollingInterval);
+        }
+        
+        this.messagePollingInterval = setInterval(async () => {
+            try {
+                if (this.currentSubjectId === subjectId && navigator.onLine) {
+                    const newMessages = await this.apiCall(`/api/posts?SubjectId=${subjectId}`);
+                    
+                    // Check if there are new messages
+                    if (newMessages.length !== this.messages.length) {
+                        const oldCount = this.messages.length;
+                        this.messages = newMessages;
+                        this.renderMessages();
+                        
+                        // Show notification for new messages from others
+                        const newCount = newMessages.length;
+                        if (newCount > oldCount) {
+                            const newMessagesFromOthers = newMessages.slice(oldCount).filter(msg => 
+                                msg.PostedBy !== this.userName
+                            );
+                            
+                            if (newMessagesFromOthers.length > 0) {
+                                this.showToast(`${newMessagesFromOthers.length} new message(s) received!`, 'success');
+                                
+                                // Play notification sound (optional)
+                                this.playNotificationSound();
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                console.warn('Polling error:', error);
+            }
+        }, 2000); // Poll every 2 seconds
+    }
+
+    // Stop message polling
+    stopMessagePolling() {
+        if (this.messagePollingInterval) {
+            clearInterval(this.messagePollingInterval);
+            this.messagePollingInterval = null;
+        }
+    }
+
+    // Play notification sound
+    playNotificationSound() {
+        try {
+            const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwaSDmP1O/LeSsFJHfH8N2OQAkTXbTp66hWEwlFnt/yv2wbSzqP0+7NeSsFJHfH8N2OPwkTXbTp66pVFApGnt/yv2waSDqP0+7NeSsFJHfH8N2OPwkTXbTo66pWEgpGnt/xv2waSDqP0+7NeSsFJHbH8N2OPwkTXbXo66pWEgpGnt/xv2waSDqP0+7NeSsFJHbH8N2OPwkTXbXo66pWEgpGnl/x');
+            audio.volume = 0.3;
+            audio.play().catch(() => {}); // Ignore errors
+        } catch (error) {
+            // Ignore audio errors
         }
     }
 
@@ -436,84 +505,52 @@ class KitchenChat {
                 MediaData: mediaData
             };
 
-            // Temporarily add message to UI for instant feedback
+            // Clear input for text messages
             if (messageType === 'text') {
-                this.addTemporaryMessage(content, postedBy);
                 document.getElementById('messageInput').value = '';
                 document.getElementById('charCount').textContent = '0/500';
                 this.validateMessageInput();
-            } else {
-                this.addTemporaryMediaMessage(messagePayload);
             }
 
-            // Send to backend (for now, simulate success)
-            // await this.apiCall('/api/posts', 'POST', messagePayload);
+            // Send to backend
+            const result = await this.apiCall('/api/posts', 'POST', messagePayload);
             
-            // TEMPORARY: Since backend doesn't support media yet, store locally and show immediately
-            this.handleMediaMessageLocally(messagePayload);
-
-            // Refresh messages to get the actual message from server
-            setTimeout(() => this.loadMessages(this.currentSubjectId), 500);
+            // Show success message
+            if (messageType === 'text') {
+                this.showToast('Message sent!', 'success');
+            } else {
+                this.showToast(`${messageType} message sent! 🚀`, 'success');
+            }
+            
+            // Immediately refresh messages to show the sent message
+            setTimeout(() => {
+                if (this.currentSubjectId) {
+                    this.loadMessages(this.currentSubjectId);
+                }
+            }, 500);
             
         } catch (error) {
             console.error('Failed to send message:', error);
-            this.removeTemporaryMessage();
+            this.showToast('Failed to send message. Please try again.', 'error');
         }
-    }
-
-    // TEMPORARY: Handle media messages locally until backend is updated
-    handleMediaMessageLocally(messagePayload) {
-        const messageId = Date.now().toString();
-        const localMessage = {
-            id: messageId,
-            Content: messagePayload.Content,
-            PostedBy: messagePayload.PostedBy,
-            CreatedAt: new Date().toISOString(),
-            MessageType: messagePayload.MessageType,
-            MediaData: messagePayload.MediaData
-        };
-        
-        // Add to messages array
-        this.messages.push(localMessage);
-        
-        // Store in localStorage for persistence
-        const localMessages = JSON.parse(localStorage.getItem('localMediaMessages') || '{}');
-        if (!localMessages[this.currentSubjectId]) {
-            localMessages[this.currentSubjectId] = [];
-        }
-        localMessages[this.currentSubjectId].push(localMessage);
-        localStorage.setItem('localMediaMessages', JSON.stringify(localMessages));
-        
-        // Re-render messages
-        this.renderMessages();
-    }
-
-    // Load local media messages when loading a subject
-    loadLocalMediaMessages(subjectId) {
-        const localMessages = JSON.parse(localStorage.getItem('localMediaMessages') || '{}');
-        return localMessages[subjectId] || [];
     }
 
     // Enhanced renderMessages with media support
     renderMessages() {
         const messagesContainer = document.getElementById('messagesContainer');
         
-        // Merge API messages with local media messages
-        const localMediaMessages = this.loadLocalMediaMessages(this.currentSubjectId);
-        const allMessages = [...this.messages, ...localMediaMessages];
-        
-        if (allMessages.length === 0) {
+        if (this.messages.length === 0) {
             messagesContainer.innerHTML = `
                 <div class="loading">
                     <i class="fas fa-comments"></i>
-                    <span>No messages yet. Try sending a text message, voice note, or share a file!</span>
+                    <span>No messages yet. Start the conversation!</span>
                 </div>
             `;
             return;
         }
 
         // Sort messages by creation date
-        const sortedMessages = allMessages.sort((a, b) => 
+        const sortedMessages = this.messages.sort((a, b) => 
             new Date(a.CreatedAt) - new Date(b.CreatedAt)
         );
 
@@ -567,7 +604,7 @@ class KitchenChat {
                     <span class="message-author">${this.escapeHtml(message.PostedBy)}</span>
                     <span class="message-time">${this.formatTime(message.CreatedAt)}</span>
                 </div>
-                <div class="voice-message" data-audio-url="${mediaData.audioUrl || ''}">
+                <div class="voice-message" data-audio-url="${message.AttachmentUrl || ''}">
                     <button class="voice-play-btn" onclick="kitchenChat.playVoiceMessage(this)">
                         <i class="fas fa-play"></i>
                     </button>
@@ -578,6 +615,7 @@ class KitchenChat {
                     </div>
                     <span class="voice-duration">${mediaData.duration || '0:05'}</span>
                 </div>
+                ${message.Content ? `<div class="message-content">${this.escapeHtml(message.Content)}</div>` : ''}
                 <div class="message-reactions"></div>
             </div>
         `;
@@ -585,14 +623,15 @@ class KitchenChat {
 
     renderImageMessage(message, isOwn) {
         const mediaData = message.MediaData || {};
+        const imageUrl = message.AttachmentUrl || '#';
         return `
             <div class="message ${isOwn ? 'own' : 'other'}">
                 <div class="message-header">
                     <span class="message-author">${this.escapeHtml(message.PostedBy)}</span>
                     <span class="message-time">${this.formatTime(message.CreatedAt)}</span>
                 </div>
-                <div class="image-message" onclick="kitchenChat.openImageInLightbox('${mediaData.src}', '${mediaData.name}')">
-                    <img class="message-image" src="${mediaData.src}" alt="${mediaData.name}" loading="lazy">
+                <div class="image-message" onclick="kitchenChat.openImageInLightbox('${imageUrl}', '${mediaData.name || 'Image'}')">
+                    <img class="message-image" src="${imageUrl}" alt="${mediaData.name || 'Image'}" loading="lazy">
                 </div>
                 ${message.Content ? `<div class="message-content">${this.escapeHtml(message.Content)}</div>` : ''}
                 <div class="message-reactions"></div>
@@ -608,7 +647,7 @@ class KitchenChat {
                     <span class="message-author">${this.escapeHtml(message.PostedBy)}</span>
                     <span class="message-time">${this.formatTime(message.CreatedAt)}</span>
                 </div>
-                <div class="file-message" onclick="kitchenChat.downloadFile('${mediaData.name}', '${mediaData.url || '#'}')">
+                <div class="file-message" onclick="kitchenChat.downloadFile('${mediaData.name || 'file'}', '${message.AttachmentUrl || '#'}')">
                     <div class="file-icon">
                         <i class="${mediaData.icon || 'fas fa-file'}"></i>
                     </div>
@@ -628,7 +667,7 @@ class KitchenChat {
         const voiceMessage = button.closest('.voice-message');
         const audioUrl = voiceMessage.dataset.audioUrl;
         
-        if (!audioUrl || audioUrl === '') {
+        if (!audioUrl || audioUrl === '' || audioUrl === '#') {
             this.showToast('Voice message not available (demo mode)', 'info');
             return;
         }
@@ -737,94 +776,6 @@ class KitchenChat {
         `;
     }
 
-    addTemporaryMessage(content, author) {
-        const messagesContainer = document.getElementById('messagesContainer');
-        const tempMessage = document.createElement('div');
-        tempMessage.className = 'message own temp-message';
-        tempMessage.innerHTML = `
-            <div class="message-header">
-                <span class="message-author">${this.escapeHtml(author)}</span>
-                <span class="message-time">Sending...</span>
-            </div>
-            <div class="message-content">${this.processEmojis(this.escapeHtml(content))}</div>
-        `;
-        
-        messagesContainer.appendChild(tempMessage);
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    }
-
-    addTemporaryMediaMessage(messageData) {
-        const messagesContainer = document.getElementById('messagesContainer');
-        const tempMessage = document.createElement('div');
-        tempMessage.className = 'message own temp-message';
-        
-        let mediaContent = '';
-        
-        switch (messageData.MessageType) {
-            case 'voice':
-                mediaContent = `
-                    <div class="voice-message">
-                        <button class="voice-play-btn">
-                            <i class="fas fa-microphone"></i>
-                        </button>
-                        <div class="voice-waveform">
-                            ${Array.from({length: 20}, (_, i) => 
-                                `<div class="voice-waveform-bar" style="height: ${Math.random() * 100}%"></div>`
-                            ).join('')}
-                        </div>
-                        <span class="voice-duration">Uploading...</span>
-                    </div>
-                `;
-                break;
-            case 'image':
-                mediaContent = `
-                    <div class="image-message">
-                        <img class="message-image" src="${messageData.MediaData.src}" alt="${messageData.MediaData.name}" style="opacity: 0.7;">
-                    </div>
-                `;
-                break;
-            case 'file':
-                mediaContent = `
-                    <div class="file-message">
-                        <div class="file-icon">
-                            <i class="${messageData.MediaData.icon}"></i>
-                        </div>
-                        <div class="file-info">
-                            <div class="file-name">${messageData.MediaData.name}</div>
-                            <div class="file-size">Uploading... • ${messageData.MediaData.extension}</div>
-                        </div>
-                    </div>
-                `;
-                break;
-        }
-        
-        tempMessage.innerHTML = `
-            <div class="message-header">
-                <span class="message-author">${this.escapeHtml(messageData.PostedBy)}</span>
-                <span class="message-time">Sending...</span>
-            </div>
-            ${mediaContent}
-            ${messageData.Content ? `<div class="message-content">${this.escapeHtml(messageData.Content)}</div>` : ''}
-        `;
-        
-        messagesContainer.appendChild(tempMessage);
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        
-        // Remove temp message after a short delay
-        setTimeout(() => {
-            if (tempMessage.parentNode) {
-                tempMessage.remove();
-            }
-        }, 2000);
-    }
-
-    removeTemporaryMessage() {
-        const tempMessage = document.querySelector('.temp-message');
-        if (tempMessage) {
-            tempMessage.remove();
-        }
-    }
-
     // Process emojis in messages
     processEmojis(text) {
         // This function can be extended to handle custom emoji codes if needed
@@ -848,7 +799,7 @@ class KitchenChat {
         // Update header
         document.getElementById('currentSubjectTitle').textContent = subjectTitle;
         
-        // Load messages
+        // Load messages with real-time polling
         this.currentSubjectId = subjectId;
         this.loadMessages(subjectId);
     }
@@ -928,23 +879,6 @@ class KitchenChat {
                 }, 500);
             });
         }
-    }
-
-    // Auto refresh setup
-    setupAutoRefresh() {
-        // Refresh messages every 30 seconds if a subject is selected
-        setInterval(() => {
-            if (this.currentSubjectId && this.isInitialized) {
-                this.loadMessages(this.currentSubjectId);
-            }
-        }, 30000);
-
-        // Refresh subjects every 2 minutes
-        setInterval(() => {
-            if (this.isInitialized) {
-                this.loadSubjects();
-            }
-        }, 120000);
     }
 
     // Toast notifications
@@ -1068,12 +1002,13 @@ class EmojiPicker {
                 '🍎', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🫐', '🍈',
                 '🍒', '🍑', '🥭', '🍍', '🥥', '🥝', '🍅', '🍆', '🥑', '🥦',
                 '🥬', '🥒', '🌶️', '🫑', '🌽', '🥕', '🫒', '🧄', '🧅', '🥔',
-                '🍠', '🥐', '🥖', '🍞', '🥨', '🥯', '🧀', '🥚', '🍳', '🧈',
-                '🥞', '🧇', '🥓', '🥩', '🍗', '🍖', '🌭', '🍔', '🍟', '🍕',
-                '🥪', '🥙', '🧆', '🌮', '🌯', '🫔', '🥗', '🥘', '🫕', '🍝',
-                '🍜', '🍲', '🍛', '🍣', '🍱', '🥟', '🦪', '🍤', '🍙', '🍚',
-                '🍘', '🍥', '🥠', '🥮', '🍢', '🍡', '🍧', '🍨', '🍦', '🥧',
-                '🧁', '🍰', '🎂', '🍮', '🍭', '🍬', '🍫', '🍿', '🍩', '🍪'
+                '🍠', '🥐', '🥖', '🫓', '🥨', '🥯', '🥞', '🧇', '🧀', '🍖',
+                '🍗', '🥩', '🥓', '🍔', '🍟', '🍕', '🌭', '🥪', '🌮', '🌯',
+                '🫔', '🥙', '🧆', '🥚', '🍳', '🥘', '🍲', '🫕', '🥣', '🥗',
+                '🍿', '🧈', '🧂', '🥫', '🍱', '🍘', '🍙', '🍚', '🍛', '🍜',
+                '🍝', '🍠', '🍢', '🍣', '🍤', '🍥', '🥮', '🍡', '🥟', '🥠',
+                '🥡', '🦀', '🦞', '🦐', '🦑', '🦪', '🍦', '🍧', '🍨', '🍩',
+                '🍪', '🎂', '🍰', '🧁', '🥧', '🍫', '🍬', '🍭', '🍮', '🍯'
             ],
             animals: [
                 '🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐻‍❄️', '🐨',
@@ -1083,7 +1018,8 @@ class EmojiPicker {
                 '🐞', '🐜', '🪰', '🪲', '🪳', '🦟', '🦗', '🕷️', '🕸️', '🦂',
                 '🐢', '🐍', '🦎', '🦖', '🦕', '🐙', '🦑', '🦐', '🦞', '🦀',
                 '🐡', '🐠', '🐟', '🐬', '🐳', '🐋', '🦈', '🐊', '🐅', '🐆',
-                '🦓', '🦍', '🦧', '🐘', '🦣', '🦏', '🦛', '🦌', '🐪', '🐫'
+                '🦓', '🦍', '🦧', '🦣', '🐘', '🦛', '🦏', '🐪', '🐫', '🦒',
+                '🦘', '🦬', '🐃', '🐂', '🐄', '🐎', '🐖', '🐏', '🐑', '🦙'
             ],
             activities: [
                 '⚽', '🏀', '🏈', '⚾', '🥎', '🎾', '🏐', '🏉', '🥏', '🎱',
@@ -1100,7 +1036,7 @@ class EmojiPicker {
                 '🎛️', '🧭', '⏱️', '⏲️', '⏰', '🕰️', '⏳', '⌛', '📡', '🔋',
                 '🔌', '💡', '🔦', '🕯️', '🪔', '🧯', '🛢️', '💸', '💵', '💴',
                 '💶', '💷', '🪙', '💰', '💳', '💎', '⚖️', '🪜', '🧰', '🔧',
-                '🔨', '⚒️', '🛠️', '⛏️', '🪚', '🔩', '⚙️', '🪤', '🧱', '⛓️'
+                '🔨', '⚒️', '🛠️', '⛏️', '🪓', '🔩', '⚙️', '🪤', '🧱', '⛓️'
             ],
             symbols: [
                 '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔',

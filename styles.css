@@ -48,7 +48,7 @@
 }
 
 html {
-  overflow-x: hidden;
+  scroll-behavior: smooth;
 }
 
 body {
@@ -59,7 +59,6 @@ body {
   line-height: 1.5;
   font-size: 14px;
   min-height: 100vh;
-  overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   position: relative;
@@ -190,10 +189,11 @@ body::before {
   font-weight: 500;
 }
 
+/* Fixed: Main App Container - Allow Scrolling */
 .app-container {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  min-height: 100vh; /* Changed from height: 100vh to min-height */
   opacity: 0;
   transition: opacity 0.5s var(--transition-smooth) 0.1s;
   position: relative;
@@ -213,6 +213,7 @@ body::before {
   position: relative;
   z-index: 100;
   box-shadow: var(--shadow-glass);
+  flex-shrink: 0; /* Prevent header from shrinking */
 }
 
 .header-content {
@@ -286,14 +287,14 @@ body::before {
   transform: translateY(0);
 }
 
-/* Main Layout */
+/* Fixed: Main Layout - Allow Content to Flow */
 .main-container {
   display: flex;
   flex: 1;
   max-width: 1400px;
   margin: 0 auto;
   width: 100%;
-  overflow: hidden;
+  /* Removed overflow: hidden to allow scrolling */
 }
 
 /* Professional Sidebar */
@@ -305,6 +306,7 @@ body::before {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  flex-shrink: 0; /* Prevent sidebar from shrinking */
 }
 
 .sidebar-header {
@@ -312,6 +314,7 @@ body::before {
   border-bottom: 1px solid var(--border-glass);
   background: var(--glass-primary);
   backdrop-filter: blur(var(--backdrop-blur-heavy));
+  flex-shrink: 0;
 }
 
 .sidebar-header h2 {
@@ -412,30 +415,34 @@ body::before {
   color: var(--accent-primary);
 }
 
-/* Professional Chat Container */
+/* Fixed: Professional Chat Container - Allow Scrolling */
 .chat-container {
   flex: 1;
   display: flex;
   flex-direction: column;
   background: var(--glass-primary);
   backdrop-filter: blur(var(--backdrop-blur));
-  overflow: hidden;
+  min-height: 0; /* Allow container to shrink */
 }
 
-/* Welcome Screen */
+/* Fixed: Welcome Screen - Scrollable Content */
 .welcome-screen {
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 48px;
+  padding: 24px; /* Reduced padding for better fit */
+  overflow-y: auto; /* Allow scrolling when content overflows */
+  min-height: 0; /* Allow container to shrink */
 }
 
 .welcome-content {
   text-align: center;
-  max-width: 480px;
+  max-width: 600px; /* Increased max-width for better text flow */
   position: relative;
   z-index: 2;
+  width: 100%; /* Ensure full width usage */
+  margin: auto; /* Center content */
 }
 
 .welcome-content i {
@@ -466,7 +473,7 @@ body::before {
   color: var(--text-secondary);
   line-height: 1.6;
   font-size: 16px;
-  margin-bottom: 32px;
+  margin-bottom: 24px; /* Reduced margin */
   font-weight: 400;
 }
 
@@ -474,7 +481,8 @@ body::before {
   display: flex;
   justify-content: center;
   gap: 24px;
-  margin-top: 32px;
+  margin: 24px 0; /* Reduced margins */
+  flex-wrap: wrap; /* Allow wrapping on small screens */
 }
 
 .stat-item {
@@ -482,7 +490,7 @@ body::before {
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  padding: 20px;
+  padding: 16px; /* Slightly reduced padding */
   background: var(--glass-elevated);
   backdrop-filter: blur(var(--backdrop-blur));
   border: 1px solid var(--border-glass);
@@ -490,6 +498,7 @@ body::before {
   transition: all var(--transition-smooth);
   min-width: 80px;
   box-shadow: var(--shadow-glass);
+  flex: 0 0 auto; /* Prevent growing/shrinking */
 }
 
 .stat-item:hover {
@@ -510,11 +519,12 @@ body::before {
   color: var(--text-secondary);
 }
 
-/* Chat Area */
+/* Fixed: Chat Area - Proper Flex Sizing */
 .chat-area {
   flex: 1;
   display: flex;
   flex-direction: column;
+  min-height: 0; /* Allow shrinking */
 }
 
 .chat-header {
@@ -525,6 +535,7 @@ body::before {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-shrink: 0; /* Prevent header from shrinking */
 }
 
 .chat-title h2 {
@@ -578,6 +589,7 @@ body::before {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  min-height: 0; /* Allow container to shrink */
 }
 
 /* Professional Messages */
@@ -700,12 +712,13 @@ body::before {
   }
 }
 
-/* Professional Message Input */
+/* Fixed: Professional Message Input - No Height Restrictions */
 .message-input-container {
   padding: 20px 24px;
   border-top: 1px solid var(--border-glass);
   background: var(--glass-secondary);
   backdrop-filter: blur(var(--backdrop-blur-heavy));
+  flex-shrink: 0; /* Prevent input from shrinking */
 }
 
 .message-input {
@@ -1299,20 +1312,23 @@ kbd {
 /* Custom Scrollbar */
 .subjects-list::-webkit-scrollbar,
 .messages-container::-webkit-scrollbar,
-.emoji-content::-webkit-scrollbar {
+.emoji-content::-webkit-scrollbar,
+.welcome-screen::-webkit-scrollbar {
   width: 6px;
 }
 
 .subjects-list::-webkit-scrollbar-track,
 .messages-container::-webkit-scrollbar-track,
-.emoji-content::-webkit-scrollbar-track {
+.emoji-content::-webkit-scrollbar-track,
+.welcome-screen::-webkit-scrollbar-track {
   background: rgba(255, 255, 255, 0.05);
   border-radius: 3px;
 }
 
 .subjects-list::-webkit-scrollbar-thumb,
 .messages-container::-webkit-scrollbar-thumb,
-.emoji-content::-webkit-scrollbar-thumb {
+.emoji-content::-webkit-scrollbar-thumb,
+.welcome-screen::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.2);
   border-radius: 3px;
   transition: background var(--transition-smooth);
@@ -1320,11 +1336,45 @@ kbd {
 
 .subjects-list::-webkit-scrollbar-thumb:hover,
 .messages-container::-webkit-scrollbar-thumb:hover,
-.emoji-content::-webkit-scrollbar-thumb:hover {
+.emoji-content::-webkit-scrollbar-thumb:hover,
+.welcome-screen::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.3);
 }
 
-/* Responsive Design */
+/* Enhanced Features Box Styling */
+.welcome-content > div:last-child {
+  background: rgba(102, 126, 234, 0.08) !important;
+  border: 1px solid rgba(102, 126, 234, 0.2) !important;
+  border-radius: 16px !important;
+  padding: 20px !important;
+  margin-top: 24px !important;
+  backdrop-filter: blur(var(--backdrop-blur)) !important;
+  box-shadow: var(--shadow-glass) !important;
+}
+
+.welcome-content > div:last-child h3 {
+  color: #667eea !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  margin: 0 0 12px 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.welcome-content > div:last-child ul {
+  margin: 0 !important;
+  padding-left: 20px !important;
+  color: rgba(255,255,255,0.9) !important;
+}
+
+.welcome-content > div:last-child ul li {
+  margin-bottom: 6px !important;
+  font-size: 14px !important;
+  line-height: 1.5 !important;
+}
+
+/* Responsive Design - Enhanced Mobile Experience */
 @media (max-width: 1200px) {
   .main-container {
     padding: 0;
@@ -1341,9 +1391,8 @@ kbd {
   }
   
   .header-content {
-    flex-direction: column;
     gap: 12px;
-    align-items: stretch;
+    align-items: center; /* Keep header items centered */
   }
   
   .main-container {
@@ -1363,10 +1412,22 @@ kbd {
     min-height: 60vh;
   }
   
+  /* Fixed: Mobile Welcome Screen Scrolling */
+  .welcome-screen {
+    padding: 16px !important;
+    align-items: flex-start !important; /* Align to top for better scrolling */
+    justify-content: flex-start !important;
+  }
+  
+  .welcome-content {
+    margin-top: 20px;
+  }
+  
   .modal {
     width: 95%;
     margin: 16px;
     border-radius: var(--border-radius-lg);
+    max-height: 90vh; /* Allow more height on mobile */
   }
   
   .message {
@@ -1407,11 +1468,21 @@ kbd {
   }
   
   .welcome-stats {
-    flex-direction: column;
-    gap: 16px;
+    flex-direction: row; /* Keep horizontal on mobile */
+    gap: 12px;
+    justify-content: center;
   }
   
-  .connection-status,
+  .stat-item {
+    flex: 1;
+    min-width: 0; /* Allow shrinking */
+    padding: 12px 8px;
+  }
+  
+  .connection-status {
+    top: 60px; /* Move below mobile header */
+  }
+  
   .shortcuts-help {
     display: none !important;
   }
@@ -1440,6 +1511,32 @@ kbd {
     width: 48px;
     height: 48px;
     font-size: 20px;
+  }
+  
+  /* Mobile-specific welcome screen adjustments */
+  .welcome-screen {
+    padding: 12px !important;
+  }
+  
+  .welcome-content p {
+    font-size: 14px;
+    margin-bottom: 16px;
+  }
+  
+  .welcome-stats {
+    gap: 8px;
+  }
+  
+  .stat-item {
+    padding: 10px 6px;
+  }
+  
+  .stat-item i {
+    font-size: 16px;
+  }
+  
+  .stat-item span {
+    font-size: 10px;
   }
 }
 

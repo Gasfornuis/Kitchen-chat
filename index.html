@@ -379,6 +379,26 @@
             });
         }
         
+        // Get file extension and icon
+        function getFileExtension(filename) {
+            return filename.split('.').pop().toLowerCase();
+        }
+        
+        function getFileIcon(extension) {
+            const icons = {
+                'pdf': 'fas fa-file-pdf',
+                'doc': 'fas fa-file-word', 'docx': 'fas fa-file-word',
+                'xls': 'fas fa-file-excel', 'xlsx': 'fas fa-file-excel',
+                'ppt': 'fas fa-file-powerpoint', 'pptx': 'fas fa-file-powerpoint',
+                'jpg': 'fas fa-file-image', 'jpeg': 'fas fa-file-image', 'png': 'fas fa-file-image', 'gif': 'fas fa-file-image',
+                'mp3': 'fas fa-file-audio', 'wav': 'fas fa-file-audio',
+                'mp4': 'fas fa-file-video', 'avi': 'fas fa-file-video',
+                'zip': 'fas fa-file-archive', 'rar': 'fas fa-file-archive',
+                'txt': 'fas fa-file-alt'
+            };
+            return icons[extension] || 'fas fa-file';
+        }
+        
         // API calls
         async function apiCall(url, method = 'GET', data = null) {
             const options = {
@@ -499,17 +519,16 @@
                 html += `${escapeHtml(msg.Content)}`;
                 
                 // Display file attachment if present
-                if (msg.FileAttachment) {
-                    try {
-                        const fileData = JSON.parse(msg.FileAttachment);
-                        html += `<div class="file-attachment">`;
-                        html += `📎 <a href="${fileData.url}" class="file-link" target="_blank">${escapeHtml(fileData.name)}</a>`;
-                        html += ` (${formatFileSize(fileData.size)})`;
-                        html += `</div>`;
-                    } catch (e) {
-                        // Fallback for old file format
-                        html += `<div class="file-attachment">📎 File attachment</div>`;
+                if (msg.MessageType === 'file' && msg.MediaData) {
+                    const mediaData = msg.MediaData;
+                    html += `<div class="file-attachment">`;
+                    if (msg.AttachmentUrl && msg.AttachmentUrl !== '#') {
+                        html += `📎 <a href="${msg.AttachmentUrl}" class="file-link" target="_blank">${escapeHtml(mediaData.name || 'File')}</a>`;
+                    } else {
+                        html += `📎 ${escapeHtml(mediaData.name || 'File')}`;
                     }
+                    html += ` (${mediaData.size || 'Unknown size'})`;
+                    html += `</div>`;
                 }
                 
                 html += `</div>`;
@@ -560,19 +579,27 @@
                 const messageData = {
                     Content: text || '',
                     SubjectId: currentConversationId,
-                    PostedBy: userName
+                    PostedBy: userName,
+                    MessageType: selectedFile ? 'file' : 'text'
                 };
                 
                 // Handle file attachment
                 if (selectedFile) {
                     try {
                         const base64Data = await fileToBase64(selectedFile);
-                        messageData.FileAttachment = JSON.stringify({
+                        const extension = getFileExtension(selectedFile.name);
+                        
+                        messageData.MediaData = {
                             name: selectedFile.name,
-                            size: selectedFile.size,
-                            type: selectedFile.type,
-                            data: base64Data
-                        });
+                            size: formatFileSize(selectedFile.size),
+                            extension: extension.toUpperCase(),
+                            icon: getFileIcon(extension),
+                            url: base64Data // Store base64 data directly for now
+                        };
+                        
+                        // For now, we'll use the base64 data as the attachment URL
+                        // In production, you'd upload to Firebase Storage first
+                        messageData.AttachmentUrl = base64Data;
                     } catch (error) {
                         showToast('Error processing file: ' + error.message, 'error');
                         return;

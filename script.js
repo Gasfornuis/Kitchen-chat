@@ -1,4 +1,4 @@
-// Kitchen Chat Frontend JavaScript
+// Kitchen Chat Frontend JavaScript with Authentication Integration
 class KitchenChat {
     constructor() {
         this.currentSubjectId = null;
@@ -7,6 +7,8 @@ class KitchenChat {
         this.userName = localStorage.getItem('kitchenChatUserName') || '';
         this.emojiPicker = new EmojiPicker();
         this.isInitialized = false;
+        this.authManager = null;
+        this.authUI = null;
         this.init();
     }
 
@@ -15,12 +17,17 @@ class KitchenChat {
             // Show loading screen initially
             this.showLoadingScreen();
             
-            // Wait a bit for a nice loading experience
-            await this.delay(1500);
+            // Wait a bit for Firebase to load
+            await this.delay(1000);
+            
+            // Initialize authentication system
+            await this.initAuth();
+            
+            // Wait a bit more for a nice loading experience
+            await this.delay(500);
             
             // Initialize components
             this.bindEvents();
-            await this.loadSubjects();
             this.setupAutoRefresh();
             this.emojiPicker.init();
             
@@ -35,6 +42,82 @@ class KitchenChat {
             console.error('Failed to initialize Kitchen Chat:', error);
             this.hideLoadingScreen();
             this.showToast('Failed to load Kitchen Chat. Please refresh the page.', 'error');
+        }
+    }
+
+    async initAuth() {
+        try {
+            // Check if Firebase is loaded
+            if (typeof firebase === 'undefined') {
+                console.warn('Firebase not loaded, running in demo mode');
+                await this.loadSubjects(); // Load subjects without auth
+                return;
+            }
+            
+            // Initialize Auth Manager
+            this.authManager = new AuthManager();
+            
+            // Initialize Auth UI
+            this.authUI = new AuthUI(this.authManager);
+            
+            // Listen for auth state changes
+            this.authManager.addAuthStateListener((user) => {
+                this.handleAuthStateChange(user);
+            });
+            
+            // Start activity tracking if user is logged in
+            if (this.authManager.isAuthenticated()) {
+                this.authManager.startActivityTracking();
+            }
+            
+        } catch (error) {
+            console.error('Auth initialization failed:', error);
+            // Continue without auth - fallback to old behavior
+            await this.loadSubjects();
+        }
+    }
+
+    handleAuthStateChange(user) {
+        if (user) {
+            // User is logged in
+            console.log('User logged in:', user.displayName);
+            this.userName = user.displayName || user.email || 'User';
+            localStorage.setItem('kitchenChatUserName', this.userName);
+            
+            // Load subjects now that user is authenticated
+            this.loadSubjects();
+            
+            // Start activity tracking
+            if (this.authManager) {
+                this.authManager.startActivityTracking();
+            }
+        } else {
+            // User is logged out
+            console.log('User logged out');
+            this.userName = '';
+            localStorage.removeItem('kitchenChatUserName');
+            
+            // Clear current chat
+            this.currentSubjectId = null;
+            this.subjects = [];
+            this.messages = [];
+            
+            // Show welcome screen
+            document.getElementById('welcomeScreen').style.display = 'block';
+            document.getElementById('chatArea').style.display = 'none';
+            
+            // Clear subjects list
+            document.getElementById('subjectsList').innerHTML = `
+                <div class="loading">
+                    <i class="fas fa-sign-in-alt"></i>
+                    <span>Please sign in to access conversations</span>
+                </div>
+            `;
+            
+            // Stop activity tracking
+            if (this.authManager) {
+                this.authManager.stopActivityTracking();
+            }
         }
     }
 
@@ -90,7 +173,6 @@ class KitchenChat {
 
         // Form inputs
         document.getElementById('subjectTitle').addEventListener('input', () => this.validateSubjectForm());
-        document.getElementById('createdBy').addEventListener('input', () => this.validateSubjectForm());
         
         // Character counters
         document.getElementById('subjectTitle').addEventListener('input', (e) => {
@@ -200,7 +282,7 @@ class KitchenChat {
         }
     }
 
-    // API calls
+    // API calls with authentication
     async apiCall(endpoint, method = 'GET', data = null) {
         const options = {
             method,
@@ -208,6 +290,18 @@ class KitchenChat {
                 'Content-Type': 'application/json',
             },
         };
+
+        // Add auth token if available
+        if (this.authManager && this.authManager.isAuthenticated()) {
+            try {
+                const token = await this.authManager.getIdToken();
+                if (token) {
+                    options.headers['Authorization'] = `Bearer ${token}`;
+                }
+            } catch (error) {
+                console.warn('Failed to get auth token:', error);
+            }
+        }
 
         if (data) {
             options.body = JSON.stringify(data);
@@ -217,6 +311,13 @@ class KitchenChat {
             const response = await fetch(endpoint, options);
             
             if (!response.ok) {
+                if (response.status === 401) {
+                    // Unauthorized - user needs to log in
+                    if (this.authManager) {
+                        await this.authManager.signOut();
+                    }
+                    throw new Error('Authentication required');
+                }
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
             
@@ -258,24 +359,32 @@ class KitchenChat {
     // Create new subject
     async createSubject() {
         const title = document.getElementById('subjectTitle').value.trim();
-        const createdBy = document.getElementById('createdBy').value.trim();
-
-        if (!title || !createdBy) {
-            this.showToast('Please fill in all fields', 'error');
+        
+        if (!title) {
+            this.showToast('Please enter a conversation title', 'error');
             return;
         }
 
-        try {
-            // Save user name for future use
-            localStorage.setItem('kitchenChatUserName', createdBy);
-            this.userName = createdBy;
+        // Get creator name from auth or fallback
+        let createdBy = this.userName;
+        if (!createdBy) {
+            if (this.authManager && this.authManager.isAuthenticated()) {
+                createdBy = this.authManager.getUserDisplayName();
+            } else {
+                createdBy = prompt('What is your name?');
+                if (!createdBy) return;
+                localStorage.setItem('kitchenChatUserName', createdBy);
+                this.userName = createdBy;
+            }
+        }
 
+        try {
             await this.apiCall('/api/subjects', 'POST', {
                 Title: title,
                 CreatedBy: createdBy
             });
 
-            this.showToast('Topic created successfully!', 'success');
+            this.showToast('Conversation created successfully!', 'success');
             this.closeModal();
             this.clearModalForm();
             
@@ -294,14 +403,17 @@ class KitchenChat {
             return;
         }
 
-        // Get or ask for username
+        // Get poster name from auth or fallback
         let postedBy = this.userName;
         if (!postedBy) {
-            postedBy = prompt('What is your name?');
-            if (!postedBy) return;
-            
-            localStorage.setItem('kitchenChatUserName', postedBy);
-            this.userName = postedBy;
+            if (this.authManager && this.authManager.isAuthenticated()) {
+                postedBy = this.authManager.getUserDisplayName();
+            } else {
+                postedBy = prompt('What is your name?');
+                if (!postedBy) return;
+                localStorage.setItem('kitchenChatUserName', postedBy);
+                this.userName = postedBy;
+            }
         }
 
         try {
@@ -334,7 +446,7 @@ class KitchenChat {
             subjectsList.innerHTML = `
                 <div class="loading">
                     <i class="fas fa-comments"></i>
-                    <span>No topics found. Create one to get started!</span>
+                    <span>No conversations found. Create one to get started!</span>
                 </div>
             `;
             return;
@@ -355,7 +467,7 @@ class KitchenChat {
         document.getElementById('subjectsList').innerHTML = `
             <div class="loading">
                 <i class="fas fa-exclamation-triangle"></i>
-                <span>Error loading topics</span>
+                <span>Error loading conversations</span>
             </div>
         `;
     }
@@ -457,13 +569,14 @@ class KitchenChat {
 
     // Modal methods
     openModal() {
+        // Check if user is authenticated (if auth is enabled)
+        if (this.authManager && !this.authManager.isAuthenticated()) {
+            this.showToast('Please sign in to create conversations', 'error');
+            return;
+        }
+        
         const modal = document.getElementById('modalOverlay');
         modal.classList.add('active');
-        
-        // Pre-fill username if available
-        if (this.userName) {
-            document.getElementById('createdBy').value = this.userName;
-        }
         
         // Focus title input
         setTimeout(() => {
@@ -479,7 +592,6 @@ class KitchenChat {
 
     clearModalForm() {
         document.getElementById('subjectTitle').value = '';
-        document.getElementById('createdBy').value = '';
         document.getElementById('titleCharCount').textContent = '0/100';
         this.validateSubjectForm();
     }
@@ -487,10 +599,9 @@ class KitchenChat {
     // Validation methods
     validateSubjectForm() {
         const title = document.getElementById('subjectTitle').value.trim();
-        const createdBy = document.getElementById('createdBy').value.trim();
         const createBtn = document.getElementById('createSubjectBtn');
         
-        createBtn.disabled = !title || !createdBy;
+        createBtn.disabled = !title;
     }
 
     validateMessageInput() {
@@ -973,10 +1084,36 @@ class EmojiPicker {
 // Initialize the application when DOM is loaded
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
+        // Make sure all required classes are available
+        if (typeof AuthManager === 'undefined') {
+            console.warn('AuthManager not loaded, running without authentication');
+        }
+        if (typeof AuthUI === 'undefined') {
+            console.warn('AuthUI not loaded, running without authentication UI');
+        }
+        
         window.kitchenChat = new KitchenChat();
+        
+        // Make AuthUI available globally for button clicks
+        if (typeof AuthUI !== 'undefined' && window.kitchenChat.authUI) {
+            window.authUI = window.kitchenChat.authUI;
+        }
     });
 } else {
+    // Make sure all required classes are available
+    if (typeof AuthManager === 'undefined') {
+        console.warn('AuthManager not loaded, running without authentication');
+    }
+    if (typeof AuthUI === 'undefined') {
+        console.warn('AuthUI not loaded, running without authentication UI');
+    }
+    
     window.kitchenChat = new KitchenChat();
+    
+    // Make AuthUI available globally for button clicks
+    if (typeof AuthUI !== 'undefined' && window.kitchenChat.authUI) {
+        window.authUI = window.kitchenChat.authUI;
+    }
 }
 
 // Service Worker registration for PWA capabilities

@@ -1,4 +1,4 @@
-// Kitchen Chat Frontend JavaScript with Authentication Integration
+// Kitchen Chat Frontend JavaScript with Advanced Features Integration
 class KitchenChat {
     constructor() {
         this.currentSubjectId = null;
@@ -9,6 +9,7 @@ class KitchenChat {
         this.isInitialized = false;
         this.authManager = null;
         this.authUI = null;
+        this.pendingMediaMessages = new Map(); // Store media messages temporarily
         this.init();
     }
 
@@ -37,7 +38,7 @@ class KitchenChat {
             // Hide loading screen and show app
             this.hideLoadingScreen();
             
-            console.log('Kitchen Chat initialized successfully!');
+            console.log('Kitchen Chat with Advanced Features initialized successfully!');
         } catch (error) {
             console.error('Failed to initialize Kitchen Chat:', error);
             this.hideLoadingScreen();
@@ -274,7 +275,7 @@ class KitchenChat {
         if (connectionStatus) {
             if (isOnline) {
                 connectionStatus.classList.remove('disconnected');
-                if (statusText) statusText.textContent = 'Connected';
+                if (statusText) statusText.textContent = 'Advanced Mode Ready';
             } else {
                 connectionStatus.classList.add('disconnected');
                 if (statusText) statusText.textContent = 'Disconnected';
@@ -395,12 +396,21 @@ class KitchenChat {
         }
     }
 
-    // Send message
-    async sendMessage() {
-        const content = document.getElementById('messageInput').value.trim();
+    // Enhanced send message with media support
+    async sendMessage(messageData = null) {
+        let content, messageType = 'text', mediaData = null;
         
-        if (!content || !this.currentSubjectId) {
-            return;
+        if (messageData) {
+            // Sending media message
+            content = messageData.content || '';
+            messageType = messageData.type;
+            mediaData = messageData.data;
+        } else {
+            // Regular text message
+            content = document.getElementById('messageInput').value.trim();
+            if (!content || !this.currentSubjectId) {
+                return;
+            }
         }
 
         // Get poster name from auth or fallback
@@ -417,17 +427,30 @@ class KitchenChat {
         }
 
         try {
-            // Temporarily add message to UI for instant feedback
-            this.addTemporaryMessage(content, postedBy);
-            document.getElementById('messageInput').value = '';
-            document.getElementById('charCount').textContent = '0/500';
-            this.validateMessageInput();
-
-            await this.apiCall('/api/posts', 'POST', {
+            // Create message object with media support
+            const messagePayload = {
                 Content: content,
                 SubjectId: this.currentSubjectId,
-                PostedBy: postedBy
-            });
+                PostedBy: postedBy,
+                MessageType: messageType,
+                MediaData: mediaData
+            };
+
+            // Temporarily add message to UI for instant feedback
+            if (messageType === 'text') {
+                this.addTemporaryMessage(content, postedBy);
+                document.getElementById('messageInput').value = '';
+                document.getElementById('charCount').textContent = '0/500';
+                this.validateMessageInput();
+            } else {
+                this.addTemporaryMediaMessage(messagePayload);
+            }
+
+            // Send to backend (for now, simulate success)
+            // await this.apiCall('/api/posts', 'POST', messagePayload);
+            
+            // TEMPORARY: Since backend doesn't support media yet, store locally and show immediately
+            this.handleMediaMessageLocally(messagePayload);
 
             // Refresh messages to get the actual message from server
             setTimeout(() => this.loadMessages(this.currentSubjectId), 500);
@@ -436,6 +459,239 @@ class KitchenChat {
             console.error('Failed to send message:', error);
             this.removeTemporaryMessage();
         }
+    }
+
+    // TEMPORARY: Handle media messages locally until backend is updated
+    handleMediaMessageLocally(messagePayload) {
+        const messageId = Date.now().toString();
+        const localMessage = {
+            id: messageId,
+            Content: messagePayload.Content,
+            PostedBy: messagePayload.PostedBy,
+            CreatedAt: new Date().toISOString(),
+            MessageType: messagePayload.MessageType,
+            MediaData: messagePayload.MediaData
+        };
+        
+        // Add to messages array
+        this.messages.push(localMessage);
+        
+        // Store in localStorage for persistence
+        const localMessages = JSON.parse(localStorage.getItem('localMediaMessages') || '{}');
+        if (!localMessages[this.currentSubjectId]) {
+            localMessages[this.currentSubjectId] = [];
+        }
+        localMessages[this.currentSubjectId].push(localMessage);
+        localStorage.setItem('localMediaMessages', JSON.stringify(localMessages));
+        
+        // Re-render messages
+        this.renderMessages();
+    }
+
+    // Load local media messages when loading a subject
+    loadLocalMediaMessages(subjectId) {
+        const localMessages = JSON.parse(localStorage.getItem('localMediaMessages') || '{}');
+        return localMessages[subjectId] || [];
+    }
+
+    // Enhanced renderMessages with media support
+    renderMessages() {
+        const messagesContainer = document.getElementById('messagesContainer');
+        
+        // Merge API messages with local media messages
+        const localMediaMessages = this.loadLocalMediaMessages(this.currentSubjectId);
+        const allMessages = [...this.messages, ...localMediaMessages];
+        
+        if (allMessages.length === 0) {
+            messagesContainer.innerHTML = `
+                <div class="loading">
+                    <i class="fas fa-comments"></i>
+                    <span>No messages yet. Try sending a text message, voice note, or share a file!</span>
+                </div>
+            `;
+            return;
+        }
+
+        // Sort messages by creation date
+        const sortedMessages = allMessages.sort((a, b) => 
+            new Date(a.CreatedAt) - new Date(b.CreatedAt)
+        );
+
+        messagesContainer.innerHTML = sortedMessages.map(message => {
+            const isOwn = message.PostedBy === this.userName;
+            
+            // Render different message types
+            switch (message.MessageType) {
+                case 'voice':
+                    return this.renderVoiceMessage(message, isOwn);
+                case 'image':
+                    return this.renderImageMessage(message, isOwn);
+                case 'file':
+                    return this.renderFileMessage(message, isOwn);
+                default:
+                    return this.renderTextMessage(message, isOwn);
+            }
+        }).join('');
+
+        // Scroll to bottom
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        
+        // Add animation classes for new messages
+        setTimeout(() => {
+            const newMessages = messagesContainer.querySelectorAll('.message:not(.animated)');
+            newMessages.forEach((msg, index) => {
+                msg.classList.add('animated');
+                msg.style.animationDelay = `${index * 0.1}s`;
+            });
+        }, 100);
+    }
+
+    renderTextMessage(message, isOwn) {
+        return `
+            <div class="message ${isOwn ? 'own' : 'other'}">
+                <div class="message-header">
+                    <span class="message-author">${this.escapeHtml(message.PostedBy)}</span>
+                    <span class="message-time">${this.formatTime(message.CreatedAt)}</span>
+                </div>
+                <div class="message-content">${this.processEmojis(this.escapeHtml(message.Content))}</div>
+                <div class="message-reactions"></div>
+            </div>
+        `;
+    }
+
+    renderVoiceMessage(message, isOwn) {
+        const mediaData = message.MediaData || {};
+        return `
+            <div class="message ${isOwn ? 'own' : 'other'}">
+                <div class="message-header">
+                    <span class="message-author">${this.escapeHtml(message.PostedBy)}</span>
+                    <span class="message-time">${this.formatTime(message.CreatedAt)}</span>
+                </div>
+                <div class="voice-message" data-audio-url="${mediaData.audioUrl || ''}">
+                    <button class="voice-play-btn" onclick="kitchenChat.playVoiceMessage(this)">
+                        <i class="fas fa-play"></i>
+                    </button>
+                    <div class="voice-waveform">
+                        ${(mediaData.waveform || []).map((height, index) => 
+                            `<div class="voice-waveform-bar" style="height: ${height}%"></div>`
+                        ).join('')}
+                    </div>
+                    <span class="voice-duration">${mediaData.duration || '0:05'}</span>
+                </div>
+                <div class="message-reactions"></div>
+            </div>
+        `;
+    }
+
+    renderImageMessage(message, isOwn) {
+        const mediaData = message.MediaData || {};
+        return `
+            <div class="message ${isOwn ? 'own' : 'other'}">
+                <div class="message-header">
+                    <span class="message-author">${this.escapeHtml(message.PostedBy)}</span>
+                    <span class="message-time">${this.formatTime(message.CreatedAt)}</span>
+                </div>
+                <div class="image-message" onclick="kitchenChat.openImageInLightbox('${mediaData.src}', '${mediaData.name}')">
+                    <img class="message-image" src="${mediaData.src}" alt="${mediaData.name}" loading="lazy">
+                </div>
+                ${message.Content ? `<div class="message-content">${this.escapeHtml(message.Content)}</div>` : ''}
+                <div class="message-reactions"></div>
+            </div>
+        `;
+    }
+
+    renderFileMessage(message, isOwn) {
+        const mediaData = message.MediaData || {};
+        return `
+            <div class="message ${isOwn ? 'own' : 'other'}">
+                <div class="message-header">
+                    <span class="message-author">${this.escapeHtml(message.PostedBy)}</span>
+                    <span class="message-time">${this.formatTime(message.CreatedAt)}</span>
+                </div>
+                <div class="file-message" onclick="kitchenChat.downloadFile('${mediaData.name}', '${mediaData.url || '#'}')">
+                    <div class="file-icon">
+                        <i class="${mediaData.icon || 'fas fa-file'}"></i>
+                    </div>
+                    <div class="file-info">
+                        <div class="file-name">${mediaData.name || 'Unknown File'}</div>
+                        <div class="file-size">${mediaData.size || '0 KB'} • ${mediaData.extension || 'FILE'}</div>
+                    </div>
+                </div>
+                ${message.Content ? `<div class="message-content">${this.escapeHtml(message.Content)}</div>` : ''}
+                <div class="message-reactions"></div>
+            </div>
+        `;
+    }
+
+    // Media message handlers
+    playVoiceMessage(button) {
+        const voiceMessage = button.closest('.voice-message');
+        const audioUrl = voiceMessage.dataset.audioUrl;
+        
+        if (!audioUrl || audioUrl === '') {
+            this.showToast('Voice message not available (demo mode)', 'info');
+            return;
+        }
+        
+        const audio = new Audio(audioUrl);
+        const icon = button.querySelector('i');
+        
+        if (audio.paused) {
+            audio.play();
+            icon.className = 'fas fa-pause';
+            
+            audio.onended = () => {
+                icon.className = 'fas fa-play';
+            };
+        } else {
+            audio.pause();
+            icon.className = 'fas fa-play';
+        }
+    }
+
+    openImageInLightbox(src, name) {
+        if (window.advancedComm && window.advancedComm.openLightbox) {
+            const img = document.createElement('img');
+            img.src = src;
+            img.alt = name;
+            window.advancedComm.openLightbox(img);
+        } else {
+            // Fallback: open in new tab
+            window.open(src, '_blank');
+        }
+    }
+
+    downloadFile(name, url) {
+        if (url === '#') {
+            this.showToast(`File download: ${name} (demo mode)`, 'info');
+            return;
+        }
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = name;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    }
+
+    // Integration with advanced features
+    sendVoiceMessage(voiceData) {
+        const messageData = {
+            content: `🎙️ Voice message (${voiceData.duration})`,
+            type: 'voice',
+            data: voiceData
+        };
+        this.sendMessage(messageData);
+    }
+
+    sendFileMessage(fileData) {
+        const messageData = {
+            content: fileData.type === 'image' ? `📷 ${fileData.name}` : `📁 ${fileData.name}`,
+            type: fileData.type,
+            data: fileData
+        };
+        this.sendMessage(messageData);
     }
 
     // UI Rendering Methods
@@ -472,41 +728,6 @@ class KitchenChat {
         `;
     }
 
-    renderMessages() {
-        const messagesContainer = document.getElementById('messagesContainer');
-        
-        if (this.messages.length === 0) {
-            messagesContainer.innerHTML = `
-                <div class="loading">
-                    <i class="fas fa-comments"></i>
-                    <span>No messages yet. Send the first message!</span>
-                </div>
-            `;
-            return;
-        }
-
-        // Sort messages by creation date
-        const sortedMessages = this.messages.sort((a, b) => 
-            new Date(a.CreatedAt) - new Date(b.CreatedAt)
-        );
-
-        messagesContainer.innerHTML = sortedMessages.map(message => {
-            const isOwn = message.PostedBy === this.userName;
-            return `
-                <div class="message ${isOwn ? 'own' : 'other'}">
-                    <div class="message-header">
-                        <span class="message-author">${this.escapeHtml(message.PostedBy)}</span>
-                        <span class="message-time">${this.formatTime(message.CreatedAt)}</span>
-                    </div>
-                    <div class="message-content">${this.processEmojis(this.escapeHtml(message.Content))}</div>
-                </div>
-            `;
-        }).join('');
-
-        // Scroll to bottom
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    }
-
     renderMessagesError() {
         document.getElementById('messagesContainer').innerHTML = `
             <div class="loading">
@@ -530,6 +751,71 @@ class KitchenChat {
         
         messagesContainer.appendChild(tempMessage);
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    addTemporaryMediaMessage(messageData) {
+        const messagesContainer = document.getElementById('messagesContainer');
+        const tempMessage = document.createElement('div');
+        tempMessage.className = 'message own temp-message';
+        
+        let mediaContent = '';
+        
+        switch (messageData.MessageType) {
+            case 'voice':
+                mediaContent = `
+                    <div class="voice-message">
+                        <button class="voice-play-btn">
+                            <i class="fas fa-microphone"></i>
+                        </button>
+                        <div class="voice-waveform">
+                            ${Array.from({length: 20}, (_, i) => 
+                                `<div class="voice-waveform-bar" style="height: ${Math.random() * 100}%"></div>`
+                            ).join('')}
+                        </div>
+                        <span class="voice-duration">Uploading...</span>
+                    </div>
+                `;
+                break;
+            case 'image':
+                mediaContent = `
+                    <div class="image-message">
+                        <img class="message-image" src="${messageData.MediaData.src}" alt="${messageData.MediaData.name}" style="opacity: 0.7;">
+                    </div>
+                `;
+                break;
+            case 'file':
+                mediaContent = `
+                    <div class="file-message">
+                        <div class="file-icon">
+                            <i class="${messageData.MediaData.icon}"></i>
+                        </div>
+                        <div class="file-info">
+                            <div class="file-name">${messageData.MediaData.name}</div>
+                            <div class="file-size">Uploading... • ${messageData.MediaData.extension}</div>
+                        </div>
+                    </div>
+                `;
+                break;
+        }
+        
+        tempMessage.innerHTML = `
+            <div class="message-header">
+                <span class="message-author">${this.escapeHtml(messageData.PostedBy)}</span>
+                <span class="message-time">Sending...</span>
+            </div>
+            ${mediaContent}
+            ${messageData.Content ? `<div class="message-content">${this.escapeHtml(messageData.Content)}</div>` : ''}
+        `;
+        
+        messagesContainer.appendChild(tempMessage);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        
+        // Remove temp message after a short delay
+        setTimeout(() => {
+            if (tempMessage.parentNode) {
+                tempMessage.remove();
+            }
+        }, 2000);
     }
 
     removeTemporaryMessage() {
@@ -1079,6 +1365,22 @@ class EmojiPicker {
             </button>
         `).join('');
     }
+}
+
+// Integration bridge with AdvancedCommunication
+if (typeof window !== 'undefined') {
+    // Hook into advanced communication callbacks
+    window.addEventListener('voiceMessageRecorded', (event) => {
+        if (window.kitchenChat) {
+            window.kitchenChat.sendVoiceMessage(event.detail);
+        }
+    });
+    
+    window.addEventListener('fileSelected', (event) => {
+        if (window.kitchenChat) {
+            window.kitchenChat.sendFileMessage(event.detail);
+        }
+    });
 }
 
 // Initialize the application when DOM is loaded

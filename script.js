@@ -1,9 +1,10 @@
-// Kitchen Chat Frontend JavaScript with Smooth Rendering
+// Kitchen Chat Frontend JavaScript with Persistent Reactions
 class KitchenChat {
     constructor() {
         this.currentSubjectId = null;
         this.subjects = [];
         this.messages = [];
+        this.messageReactions = new Map(); // Store reactions by message ID
         this.renderedMessageIds = new Set(); // Track already rendered messages
         this.userName = localStorage.getItem('kitchenChatUserName') || '';
         this.emojiPicker = new EmojiPicker();
@@ -39,7 +40,7 @@ class KitchenChat {
             // Hide loading screen and show app
             this.hideLoadingScreen();
             
-            console.log('🚀 Kitchen Chat with Smooth Rendering initialized successfully!');
+            console.log('🚀 Kitchen Chat with Persistent Reactions initialized successfully!');
         } catch (error) {
             console.error('Failed to initialize Kitchen Chat:', error);
             this.hideLoadingScreen();
@@ -103,6 +104,7 @@ class KitchenChat {
             this.currentSubjectId = null;
             this.subjects = [];
             this.messages = [];
+            this.messageReactions.clear();
             this.renderedMessageIds.clear();
             
             // Stop polling
@@ -357,6 +359,7 @@ class KitchenChat {
             if (this.currentSubjectId !== subjectId || this.messages.length === 0) {
                 messagesContainer.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i><span>Loading messages...</span></div>';
                 this.renderedMessageIds.clear();
+                this.messageReactions.clear();
             }
             
             // Stop previous polling
@@ -364,6 +367,10 @@ class KitchenChat {
             
             // Load initial messages
             this.messages = await this.apiCall(`/api/posts?SubjectId=${subjectId}`);
+            
+            // Load reactions for all messages
+            await this.loadAllReactions();
+            
             this.renderMessagesSmooth();
             
             // Start real-time polling
@@ -373,6 +380,110 @@ class KitchenChat {
             console.error('Failed to load messages:', error);
             this.renderMessagesError();
         }
+    }
+
+    // Load reactions for all current messages
+    async loadAllReactions() {
+        try {
+            const reactionPromises = this.messages.map(async (message) => {
+                if (message.id && !this.messageReactions.has(message.id)) {
+                    try {
+                        const reactions = await this.apiCall(`/api/reactions?messageId=${message.id}`);
+                        this.messageReactions.set(message.id, reactions || []);
+                    } catch (error) {
+                        console.warn(`Failed to load reactions for message ${message.id}:`, error);
+                        this.messageReactions.set(message.id, []);
+                    }
+                }
+            });
+            
+            await Promise.all(reactionPromises);
+        } catch (error) {
+            console.error('Failed to load reactions:', error);
+        }
+    }
+
+    // Add or remove reaction
+    async toggleReaction(messageId, emoji) {
+        try {
+            if (!this.userName) {
+                this.showToast('Please set your name first', 'error');
+                return;
+            }
+
+            const result = await this.apiCall('/api/reactions', 'POST', {
+                MessageId: messageId,
+                Emoji: emoji,
+                UserName: this.userName,
+                Action: 'add' // The API handles toggle behavior automatically
+            });
+
+            // Reload reactions for this message
+            const updatedReactions = await this.apiCall(`/api/reactions?messageId=${messageId}`);
+            this.messageReactions.set(messageId, updatedReactions || []);
+
+            // Update the message reactions display
+            this.updateMessageReactions(messageId);
+
+            // Show feedback
+            this.showToast(`Reaction ${result.action}! ${emoji}`, 'success');
+
+        } catch (error) {
+            console.error('Failed to toggle reaction:', error);
+            this.showToast('Failed to add reaction. Please try again.', 'error');
+        }
+    }
+
+    // Update reactions display for a specific message
+    updateMessageReactions(messageId) {
+        const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+        if (!messageElement) return;
+
+        const reactionsContainer = messageElement.querySelector('.message-reactions');
+        if (!reactionsContainer) return;
+
+        const reactions = this.messageReactions.get(messageId) || [];
+        reactionsContainer.innerHTML = this.renderReactions(reactions, messageId);
+    }
+
+    // Render reactions HTML
+    renderReactions(reactions, messageId) {
+        if (!reactions || reactions.length === 0) {
+            return '';
+        }
+
+        // Group reactions by emoji
+        const groupedReactions = {};
+        reactions.forEach(reaction => {
+            const emoji = reaction.Emoji;
+            if (!groupedReactions[emoji]) {
+                groupedReactions[emoji] = {
+                    emoji: emoji,
+                    count: 0,
+                    users: [],
+                    hasCurrentUser: false
+                };
+            }
+            groupedReactions[emoji].count++;
+            groupedReactions[emoji].users.push(reaction.UserName);
+            if (reaction.UserName === this.userName) {
+                groupedReactions[emoji].hasCurrentUser = true;
+            }
+        });
+
+        // Render grouped reactions
+        return Object.values(groupedReactions).map(group => {
+            const usersList = group.users.join(', ');
+            const ownClass = group.hasCurrentUser ? ' own' : '';
+            return `
+                <button class="message-reaction${ownClass}" 
+                        onclick="kitchenChat.toggleReaction('${messageId}', '${group.emoji}')"
+                        title="${usersList}">
+                    <span class="reaction-emoji">${group.emoji}</span>
+                    <span class="reaction-count">${group.count}</span>
+                </button>
+            `;
+        }).join('');
     }
 
     // Start real-time message polling with smooth updates
@@ -391,6 +502,9 @@ class KitchenChat {
                         const oldLength = this.messages.length;
                         this.messages = newMessages;
                         
+                        // Load reactions for new messages
+                        await this.loadReactionsForNewMessages(oldLength);
+                        
                         // Only render new messages incrementally
                         this.renderNewMessagesOnly(oldLength, newMessages);
                         
@@ -403,12 +517,55 @@ class KitchenChat {
                             this.showToast(`${newMessagesFromOthers.length} new message(s) received!`, 'success');
                             this.playNotificationSound();
                         }
+                    } else {
+                        // Check for reaction updates on existing messages
+                        await this.checkForReactionUpdates();
                     }
                 }
             } catch (error) {
                 console.warn('Polling error:', error);
             }
-        }, 2000); // Poll every 2 seconds
+        }, 3000); // Poll every 3 seconds
+    }
+
+    // Load reactions for newly received messages
+    async loadReactionsForNewMessages(oldLength) {
+        const newMessages = this.messages.slice(oldLength);
+        const reactionPromises = newMessages.map(async (message) => {
+            if (message.id) {
+                try {
+                    const reactions = await this.apiCall(`/api/reactions?messageId=${message.id}`);
+                    this.messageReactions.set(message.id, reactions || []);
+                } catch (error) {
+                    console.warn(`Failed to load reactions for new message ${message.id}:`, error);
+                    this.messageReactions.set(message.id, []);
+                }
+            }
+        });
+        await Promise.all(reactionPromises);
+    }
+
+    // Check for reaction updates on existing messages
+    async checkForReactionUpdates() {
+        // Check reactions for the last 10 messages (most likely to have new reactions)
+        const recentMessages = this.messages.slice(-10);
+        
+        for (const message of recentMessages) {
+            if (message.id) {
+                try {
+                    const currentReactions = await this.apiCall(`/api/reactions?messageId=${message.id}`);
+                    const storedReactions = this.messageReactions.get(message.id) || [];
+                    
+                    // Compare reaction counts
+                    if (currentReactions.length !== storedReactions.length) {
+                        this.messageReactions.set(message.id, currentReactions);
+                        this.updateMessageReactions(message.id);
+                    }
+                } catch (error) {
+                    console.warn(`Failed to check reactions for message ${message.id}:`, error);
+                }
+            }
+        }
     }
 
     // Stop message polling
@@ -675,18 +832,25 @@ class KitchenChat {
     }
 
     renderTextMessage(message, isOwn) {
+        const reactions = this.messageReactions.get(message.id) || [];
         return `
             <div class="message-header">
                 <span class="message-author">${this.escapeHtml(message.PostedBy)}</span>
                 <span class="message-time">${this.formatTime(message.CreatedAt)}</span>
             </div>
             <div class="message-content">${this.processEmojis(this.escapeHtml(message.Content))}</div>
-            <div class="message-reactions"></div>
+            <div class="message-reactions">${this.renderReactions(reactions, message.id)}</div>
+            <div class="message-actions">
+                <button class="reaction-add-btn" onclick="kitchenChat.showReactionPicker('${message.id}', this)">
+                    <i class="fas fa-smile"></i>
+                </button>
+            </div>
         `;
     }
 
     renderVoiceMessage(message, isOwn) {
         const mediaData = message.MediaData || {};
+        const reactions = this.messageReactions.get(message.id) || [];
         return `
             <div class="message-header">
                 <span class="message-author">${this.escapeHtml(message.PostedBy)}</span>
@@ -704,13 +868,19 @@ class KitchenChat {
                 <span class="voice-duration">${mediaData.duration || '0:05'}</span>
             </div>
             ${message.Content ? `<div class="message-content">${this.escapeHtml(message.Content)}</div>` : ''}
-            <div class="message-reactions"></div>
+            <div class="message-reactions">${this.renderReactions(reactions, message.id)}</div>
+            <div class="message-actions">
+                <button class="reaction-add-btn" onclick="kitchenChat.showReactionPicker('${message.id}', this)">
+                    <i class="fas fa-smile"></i>
+                </button>
+            </div>
         `;
     }
 
     renderImageMessage(message, isOwn) {
         const mediaData = message.MediaData || {};
         const imageUrl = message.AttachmentUrl || '#';
+        const reactions = this.messageReactions.get(message.id) || [];
         return `
             <div class="message-header">
                 <span class="message-author">${this.escapeHtml(message.PostedBy)}</span>
@@ -720,12 +890,18 @@ class KitchenChat {
                 <img class="message-image" src="${imageUrl}" alt="${mediaData.name || 'Image'}" loading="lazy">
             </div>
             ${message.Content ? `<div class="message-content">${this.escapeHtml(message.Content)}</div>` : ''}
-            <div class="message-reactions"></div>
+            <div class="message-reactions">${this.renderReactions(reactions, message.id)}</div>
+            <div class="message-actions">
+                <button class="reaction-add-btn" onclick="kitchenChat.showReactionPicker('${message.id}', this)">
+                    <i class="fas fa-smile"></i>
+                </button>
+            </div>
         `;
     }
 
     renderFileMessage(message, isOwn) {
         const mediaData = message.MediaData || {};
+        const reactions = this.messageReactions.get(message.id) || [];
         return `
             <div class="message-header">
                 <span class="message-author">${this.escapeHtml(message.PostedBy)}</span>
@@ -741,8 +917,60 @@ class KitchenChat {
                 </div>
             </div>
             ${message.Content ? `<div class="message-content">${this.escapeHtml(message.Content)}</div>` : ''}
-            <div class="message-reactions"></div>
+            <div class="message-reactions">${this.renderReactions(reactions, message.id)}</div>
+            <div class="message-actions">
+                <button class="reaction-add-btn" onclick="kitchenChat.showReactionPicker('${message.id}', this)">
+                    <i class="fas fa-smile"></i>
+                </button>
+            </div>
         `;
+    }
+
+    // Show reaction picker
+    showReactionPicker(messageId, button) {
+        // Create quick reaction picker with common emojis
+        const quickReactions = ['👍', '❤️', '😂', '😮', '😢', '😡'];
+        
+        // Check if picker already exists
+        let picker = document.getElementById('quick-reaction-picker');
+        if (picker) {
+            picker.remove();
+        }
+        
+        // Create new picker
+        picker = document.createElement('div');
+        picker.id = 'quick-reaction-picker';
+        picker.className = 'reaction-picker show';
+        
+        picker.innerHTML = quickReactions.map(emoji => 
+            `<button class="reaction-btn" onclick="kitchenChat.toggleReaction('${messageId}', '${emoji}'); kitchenChat.hideReactionPicker();">${emoji}</button>`
+        ).join('');
+        
+        // Position picker
+        document.body.appendChild(picker);
+        const buttonRect = button.getBoundingClientRect();
+        picker.style.left = `${buttonRect.left}px`;
+        picker.style.top = `${buttonRect.top - picker.offsetHeight - 5}px`;
+        
+        // Auto-hide after 5 seconds
+        setTimeout(() => this.hideReactionPicker(), 5000);
+        
+        // Hide when clicking elsewhere
+        const hideHandler = (e) => {
+            if (!picker.contains(e.target) && !button.contains(e.target)) {
+                this.hideReactionPicker();
+                document.removeEventListener('click', hideHandler);
+            }
+        };
+        setTimeout(() => document.addEventListener('click', hideHandler), 100);
+    }
+
+    // Hide reaction picker
+    hideReactionPicker() {
+        const picker = document.getElementById('quick-reaction-picker');
+        if (picker) {
+            picker.remove();
+        }
     }
 
     // Media message handlers
@@ -884,6 +1112,7 @@ class KitchenChat {
         
         // Clear rendered messages tracking when switching subjects
         this.renderedMessageIds.clear();
+        this.messageReactions.clear();
         
         // Load messages with smooth rendering
         this.currentSubjectId = subjectId;

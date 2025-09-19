@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="nl">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kitchen Chat - Eenvoudige Chat Website</title>
+    <title>Kitchen Chat - Simple Chat Website</title>
     <style>
-        /* Minimale CSS - alleen het allernoodzakelijkste */
+        /* Minimal CSS - only the essentials */
         body {
             font-family: Arial, sans-serif;
             margin: 0;
@@ -154,46 +154,46 @@
     <div class="container">
         <header>
             <h1 style="margin: 0; display: inline;">Kitchen Chat</h1>
-            <button onclick="openModal()" style="float: right;">Nieuw Gesprek</button>
+            <button onclick="openModal()" style="float: right;">New Conversation</button>
         </header>
         
         <div class="main">
             <div class="sidebar">
-                <h3>Gesprekken</h3>
-                <input type="text" id="search" placeholder="Zoeken..." onkeyup="searchConversations()" style="width: 90%;">
+                <h3>Conversations</h3>
+                <input type="text" id="search" placeholder="Search..." onkeyup="searchConversations()" style="width: 90%;">
                 <div id="conversations">
-                    <p>Gesprekken laden...</p>
+                    <p>Loading conversations...</p>
                 </div>
             </div>
             
             <div class="chat">
                 <div id="welcome" style="text-align: center; padding: 50px;">
-                    <h2>Welkom bij Kitchen Chat</h2>
-                    <p>Een eenvoudige chat website. Selecteer een gesprek om te beginnen of maak een nieuw gesprek aan.</p>
-                    <h3>Functies:</h3>
+                    <h2>Welcome to Kitchen Chat</h2>
+                    <p>A simple chat website. Select a conversation to start or create a new conversation.</p>
+                    <h3>Features:</h3>
                     <ul style="text-align: left; display: inline-block;">
-                        <li>Real-time berichten</li>
-                        <li>Gesprekken beheren</li>
-                        <li>Eenvoudig zoeken</li>
-                        <li>Gebruiksvriendelijk</li>
-                        <li>Werkt op alle apparaten</li>
+                        <li>Real-time messaging</li>
+                        <li>Conversation management</li>
+                        <li>Easy search</li>
+                        <li>User-friendly</li>
+                        <li>Works on all devices</li>
                     </ul>
-                    <p><strong>Beginnen:</strong> Klik op "Nieuw Gesprek" om je eerste chatroom te maken!</p>
+                    <p><strong>Get Started:</strong> Click "New Conversation" to create your first chat room!</p>
                 </div>
                 
                 <div id="chatArea" style="display: none;">
-                    <h2 id="chatTitle">Gesprek</h2>
-                    <button onclick="refreshMessages()" style="float: right;">Vernieuwen</button>
+                    <h2 id="chatTitle">Conversation</h2>
+                    <button onclick="refreshMessages()" style="float: right;">Refresh</button>
                     
                     <div id="messages" class="messages">
-                        <p>Berichten laden...</p>
+                        <p>Loading messages...</p>
                     </div>
                     
                     <div>
-                        <input type="text" id="messageText" placeholder="Typ je bericht..." style="width: 70%;" maxlength="500" onkeypress="checkEnter(event)">
-                        <button id="sendBtn" onclick="sendMessage()" disabled>Versturen</button>
+                        <input type="text" id="messageText" placeholder="Type your message..." style="width: 70%;" maxlength="500" onkeypress="checkEnter(event)">
+                        <button id="sendBtn" onclick="sendMessage()" disabled>Send</button>
                         <div style="font-size: 12px; color: #666; margin: 5px 0;">
-                            <span id="charCount">0/500 tekens</span>
+                            <span id="charCount">0/500 characters</span>
                         </div>
                     </div>
                 </div>
@@ -204,27 +204,27 @@
     <!-- Modal -->
     <div id="modal" class="modal">
         <div class="modal-content">
-            <h3>Nieuw Gesprek Maken</h3>
-            <label>Titel:</label><br>
-            <input type="text" id="newTitle" style="width: 90%;" maxlength="100" placeholder="Gesprek titel...">
+            <h3>Create New Conversation</h3>
+            <label>Title:</label><br>
+            <input type="text" id="newTitle" style="width: 90%;" maxlength="100" placeholder="Conversation title...">
             <div style="font-size: 12px; color: #666; margin: 5px 0;">
-                <span id="titleCount">0/100 tekens</span>
+                <span id="titleCount">0/100 characters</span>
             </div>
             <br><br>
-            <button onclick="createConversation()">Maken</button>
-            <button onclick="closeModal()">Annuleren</button>
+            <button onclick="createConversation()">Create</button>
+            <button onclick="closeModal()">Cancel</button>
         </div>
     </div>
     
     <script>
-        // Basis JavaScript - zo simpel mogelijk
+        // Basic JavaScript - as simple as possible
         let currentConversationId = null;
         let conversations = [];
         let messages = [];
         let userName = localStorage.getItem('kitchenChatUser') || '';
         let pollTimer = null;
         
-        // Start de applicatie
+        // Start the application
         window.onload = function() {
             loadConversations();
             setupEventListeners();
@@ -234,14 +234,14 @@
             // Message input events
             document.getElementById('messageText').oninput = function() {
                 const text = this.value;
-                document.getElementById('charCount').textContent = text.length + '/500 tekens';
+                document.getElementById('charCount').textContent = text.length + '/500 characters';
                 document.getElementById('sendBtn').disabled = !text.trim() || !currentConversationId;
             };
             
             // Title input events
             document.getElementById('newTitle').oninput = function() {
                 const text = this.value;
-                document.getElementById('titleCount').textContent = text.length + '/100 tekens';
+                document.getElementById('titleCount').textContent = text.length + '/100 characters';
             };
             
             // Close modal when clicking outside
@@ -269,7 +269,7 @@
                 return await response.json();
             } catch (error) {
                 console.error('API Error:', error);
-                showToast('Fout: ' + error.message, 'error');
+                showToast('Error: ' + error.message, 'error');
                 throw error;
             }
         }
@@ -280,7 +280,7 @@
                 conversations = await apiCall('/api/subjects');
                 displayConversations();
             } catch (error) {
-                document.getElementById('conversations').innerHTML = '<p style="color: red;">Fout bij laden gesprekken</p>';
+                document.getElementById('conversations').innerHTML = '<p style="color: red;">Error loading conversations</p>';
             }
         }
         
@@ -289,7 +289,7 @@
             const container = document.getElementById('conversations');
             
             if (conversations.length === 0) {
-                container.innerHTML = '<p>Geen gesprekken gevonden.</p>';
+                container.innerHTML = '<p>No conversations found.</p>';
                 return;
             }
             
@@ -297,7 +297,7 @@
             conversations.forEach(conv => {
                 html += `<div class="subject-item" onclick="selectConversation('${conv.id}', '${escapeHtml(conv.Title)}')">` +
                        `<strong>${escapeHtml(conv.Title)}</strong><br>` +
-                       `<small>door ${escapeHtml(conv.CreatedBy)} • ${formatDate(conv.CreatedAt)}</small>` +
+                       `<small>by ${escapeHtml(conv.CreatedBy)} • ${formatDate(conv.CreatedAt)}</small>` +
                        `</div>`;
             });
             
@@ -341,12 +341,12 @@
             if (!currentConversationId) return;
             
             try {
-                document.getElementById('messages').innerHTML = '<p>Berichten laden...</p>';
+                document.getElementById('messages').innerHTML = '<p>Loading messages...</p>';
                 messages = await apiCall(`/api/posts?SubjectId=${currentConversationId}`);
                 displayMessages();
                 startPolling();
             } catch (error) {
-                document.getElementById('messages').innerHTML = '<p style="color: red;">Fout bij laden berichten</p>';
+                document.getElementById('messages').innerHTML = '<p style="color: red;">Error loading messages</p>';
             }
         }
         
@@ -355,7 +355,7 @@
             const container = document.getElementById('messages');
             
             if (messages.length === 0) {
-                container.innerHTML = '<p>Nog geen berichten. Begin het gesprek!</p>';
+                container.innerHTML = '<p>No messages yet. Start the conversation!</p>';
                 return;
             }
             
@@ -386,11 +386,11 @@
                             displayMessages();
                             
                             if (newMessages.length > oldCount) {
-                                showToast('Nieuwe berichten ontvangen!', 'success');
+                                showToast('New messages received!', 'success');
                             }
                         }
                     } catch (error) {
-                        // Stil negeren
+                        // Silently ignore
                     }
                 }
             }, 5000);
@@ -403,7 +403,7 @@
             
             // Get user name if not set
             if (!userName) {
-                userName = prompt('Wat is je naam?');
+                userName = prompt('What is your name?');
                 if (!userName) return;
                 localStorage.setItem('kitchenChatUser', userName);
             }
@@ -411,7 +411,7 @@
             try {
                 // Clear input immediately
                 document.getElementById('messageText').value = '';
-                document.getElementById('charCount').textContent = '0/500 tekens';
+                document.getElementById('charCount').textContent = '0/500 characters';
                 document.getElementById('sendBtn').disabled = true;
                 
                 await apiCall('/api/posts', 'POST', {
@@ -420,7 +420,7 @@
                     PostedBy: userName
                 });
                 
-                showToast('Bericht verzonden!', 'success');
+                showToast('Message sent!', 'success');
                 loadMessages(); // Reload messages
                 
             } catch (error) {
@@ -440,7 +440,7 @@
         function refreshMessages() {
             if (currentConversationId) {
                 loadMessages();
-                showToast('Berichten ververst', 'success');
+                showToast('Messages refreshed', 'success');
             }
         }
         
@@ -453,20 +453,20 @@
         function closeModal() {
             document.getElementById('modal').style.display = 'none';
             document.getElementById('newTitle').value = '';
-            document.getElementById('titleCount').textContent = '0/100 tekens';
+            document.getElementById('titleCount').textContent = '0/100 characters';
         }
         
         // Create conversation
         async function createConversation() {
             const title = document.getElementById('newTitle').value.trim();
             if (!title) {
-                alert('Voer een titel in');
+                alert('Please enter a title');
                 return;
             }
             
             // Get user name if not set
             if (!userName) {
-                userName = prompt('Wat is je naam?');
+                userName = prompt('What is your name?');
                 if (!userName) return;
                 localStorage.setItem('kitchenChatUser', userName);
             }
@@ -477,7 +477,7 @@
                     CreatedBy: userName
                 });
                 
-                showToast('Gesprek aangemaakt!', 'success');
+                showToast('Conversation created!', 'success');
                 closeModal();
                 
                 // Reload conversations
@@ -515,12 +515,12 @@
                 const now = new Date();
                 const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
                 
-                if (diffDays === 0) return 'Vandaag';
-                if (diffDays === 1) return 'Gisteren';
-                if (diffDays < 7) return diffDays + ' dagen geleden';
-                return date.toLocaleDateString('nl-NL');
+                if (diffDays === 0) return 'Today';
+                if (diffDays === 1) return 'Yesterday';
+                if (diffDays < 7) return diffDays + ' days ago';
+                return date.toLocaleDateString('en-US');
             } catch (e) {
-                return 'Onbekend';
+                return 'Unknown';
             }
         }
         
@@ -530,23 +530,23 @@
                 const now = new Date();
                 const diffMinutes = Math.floor((now - date) / (1000 * 60));
                 
-                if (diffMinutes < 1) return 'Nu';
-                if (diffMinutes < 60) return diffMinutes + 'm geleden';
-                if (diffMinutes < 1440) return Math.floor(diffMinutes / 60) + 'u geleden';
-                return date.toLocaleDateString('nl-NL') + ' ' + date.toLocaleTimeString('nl-NL', {hour: '2-digit', minute: '2-digit'});
+                if (diffMinutes < 1) return 'Now';
+                if (diffMinutes < 60) return diffMinutes + 'm ago';
+                if (diffMinutes < 1440) return Math.floor(diffMinutes / 60) + 'h ago';
+                return date.toLocaleDateString('en-US') + ' ' + date.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'});
             } catch (e) {
-                return 'Onbekend';
+                return 'Unknown';
             }
         }
         
         // Connection monitoring
         window.addEventListener('online', () => {
-            showToast('Verbinding hersteld', 'success');
+            showToast('Connection restored', 'success');
             if (currentConversationId) loadMessages();
         });
         
         window.addEventListener('offline', () => {
-            showToast('Geen internetverbinding', 'error');
+            showToast('No internet connection', 'error');
         });
     </script>
 </body>

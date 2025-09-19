@@ -1,562 +1,553 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="nl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Kitchen Chat - Professional Communication Platform. Ultra-modern design with advanced messaging features, voice communication, file sharing, and premium user experience.">
-    <meta name="keywords" content="professional chat, business communication, team collaboration, voice messages, file sharing, modern UI, glassmorphism, enterprise messaging">
-    <meta name="theme-color" content="#0066FF">
-    <meta name="msapplication-navbutton-color" content="#0066FF">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="mobile-web-app-capable" content="yes">
-    
-    <!-- Open Graph Meta Tags -->
-    <meta property="og:type" content="website">
-    <meta property="og:title" content="Kitchen Chat - Professional Communication Platform">
-    <meta property="og:description" content="Experience professional-grade communication with advanced features, modern design, and enterprise-level security.">
-    <meta property="og:image" content="https://kitchen-chat.vercel.app/og-image.png">
-    <meta property="og:url" content="https://kitchen-chat.vercel.app">
-    
-    <!-- Twitter Meta Tags -->
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Kitchen Chat - Professional Communication">
-    <meta name="twitter:description" content="Advanced messaging platform with voice communication, file sharing, and modern UI design.">
-    <meta name="twitter:image" content="https://kitchen-chat.vercel.app/og-image.png">
-    
-    <title>Kitchen Chat - Professional Communication Platform 💬✨</title>
-    
-    <!-- Preload critical resources -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
-    
-    <!-- PRIORITY: Font Awesome - Load FIRST with preload -->
-    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" as="style">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" crossorigin="anonymous" integrity="sha512-Kc323vGBEqzTmouAECnVceyQqyqdsSiqLQISBL29aUW4U/M7pSPA/gEUZQqv1cwx4OnYxTxve5UMg5GT6L4JJg==">
-    
-    <!-- Enhanced Professional Stylesheets -->
-    <link rel="stylesheet" href="styles.css">
-    <link rel="stylesheet" href="styles-enhanced.css">
-    <link rel="stylesheet" href="professional-themes.css">
-    <link rel="stylesheet" href="auth-styles.css">
-    <link rel="stylesheet" href="enhanced-animations.css">
-    <link rel="stylesheet" href="advanced-features.css">
-    <link rel="stylesheet" href="icon-fix.css">
-    <link rel="stylesheet" href="icon-force.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    
-    <!-- CRITICAL CSS - Icons MUST be visible -->
+    <title>Kitchen Chat - Eenvoudige Chat Website</title>
     <style>
-        /* IMMEDIATE icon visibility - highest priority */
-        .fas, .far, .fab, .fal, .fad {
-            font-family: "Font Awesome 6 Free" !important;
-            font-weight: 900 !important;
-            font-style: normal !important;
-            display: inline-block !important;
-            text-rendering: auto !important;
-            -webkit-font-smoothing: antialiased !important;
-            opacity: 1 !important;
-            visibility: visible !important;
-        }
-        
-        /* FORCE specific icons to show */
-        .stat-item i {
-            font-size: 28px !important;
-            color: #0066FF !important;
-            display: block !important;
-            opacity: 1 !important;
-            visibility: visible !important;
-            width: auto !important;
-            height: auto !important;
-        }
-        
-        .welcome-content > i {
-            font-size: 40px !important;
-            color: #0066FF !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            opacity: 1 !important;
-            visibility: visible !important;
-        }
-        
-        /* Fallback: If Font Awesome fails, use emojis */
-        .fa-rocket:not(.fa):before { content: "🚀"; font-family: system-ui; }
-        .fa-microphone:not(.fa):before { content: "🎤"; font-family: system-ui; }
-        .fa-shield-alt:not(.fa):before { content: "🛡️"; font-family: system-ui; }
-        .fa-bolt:not(.fa):before { content: "⚡"; font-family: system-ui; }
-        .fa-comments:not(.fa):before { content: "💬"; font-family: system-ui; }
-        
-        :root {
-            --primary-blue: #0066FF;
-            --dark-bg: #0A0E16;
-            --glass-bg: rgba(255, 255, 255, 0.06);
-            --text-primary: #FFFFFF;
-            --backdrop-blur: 16px;
-        }
-        
+        /* Minimale CSS - alleen het allernoodzakelijkste */
         body {
-            background: linear-gradient(135deg, #0A0E16 0%, #0D1117 30%, #1A1F2E 70%, #2C3E50 100%);
-            background-attachment: fixed;
+            font-family: Arial, sans-serif;
             margin: 0;
-            padding: 0;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            overflow-x: hidden;
-            color: var(--text-primary);
+            padding: 20px;
+            background-color: #f0f0f0;
         }
         
-        .loading-screen {
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border: 1px solid #ccc;
+        }
+        
+        header {
+            background: #ddd;
+            padding: 10px 20px;
+            border-bottom: 1px solid #bbb;
+        }
+        
+        .main {
+            display: flex;
+            min-height: 500px;
+        }
+        
+        .sidebar {
+            width: 250px;
+            background: #f5f5f5;
+            border-right: 1px solid #ccc;
+            padding: 10px;
+        }
+        
+        .chat {
+            flex: 1;
+            padding: 10px;
+        }
+        
+        .messages {
+            border: 1px solid #ccc;
+            height: 300px;
+            overflow-y: auto;
+            padding: 10px;
+            margin-bottom: 10px;
+            background: #fafafa;
+        }
+        
+        .message {
+            margin-bottom: 10px;
+            padding: 5px;
+            border-left: 3px solid #ccc;
+            background: white;
+        }
+        
+        .message.own {
+            border-left-color: #007cba;
+            background: #e7f3ff;
+        }
+        
+        input, button, select {
+            padding: 5px;
+            margin: 2px;
+            border: 1px solid #ccc;
+        }
+        
+        button {
+            background: #007cba;
+            color: white;
+            cursor: pointer;
+        }
+        
+        button:hover {
+            background: #005a87;
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .subject-item {
+            padding: 8px;
+            margin: 2px 0;
+            background: white;
+            border: 1px solid #ddd;
+            cursor: pointer;
+        }
+        
+        .subject-item:hover {
+            background: #f0f0f0;
+        }
+        
+        .subject-item.active {
+            background: #007cba;
+            color: white;
+        }
+        
+        .modal {
+            display: none;
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: linear-gradient(135deg, #0A0E16 0%, #1A1F2E 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 10001;
-            opacity: 1;
-            visibility: visible;
-            transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            background: rgba(0,0,0,0.5);
         }
         
-        .loading-screen.hidden {
-            opacity: 0;
-            visibility: hidden;
-            transform: scale(1.05);
+        .modal-content {
+            background: white;
+            margin: 100px auto;
+            padding: 20px;
+            width: 400px;
+            border: 1px solid #ccc;
         }
         
-        .app-container {
-            will-change: opacity, transform;
-            opacity: 0;
-            transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.2s;
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #007cba;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 3px;
         }
         
-        .app-container.loaded {
-            opacity: 1;
+        .error {
+            background: #d32f2f;
         }
         
-        * {
-            box-sizing: border-box;
+        .success {
+            background: #388e3c;
         }
         
-        .loading-logo {
-            animation: professionalFloat 3s ease-in-out infinite;
-        }
-        
-        @keyframes professionalFloat {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-8px); }
-        }
-        
-        .loading-logo i {
-            font-size: 32px !important;
-            color: #0066FF !important;
-            display: block !important;
-            opacity: 1 !important;
+        @media (max-width: 600px) {
+            .main {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+                height: 150px;
+                overflow-y: auto;
+            }
         }
     </style>
-    
-    <!-- Firebase SDK -->
-    <script>
-        const firebaseConfig = window.FIREBASE_CONFIG || null;
-        
-        if (firebaseConfig) {
-            const firebaseScripts = [
-                'https://www.gstatic.com/firebasejs/10.5.0/firebase-app-compat.js',
-                'https://www.gstatic.com/firebasejs/10.5.0/firebase-auth-compat.js',
-                'https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore-compat.js'
-            ];
-            
-            let loadedScripts = 0;
-            firebaseScripts.forEach(src => {
-                const script = document.createElement('script');
-                script.src = src;
-                script.onload = () => {
-                    loadedScripts++;
-                    if (loadedScripts === firebaseScripts.length) {
-                        firebase.initializeApp(firebaseConfig);
-                        console.log('✨ Firebase initialized - Professional mode active');
-                    }
-                };
-                script.onerror = () => console.warn('⚠️ Firebase unavailable - Demo mode');
-                document.head.appendChild(script);
-            });
-        } else {
-            console.log('🚀 Professional demo mode - All features enabled');
-        }
-    </script>
-    
-    <!-- PWA Manifest -->
-    <link rel="manifest" href="/manifest.json">
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-    <link rel="icon" type="image/png" href="/favicon.png">
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 </head>
 <body>
-    <!-- Professional Loading Screen -->
-    <div class="loading-screen" id="loadingScreen">
-        <div class="loading-content">
-            <div class="loading-logo">
-                <i class="fas fa-comments"></i>
-            </div>
-            <h2>Kitchen Chat Professional</h2>
-            <div class="loading-dots">
-                <span></span>
-                <span></span>
-                <span></span>
-            </div>
-            <p>Initializing professional communication platform...</p>
-            <div style="margin-top: 24px; font-size: 14px; color: rgba(255,255,255,0.7); font-weight: 500;">
-                💬 Enterprise Messaging • 🎤 Voice Communication • 📁 File Sharing • ✨ Modern UI
-            </div>
-        </div>
-    </div>
-
-    <div class="app-container" id="appContainer">
-        <header class="header" role="banner">
-            <div class="header-content">
-                <div class="logo">
-                    <i class="fas fa-comments" aria-hidden="true"></i>
-                    <h1>Kitchen Chat</h1>
-                    <span style="font-size: 12px; color: rgba(255,255,255,0.6); margin-left: 12px; font-weight: 600; padding: 2px 8px; background: rgba(0, 102, 255, 0.1); border-radius: 4px; border: 1px solid rgba(0, 102, 255, 0.2);">Professional</span>
-                </div>
-                <div class="header-actions">
-                    <button class="new-subject-btn" id="newSubjectBtn" aria-label="Create new conversation">
-                        <i class="fas fa-plus" aria-hidden="true"></i>
-                        <span>New Conversation</span>
-                    </button>
-                </div>
-            </div>
+    <div class="container">
+        <header>
+            <h1 style="margin: 0; display: inline;">Kitchen Chat</h1>
+            <button onclick="openModal()" style="float: right;">Nieuw Gesprek</button>
         </header>
-
-        <div class="main-container">
-            <aside class="sidebar" role="complementary" aria-label="Conversations sidebar">
-                <div class="sidebar-header">
-                    <h2>Conversations</h2>
-                    <div class="search-container">
-                        <i class="fas fa-search" aria-hidden="true"></i>
-                        <input 
-                            type="text" 
-                            placeholder="Search conversations..." 
-                            id="searchInput"
-                            aria-label="Search conversations"
-                            autocomplete="off"
-                        >
-                    </div>
-                </div>
-                <div class="subjects-list" id="subjectsList" role="list" aria-label="Available conversations">
-                    <div class="loading loading-shimmer">
-                        <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
-                        <span>Loading conversations...</span>
-                    </div>
-                </div>
-            </aside>
-
-            <main class="chat-container" role="main">
-                <div class="welcome-screen" id="welcomeScreen">
-                    <div class="welcome-content fade-in-up">
-                        <i class="fas fa-rocket" aria-hidden="true"></i>
-                        <h2>Welcome to Kitchen Chat Professional</h2>
-                        <p>Experience enterprise-grade communication with sophisticated design, advanced features, and professional-level security. Built for modern teams who demand excellence.</p>
-                        
-                        <div class="welcome-stats">
-                            <div class="stat-item">
-                                <i class="fas fa-microphone" aria-hidden="true"></i>
-                                <span>Voice Messages</span>
-                            </div>
-                            <div class="stat-item">
-                                <i class="fas fa-shield-alt" aria-hidden="true"></i>
-                                <span>Enterprise Security</span>
-                            </div>
-                            <div class="stat-item">
-                                <i class="fas fa-bolt" aria-hidden="true"></i>
-                                <span>High Performance</span>
-                            </div>
-                        </div>
-                        
-                        <div class="feature-box">
-                            <h3>✨ Professional Features</h3>
-                            <div class="feature-grid">
-                                <div class="feature-item">🎤 Professional voice messaging</div>
-                                <div class="feature-item">📁 Enterprise file sharing</div>
-                                <div class="feature-item">📱 Cross-platform compatibility</div>
-                                <div class="feature-item">🔍 Advanced search & filtering</div>
-                                <div class="feature-item">🔒 End-to-end encryption</div>
-                                <div class="feature-item">🌍 Real-time collaboration</div>
-                                <div class="feature-item">📈 Analytics & insights</div>
-                                <div class="feature-item">⚙️ Custom integrations</div>
-                            </div>
-                        </div>
-                        
-                        <div class="getting-started">
-                            <strong>🚀 Ready to Start:</strong> Create your first conversation or explore the modern interface designed for professional productivity!
-                        </div>
-                    </div>
-                </div>
-
-                <div class="chat-area" id="chatArea" style="display: none;">
-                    <div class="chat-header" id="chatHeader">
-                        <div class="chat-title">
-                            <h2 id="currentSubjectTitle">Professional Conversation</h2>
-                            <div class="chat-status">
-                                <span class="status-indicator online"></span>
-                                <span class="status-text">Professional Mode</span>
-                            </div>
-                        </div>
-                        <div class="chat-actions">
-                            <button class="refresh-btn" id="refreshBtn" title="Refresh messages" aria-label="Refresh messages">
-                                <i class="fas fa-sync-alt" aria-hidden="true"></i>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="messages-container" id="messagesContainer" role="log" aria-label="Chat messages" aria-live="polite">
-                        <div class="loading loading-shimmer">
-                            <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
-                            <span>Loading messages...</span>
-                        </div>
-                    </div>
-
-                    <div class="message-input-container">
-                        <div class="typing-indicator" id="typingIndicator" style="display: none;">
-                            <div class="typing-dots">
-                                <span></span>
-                                <span></span>
-                                <span></span>
-                            </div>
-                            <span class="typing-text">Someone is typing...</span>
-                        </div>
-                        
-                        <div class="message-input" role="group" aria-label="Message input">
-                            <input 
-                                type="text" 
-                                placeholder="Type your message or use voice..." 
-                                id="messageInput" 
-                                maxlength="500"
-                                aria-label="Type your message"
-                                autocomplete="off"
-                            >
-                            <button class="emoji-btn" id="emojiBtn" title="Add emoji" aria-label="Add emoji" aria-expanded="false">
-                                <i class="fas fa-smile" aria-hidden="true"></i>
-                            </button>
-                            <button id="sendBtn" disabled aria-label="Send message">
-                                <i class="fas fa-paper-plane" aria-hidden="true"></i>
-                            </button>
-                        </div>
-                        <div class="input-info">
-                            <span class="char-count" id="charCount" aria-live="polite">0/500</span>
-                        </div>
-                    </div>
-                </div>
-            </main>
-        </div>
-    </div>
-
-    <!-- Professional Emoji Picker -->
-    <div class="emoji-picker" id="emojiPicker" role="dialog" aria-label="Professional emoji picker" aria-hidden="true">
-        <div class="emoji-header">
-            <div class="emoji-categories" role="tablist" aria-label="Emoji categories">
-                <button class="emoji-category active" data-category="smileys" title="Smileys & Emotion" role="tab" aria-selected="true">
-                    <i class="fas fa-smile" aria-hidden="true"></i>
-                </button>
-                <button class="emoji-category" data-category="people" title="People & Body" role="tab" aria-selected="false">
-                    <i class="fas fa-user" aria-hidden="true"></i>
-                </button>
-                <button class="emoji-category" data-category="business" title="Business & Objects" role="tab" aria-selected="false">
-                    <i class="fas fa-briefcase" aria-hidden="true"></i>
-                </button>
-                <button class="emoji-category" data-category="tech" title="Technology" role="tab" aria-selected="false">
-                    <i class="fas fa-laptop" aria-hidden="true"></i>
-                </button>
-                <button class="emoji-category" data-category="symbols" title="Symbols" role="tab" aria-selected="false">
-                    <i class="fas fa-star" aria-hidden="true"></i>
-                </button>
-            </div>
-            <div class="emoji-search">
-                <input 
-                    type="text" 
-                    placeholder="Search professional emojis..." 
-                    id="emojiSearch"
-                    aria-label="Search emoji"
-                    autocomplete="off"
-                >
-            </div>
-        </div>
-        <div class="emoji-content">
-            <div class="emoji-grid" id="emojiGrid" role="grid" aria-label="Available emojis">
-            </div>
-        </div>
-        <div class="emoji-footer">
-            <div class="recent-emojis">
-                <span class="recent-label">Recent:</span>
-                <div class="recent-emoji-list" id="recentEmojiList" role="list">
+        
+        <div class="main">
+            <div class="sidebar">
+                <h3>Gesprekken</h3>
+                <input type="text" id="search" placeholder="Zoeken..." onkeyup="searchConversations()" style="width: 90%;">
+                <div id="conversations">
+                    <p>Gesprekken laden...</p>
                 </div>
             </div>
-        </div>
-        <button class="emoji-close" id="emojiClose" aria-label="Close emoji picker">
-            <i class="fas fa-times" aria-hidden="true"></i>
-        </button>
-    </div>
-
-    <!-- Professional Modal -->
-    <div class="modal-overlay" id="modalOverlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-        <div class="modal">
-            <div class="modal-header">
-                <h3 id="modalTitle">Create New Conversation</h3>
-                <button class="close-btn" id="closeModalBtn" aria-label="Close modal">
-                    <i class="fas fa-times" aria-hidden="true"></i>
-                </button>
-            </div>
-            <div class="modal-body">
-                <form id="newTopicForm" novalidate>
-                    <div class="form-group">
-                        <label for="subjectTitle">Conversation Title</label>
-                        <input 
-                            type="text" 
-                            id="subjectTitle" 
-                            placeholder="e.g., Project Planning, Team Sync, Client Meeting" 
-                            maxlength="100"
-                            required
-                            aria-describedby="titleCharCount"
-                        >
-                        <div class="char-count" id="titleCharCount" aria-live="polite">0/100</div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button class="btn-secondary" id="cancelBtn" type="button">Cancel</button>
-                <button class="btn-primary" id="createSubjectBtn" type="submit" form="newTopicForm" disabled>
-                    <span class="btn-text">Create Conversation</span>
-                    <i class="fas fa-arrow-right btn-icon" aria-hidden="true"></i>
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <div class="toast-container" id="toastContainer" role="status" aria-live="polite"></div>
-
-    <div class="connection-status" id="connectionStatus">
-        <div class="status-indicator"></div>
-        <span class="status-text">Professional Mode Active</span>
-    </div>
-
-    <div class="shortcuts-help" id="shortcutsHelp" style="display: none;">
-        <h3>⚡ Professional Shortcuts</h3>
-        <div class="shortcut-list">
-            <div class="shortcut-item">
-                <kbd>Enter</kbd>
-                <span>Send message</span>
-            </div>
-            <div class="shortcut-item">
-                <kbd>Ctrl</kbd> + <kbd>K</kbd>
-                <span>Quick search</span>
-            </div>
-            <div class="shortcut-item">
-                <kbd>Ctrl</kbd> + <kbd>N</kbd>
-                <span>New conversation</span>
-            </div>
-            <div class="shortcut-item">
-                <kbd>Ctrl</kbd> + <kbd>F</kbd>
-                <span>Advanced search</span>
-            </div>
-            <div class="shortcut-item">
-                <kbd>Ctrl</kbd> + <kbd>/</kbd>
-                <span>Show shortcuts</span>
-            </div>
-            <div class="shortcut-item">
-                <kbd>Esc</kbd>
-                <span>Close dialogs</span>
-            </div>
-        </div>
-    </div>
-
-    <!-- Scripts -->
-    <script src="enhanced-ui.js"></script>
-    <script src="particles.js"></script>
-    <script src="enhanced-script.js"></script>
-    <script src="advanced-features.js"></script>
-    <script src="auth.js"></script>
-    <script src="auth-ui.js"></script>
-    <script src="script.js"></script>
-    
-    <!-- CRITICAL: Icon Load Verification -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('🔍 Checking icon status...');
             
-            // Force icon display immediately
-            const allIcons = document.querySelectorAll('.fas, .far, .fab');
-            allIcons.forEach(icon => {
-                icon.style.fontFamily = '"Font Awesome 6 Free", "Font Awesome 6 Pro"';
-                icon.style.fontWeight = '900';
-                icon.style.display = 'inline-block';
-                icon.style.opacity = '1';
-                icon.style.visibility = 'visible';
+            <div class="chat">
+                <div id="welcome" style="text-align: center; padding: 50px;">
+                    <h2>Welkom bij Kitchen Chat</h2>
+                    <p>Een eenvoudige chat website. Selecteer een gesprek om te beginnen of maak een nieuw gesprek aan.</p>
+                    <h3>Functies:</h3>
+                    <ul style="text-align: left; display: inline-block;">
+                        <li>Real-time berichten</li>
+                        <li>Gesprekken beheren</li>
+                        <li>Eenvoudig zoeken</li>
+                        <li>Gebruiksvriendelijk</li>
+                        <li>Werkt op alle apparaten</li>
+                    </ul>
+                    <p><strong>Beginnen:</strong> Klik op "Nieuw Gesprek" om je eerste chatroom te maken!</p>
+                </div>
+                
+                <div id="chatArea" style="display: none;">
+                    <h2 id="chatTitle">Gesprek</h2>
+                    <button onclick="refreshMessages()" style="float: right;">Vernieuwen</button>
+                    
+                    <div id="messages" class="messages">
+                        <p>Berichten laden...</p>
+                    </div>
+                    
+                    <div>
+                        <input type="text" id="messageText" placeholder="Typ je bericht..." style="width: 70%;" maxlength="500" onkeypress="checkEnter(event)">
+                        <button id="sendBtn" onclick="sendMessage()" disabled>Versturen</button>
+                        <div style="font-size: 12px; color: #666; margin: 5px 0;">
+                            <span id="charCount">0/500 tekens</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <h3>Nieuw Gesprek Maken</h3>
+            <label>Titel:</label><br>
+            <input type="text" id="newTitle" style="width: 90%;" maxlength="100" placeholder="Gesprek titel...">
+            <div style="font-size: 12px; color: #666; margin: 5px 0;">
+                <span id="titleCount">0/100 tekens</span>
+            </div>
+            <br><br>
+            <button onclick="createConversation()">Maken</button>
+            <button onclick="closeModal()">Annuleren</button>
+        </div>
+    </div>
+    
+    <script>
+        // Basis JavaScript - zo simpel mogelijk
+        let currentConversationId = null;
+        let conversations = [];
+        let messages = [];
+        let userName = localStorage.getItem('kitchenChatUser') || '';
+        let pollTimer = null;
+        
+        // Start de applicatie
+        window.onload = function() {
+            loadConversations();
+            setupEventListeners();
+        };
+        
+        function setupEventListeners() {
+            // Message input events
+            document.getElementById('messageText').oninput = function() {
+                const text = this.value;
+                document.getElementById('charCount').textContent = text.length + '/500 tekens';
+                document.getElementById('sendBtn').disabled = !text.trim() || !currentConversationId;
+            };
+            
+            // Title input events
+            document.getElementById('newTitle').oninput = function() {
+                const text = this.value;
+                document.getElementById('titleCount').textContent = text.length + '/100 tekens';
+            };
+            
+            // Close modal when clicking outside
+            document.getElementById('modal').onclick = function(e) {
+                if (e.target === this) closeModal();
+            };
+        }
+        
+        // API calls
+        async function apiCall(url, method = 'GET', data = null) {
+            const options = {
+                method: method,
+                headers: {'Content-Type': 'application/json'}
+            };
+            
+            if (data) {
+                options.body = JSON.stringify(data);
+            }
+            
+            try {
+                const response = await fetch(url, options);
+                if (!response.ok) {
+                    throw new Error('Network error: ' + response.status);
+                }
+                return await response.json();
+            } catch (error) {
+                console.error('API Error:', error);
+                showToast('Fout: ' + error.message, 'error');
+                throw error;
+            }
+        }
+        
+        // Load conversations
+        async function loadConversations() {
+            try {
+                conversations = await apiCall('/api/subjects');
+                displayConversations();
+            } catch (error) {
+                document.getElementById('conversations').innerHTML = '<p style="color: red;">Fout bij laden gesprekken</p>';
+            }
+        }
+        
+        // Display conversations
+        function displayConversations() {
+            const container = document.getElementById('conversations');
+            
+            if (conversations.length === 0) {
+                container.innerHTML = '<p>Geen gesprekken gevonden.</p>';
+                return;
+            }
+            
+            let html = '';
+            conversations.forEach(conv => {
+                html += `<div class="subject-item" onclick="selectConversation('${conv.id}', '${escapeHtml(conv.Title)}')">` +
+                       `<strong>${escapeHtml(conv.Title)}</strong><br>` +
+                       `<small>door ${escapeHtml(conv.CreatedBy)} • ${formatDate(conv.CreatedAt)}</small>` +
+                       `</div>`;
             });
             
-            // Test Font Awesome loading
-            const testIcon = document.createElement('i');
-            testIcon.className = 'fas fa-comments';
-            testIcon.style.position = 'absolute';
-            testIcon.style.opacity = '0';
-            document.body.appendChild(testIcon);
+            container.innerHTML = html;
+        }
+        
+        // Search conversations
+        function searchConversations() {
+            const searchTerm = document.getElementById('search').value.toLowerCase();
+            const items = document.querySelectorAll('.subject-item');
             
-            setTimeout(() => {
-                const computed = window.getComputedStyle(testIcon, ':before');
-                const content = computed.getPropertyValue('content');
-                
-                if (content && content !== 'none' && content !== '""') {
-                    console.log('✅ Font Awesome loaded successfully');
-                    console.log('🎨 All icons should now be visible');
-                } else {
-                    console.warn('⚠️ Font Awesome failed - Using emoji fallbacks');
-                    document.body.classList.add('use-emoji-fallbacks');
-                    
-                    // Manual fallback injection
-                    const iconMappings = {
-                        'fa-rocket': '🚀',
-                        'fa-microphone': '🎤',
-                        'fa-shield-alt': '🛡️',
-                        'fa-bolt': '⚡',
-                        'fa-comments': '💬',
-                        'fa-plus': '➕',
-                        'fa-search': '🔍'
-                    };
-                    
-                    Object.entries(iconMappings).forEach(([className, emoji]) => {
-                        const icons = document.querySelectorAll('.' + className);
-                        icons.forEach(icon => {
-                            icon.innerHTML = emoji;
-                            icon.style.fontFamily = 'system-ui';
-                            icon.style.fontSize = icon.closest('.stat-item') ? '28px' : '18px';
-                        });
-                    });
-                    
-                    console.log('🎉 Emoji fallbacks applied!');
-                }
-                
-                document.body.removeChild(testIcon);
-            }, 200);
-        });
-    </script>
-    
-    <!-- Performance Monitoring -->
-    <script>
-        if ('performance' in window) {
-            window.addEventListener('load', () => {
-                setTimeout(() => {
-                    const loadTime = performance.now();
-                    console.log(`🚀 Kitchen Chat Professional loaded in ${Math.round(loadTime)}ms`);
-                    console.log('✨ Enhanced UI:', window.enhancedUI ? 'Active' : 'Inactive');
-                    console.log('🔒 Security: Enterprise Level');
-                    console.log('📈 Performance: Optimized');
-                    console.log('✅ Ready for professional use!');
-                }, 150);
+            items.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                item.style.display = text.includes(searchTerm) ? 'block' : 'none';
             });
         }
+        
+        // Select conversation
+        function selectConversation(id, title) {
+            // Stop polling
+            if (pollTimer) clearInterval(pollTimer);
+            
+            // Update UI
+            document.querySelectorAll('.subject-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            event.target.closest('.subject-item').classList.add('active');
+            
+            // Show chat area
+            document.getElementById('welcome').style.display = 'none';
+            document.getElementById('chatArea').style.display = 'block';
+            document.getElementById('chatTitle').textContent = title;
+            
+            // Load messages
+            currentConversationId = id;
+            loadMessages();
+        }
+        
+        // Load messages
+        async function loadMessages() {
+            if (!currentConversationId) return;
+            
+            try {
+                document.getElementById('messages').innerHTML = '<p>Berichten laden...</p>';
+                messages = await apiCall(`/api/posts?SubjectId=${currentConversationId}`);
+                displayMessages();
+                startPolling();
+            } catch (error) {
+                document.getElementById('messages').innerHTML = '<p style="color: red;">Fout bij laden berichten</p>';
+            }
+        }
+        
+        // Display messages
+        function displayMessages() {
+            const container = document.getElementById('messages');
+            
+            if (messages.length === 0) {
+                container.innerHTML = '<p>Nog geen berichten. Begin het gesprek!</p>';
+                return;
+            }
+            
+            let html = '';
+            messages.forEach(msg => {
+                const isOwn = msg.PostedBy === userName;
+                html += `<div class="message ${isOwn ? 'own' : ''}">` +
+                       `<strong>${escapeHtml(msg.PostedBy)}</strong> • <small>${formatTime(msg.CreatedAt)}</small><br>` +
+                       `${escapeHtml(msg.Content)}` +
+                       `</div>`;
+            });
+            
+            container.innerHTML = html;
+            container.scrollTop = container.scrollHeight;
+        }
+        
+        // Start polling for new messages
+        function startPolling() {
+            if (pollTimer) clearInterval(pollTimer);
+            
+            pollTimer = setInterval(async () => {
+                if (currentConversationId && navigator.onLine) {
+                    try {
+                        const newMessages = await apiCall(`/api/posts?SubjectId=${currentConversationId}`);
+                        if (newMessages.length !== messages.length) {
+                            const oldCount = messages.length;
+                            messages = newMessages;
+                            displayMessages();
+                            
+                            if (newMessages.length > oldCount) {
+                                showToast('Nieuwe berichten ontvangen!', 'success');
+                            }
+                        }
+                    } catch (error) {
+                        // Stil negeren
+                    }
+                }
+            }, 5000);
+        }
+        
+        // Send message
+        async function sendMessage() {
+            const text = document.getElementById('messageText').value.trim();
+            if (!text || !currentConversationId) return;
+            
+            // Get user name if not set
+            if (!userName) {
+                userName = prompt('Wat is je naam?');
+                if (!userName) return;
+                localStorage.setItem('kitchenChatUser', userName);
+            }
+            
+            try {
+                // Clear input immediately
+                document.getElementById('messageText').value = '';
+                document.getElementById('charCount').textContent = '0/500 tekens';
+                document.getElementById('sendBtn').disabled = true;
+                
+                await apiCall('/api/posts', 'POST', {
+                    Content: text,
+                    SubjectId: currentConversationId,
+                    PostedBy: userName
+                });
+                
+                showToast('Bericht verzonden!', 'success');
+                loadMessages(); // Reload messages
+                
+            } catch (error) {
+                // Restore input on error
+                document.getElementById('messageText').value = text;
+            }
+        }
+        
+        // Check Enter key
+        function checkEnter(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+        
+        // Refresh messages
+        function refreshMessages() {
+            if (currentConversationId) {
+                loadMessages();
+                showToast('Berichten ververst', 'success');
+            }
+        }
+        
+        // Modal functions
+        function openModal() {
+            document.getElementById('modal').style.display = 'block';
+            document.getElementById('newTitle').focus();
+        }
+        
+        function closeModal() {
+            document.getElementById('modal').style.display = 'none';
+            document.getElementById('newTitle').value = '';
+            document.getElementById('titleCount').textContent = '0/100 tekens';
+        }
+        
+        // Create conversation
+        async function createConversation() {
+            const title = document.getElementById('newTitle').value.trim();
+            if (!title) {
+                alert('Voer een titel in');
+                return;
+            }
+            
+            // Get user name if not set
+            if (!userName) {
+                userName = prompt('Wat is je naam?');
+                if (!userName) return;
+                localStorage.setItem('kitchenChatUser', userName);
+            }
+            
+            try {
+                await apiCall('/api/subjects', 'POST', {
+                    Title: title,
+                    CreatedBy: userName
+                });
+                
+                showToast('Gesprek aangemaakt!', 'success');
+                closeModal();
+                
+                // Reload conversations
+                setTimeout(() => loadConversations(), 1000);
+                
+            } catch (error) {
+                // Error already shown by apiCall
+            }
+        }
+        
+        // Toast notifications
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = 'toast ' + type;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                if (document.body.contains(toast)) {
+                    document.body.removeChild(toast);
+                }
+            }, 3000);
+        }
+        
+        // Utility functions
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        function formatDate(dateString) {
+            try {
+                const date = new Date(dateString);
+                const now = new Date();
+                const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+                
+                if (diffDays === 0) return 'Vandaag';
+                if (diffDays === 1) return 'Gisteren';
+                if (diffDays < 7) return diffDays + ' dagen geleden';
+                return date.toLocaleDateString('nl-NL');
+            } catch (e) {
+                return 'Onbekend';
+            }
+        }
+        
+        function formatTime(dateString) {
+            try {
+                const date = new Date(dateString);
+                const now = new Date();
+                const diffMinutes = Math.floor((now - date) / (1000 * 60));
+                
+                if (diffMinutes < 1) return 'Nu';
+                if (diffMinutes < 60) return diffMinutes + 'm geleden';
+                if (diffMinutes < 1440) return Math.floor(diffMinutes / 60) + 'u geleden';
+                return date.toLocaleDateString('nl-NL') + ' ' + date.toLocaleTimeString('nl-NL', {hour: '2-digit', minute: '2-digit'});
+            } catch (e) {
+                return 'Onbekend';
+            }
+        }
+        
+        // Connection monitoring
+        window.addEventListener('online', () => {
+            showToast('Verbinding hersteld', 'success');
+            if (currentConversationId) loadMessages();
+        });
+        
+        window.addEventListener('offline', () => {
+            showToast('Geen internetverbinding', 'error');
+        });
     </script>
 </body>
 </html>

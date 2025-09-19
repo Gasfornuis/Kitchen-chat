@@ -154,30 +154,23 @@
             color: #007cba;
         }
         
-        /* Improved typing indicator styles - VERY VISIBLE */
+        /* FIXED: Typing indicator styles - VERY VISIBLE */
         .typing-indicator {
             font-size: 14px;
-            color: #007cba;
+            color: #333;
             font-weight: bold;
             font-style: italic;
             margin: 10px 0;
             min-height: 24px;
             padding: 8px 12px;
-            background: #e7f3ff;
+            background: #ffeb3b;
             border-radius: 6px;
-            border-left: 4px solid #007cba;
-            border: 2px solid #007cba;
+            border: 3px solid #ff9800;
+            display: block;
         }
         
         .typing-indicator:empty {
-            display: none;
-        }
-        
-        .typing-indicator:not(:empty) {
-            display: block !important;
-            background: #ffeb3b !important;
-            color: #333 !important;
-            border: 3px solid #ff9800 !important;
+            display: none !important;
         }
         
         .typing-dots {
@@ -355,7 +348,8 @@
                     <div id="typingIndicator" class="typing-indicator">TEST: This should be visible when someone is typing!</div>
                     
                     <div>
-                        <input type="text" id="messageText" placeholder="Type your message..." style="width: 60%;" maxlength="500" onkeypress="checkEnter(event)" oninput="handleTyping()">
+                        <!-- FIXED: Removed inline oninput handler to prevent conflict -->
+                        <input type="text" id="messageText" placeholder="Type your message..." style="width: 60%;" maxlength="500" onkeypress="checkEnter(event)">
                         <button id="sendBtn" onclick="sendMessage()" disabled>Send</button>
                         
                         <!-- File upload area -->
@@ -443,11 +437,14 @@
         };
         
         function setupEventListeners() {
-            // Message input events
+            // FIXED: Message input events - properly call both functions
             document.getElementById('messageText').oninput = function() {
                 const text = this.value;
                 document.getElementById('charCount').textContent = text.length + '/500 characters';
                 updateSendButton();
+                
+                // FIXED: Call handleTyping here!
+                handleTyping();
             };
             
             // Title input events
@@ -479,7 +476,7 @@
         function handleTyping() {
             console.log('handleTyping called');
             if (!currentConversationId || !userName) {
-                console.log('No conversation or user name');
+                console.log('No conversation or user name - conversation:', currentConversationId, 'user:', userName);
                 return;
             }
             
@@ -530,6 +527,7 @@
                 .map(user => user.userName);
             
             console.log('Updating typing indicator. Typing users:', typingNames);
+            console.log('Current user ID:', userId, 'All typing users:', Array.from(typingUsers.values()));
             
             if (typingNames.length === 0) {
                 indicator.innerHTML = '';

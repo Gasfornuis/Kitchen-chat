@@ -33,8 +33,14 @@
     
     <!-- Stylesheets -->
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="auth-styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     
     <!-- PWA Manifest -->
     <link rel="manifest" href="/manifest.json">
@@ -43,6 +49,22 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="icon" type="image/png" href="/favicon.png">
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    
+    <!-- Firebase Config -->
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "your-api-key",
+            authDomain: "your-auth-domain",
+            projectId: "your-project-id",
+            storageBucket: "your-storage-bucket",
+            messagingSenderId: "your-sender-id",
+            appId: "your-app-id"
+        };
+        
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+    </script>
     
     <!-- Structured Data -->
     <script type="application/ld+json">
@@ -86,10 +108,13 @@
                     <i class="fas fa-comments" aria-hidden="true"></i>
                     <h1>Kitchen Chat</h1>
                 </div>
-                <button class="new-subject-btn" id="newSubjectBtn" aria-label="Create new conversation">
-                    <i class="fas fa-plus" aria-hidden="true"></i>
-                    <span>New Conversation</span>
-                </button>
+                <div class="header-actions">
+                    <button class="new-subject-btn" id="newSubjectBtn" aria-label="Create new conversation">
+                        <i class="fas fa-plus" aria-hidden="true"></i>
+                        <span>New Conversation</span>
+                    </button>
+                    <!-- User info will be inserted here by auth system -->
+                </div>
             </div>
         </header>
 
@@ -276,16 +301,6 @@
                         >
                         <div class="char-count" id="titleCharCount" aria-live="polite">0/100</div>
                     </div>
-                    <div class="form-group">
-                        <label for="createdBy">Your Name</label>
-                        <input 
-                            type="text" 
-                            id="createdBy" 
-                            placeholder="Your name" 
-                            maxlength="50"
-                            required
-                        >
-                    </div>
                 </form>
             </div>
             <div class="modal-footer">
@@ -331,6 +346,8 @@
     </div>
 
     <!-- Scripts -->
+    <script src="auth.js"></script>
+    <script src="auth-ui.js"></script>
     <script src="script.js"></script>
     
     <!-- Service Worker Registration -->

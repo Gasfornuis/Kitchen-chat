@@ -1,9 +1,10 @@
-// Kitchen Chat Frontend JavaScript with Real-time Synchronization
+// Kitchen Chat Frontend JavaScript with Smooth Rendering
 class KitchenChat {
     constructor() {
         this.currentSubjectId = null;
         this.subjects = [];
         this.messages = [];
+        this.renderedMessageIds = new Set(); // Track already rendered messages
         this.userName = localStorage.getItem('kitchenChatUserName') || '';
         this.emojiPicker = new EmojiPicker();
         this.isInitialized = false;
@@ -38,7 +39,7 @@ class KitchenChat {
             // Hide loading screen and show app
             this.hideLoadingScreen();
             
-            console.log('🚀 Kitchen Chat with Real-time Sync initialized successfully!');
+            console.log('🚀 Kitchen Chat with Smooth Rendering initialized successfully!');
         } catch (error) {
             console.error('Failed to initialize Kitchen Chat:', error);
             this.hideLoadingScreen();
@@ -102,6 +103,7 @@ class KitchenChat {
             this.currentSubjectId = null;
             this.subjects = [];
             this.messages = [];
+            this.renderedMessageIds.clear();
             
             // Stop polling
             this.stopMessagePolling();
@@ -346,18 +348,23 @@ class KitchenChat {
         }
     }
 
-    // Load messages for a subject with real-time polling
+    // Load messages for a subject with smooth incremental rendering
     async loadMessages(subjectId) {
         try {
             const messagesContainer = document.getElementById('messagesContainer');
-            messagesContainer.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i><span>Loading messages...</span></div>';
+            
+            // Only show loading on first load or subject change
+            if (this.currentSubjectId !== subjectId || this.messages.length === 0) {
+                messagesContainer.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i><span>Loading messages...</span></div>';
+                this.renderedMessageIds.clear();
+            }
             
             // Stop previous polling
             this.stopMessagePolling();
             
             // Load initial messages
             this.messages = await this.apiCall(`/api/posts?SubjectId=${subjectId}`);
-            this.renderMessages();
+            this.renderMessagesSmooth();
             
             // Start real-time polling
             this.startMessagePolling(subjectId);
@@ -368,7 +375,7 @@ class KitchenChat {
         }
     }
 
-    // Start real-time message polling
+    // Start real-time message polling with smooth updates
     startMessagePolling(subjectId) {
         if (this.messagePollingInterval) {
             clearInterval(this.messagePollingInterval);
@@ -379,25 +386,22 @@ class KitchenChat {
                 if (this.currentSubjectId === subjectId && navigator.onLine) {
                     const newMessages = await this.apiCall(`/api/posts?SubjectId=${subjectId}`);
                     
-                    // Check if there are new messages
+                    // Check if there are truly new messages
                     if (newMessages.length !== this.messages.length) {
-                        const oldCount = this.messages.length;
+                        const oldLength = this.messages.length;
                         this.messages = newMessages;
-                        this.renderMessages();
+                        
+                        // Only render new messages incrementally
+                        this.renderNewMessagesOnly(oldLength, newMessages);
                         
                         // Show notification for new messages from others
-                        const newCount = newMessages.length;
-                        if (newCount > oldCount) {
-                            const newMessagesFromOthers = newMessages.slice(oldCount).filter(msg => 
-                                msg.PostedBy !== this.userName
-                            );
-                            
-                            if (newMessagesFromOthers.length > 0) {
-                                this.showToast(`${newMessagesFromOthers.length} new message(s) received!`, 'success');
-                                
-                                // Play notification sound (optional)
-                                this.playNotificationSound();
-                            }
+                        const newMessagesFromOthers = newMessages.slice(oldLength).filter(msg => 
+                            msg.PostedBy !== this.userName
+                        );
+                        
+                        if (newMessagesFromOthers.length > 0) {
+                            this.showToast(`${newMessagesFromOthers.length} new message(s) received!`, 'success');
+                            this.playNotificationSound();
                         }
                     }
                 }
@@ -465,7 +469,7 @@ class KitchenChat {
         }
     }
 
-    // Enhanced send message with media support
+    // Enhanced send message with smooth UI updates
     async sendMessage(messageData = null) {
         let content, messageType = 'text', mediaData = null;
         
@@ -495,7 +499,29 @@ class KitchenChat {
             }
         }
 
+        // Create optimistic message for immediate UI feedback
+        const optimisticMessage = {
+            id: `temp-${Date.now()}`,
+            Content: content,
+            PostedBy: postedBy,
+            CreatedAt: new Date().toISOString(),
+            MessageType: messageType,
+            MediaData: mediaData,
+            SubjectId: this.currentSubjectId,
+            isOptimistic: true
+        };
+
         try {
+            // Clear input for text messages
+            if (messageType === 'text') {
+                document.getElementById('messageInput').value = '';
+                document.getElementById('charCount').textContent = '0/500';
+                this.validateMessageInput();
+            }
+
+            // Add optimistic message immediately for smooth UX
+            this.addOptimisticMessage(optimisticMessage);
+
             // Create message object with media support
             const messagePayload = {
                 Content: content,
@@ -505,15 +531,11 @@ class KitchenChat {
                 MediaData: mediaData
             };
 
-            // Clear input for text messages
-            if (messageType === 'text') {
-                document.getElementById('messageInput').value = '';
-                document.getElementById('charCount').textContent = '0/500';
-                this.validateMessageInput();
-            }
-
             // Send to backend
             const result = await this.apiCall('/api/posts', 'POST', messagePayload);
+            
+            // Remove optimistic message (it will be replaced by real message from polling)
+            this.removeOptimisticMessage(optimisticMessage.id);
             
             // Show success message
             if (messageType === 'text') {
@@ -522,21 +544,47 @@ class KitchenChat {
                 this.showToast(`${messageType} message sent! 🚀`, 'success');
             }
             
-            // Immediately refresh messages to show the sent message
-            setTimeout(() => {
-                if (this.currentSubjectId) {
-                    this.loadMessages(this.currentSubjectId);
-                }
-            }, 500);
-            
         } catch (error) {
             console.error('Failed to send message:', error);
+            // Remove optimistic message on error
+            this.removeOptimisticMessage(optimisticMessage.id);
             this.showToast('Failed to send message. Please try again.', 'error');
         }
     }
 
-    // Enhanced renderMessages with media support
-    renderMessages() {
+    // Add optimistic message for immediate UI feedback
+    addOptimisticMessage(message) {
+        const messagesContainer = document.getElementById('messagesContainer');
+        const messageElement = this.createMessageElement(message, true);
+        messageElement.classList.add('optimistic-message');
+        messageElement.dataset.tempId = message.id;
+        
+        // Preserve scroll position
+        const wasAtBottom = this.isScrolledToBottom(messagesContainer);
+        
+        messagesContainer.appendChild(messageElement);
+        
+        // Auto-scroll if user was at bottom
+        if (wasAtBottom) {
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+    }
+
+    // Remove optimistic message
+    removeOptimisticMessage(tempId) {
+        const optimisticElement = document.querySelector(`[data-temp-id="${tempId}"]`);
+        if (optimisticElement) {
+            optimisticElement.remove();
+        }
+    }
+
+    // Check if user is scrolled to bottom
+    isScrolledToBottom(container) {
+        return container.scrollTop + container.clientHeight >= container.scrollHeight - 10;
+    }
+
+    // Smooth message rendering - only render new messages
+    renderMessagesSmooth() {
         const messagesContainer = document.getElementById('messagesContainer');
         
         if (this.messages.length === 0) {
@@ -549,75 +597,114 @@ class KitchenChat {
             return;
         }
 
-        // Sort messages by creation date
-        const sortedMessages = this.messages.sort((a, b) => 
-            new Date(a.CreatedAt) - new Date(b.CreatedAt)
-        );
-
-        messagesContainer.innerHTML = sortedMessages.map(message => {
-            const isOwn = message.PostedBy === this.userName;
-            
-            // Render different message types
-            switch (message.MessageType) {
-                case 'voice':
-                    return this.renderVoiceMessage(message, isOwn);
-                case 'image':
-                    return this.renderImageMessage(message, isOwn);
-                case 'file':
-                    return this.renderFileMessage(message, isOwn);
-                default:
-                    return this.renderTextMessage(message, isOwn);
-            }
-        }).join('');
-
-        // Scroll to bottom
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        
-        // Add animation classes for new messages
-        setTimeout(() => {
-            const newMessages = messagesContainer.querySelectorAll('.message:not(.animated)');
-            newMessages.forEach((msg, index) => {
-                msg.classList.add('animated');
-                msg.style.animationDelay = `${index * 0.1}s`;
+        // If this is a fresh load, render all messages
+        if (this.renderedMessageIds.size === 0) {
+            messagesContainer.innerHTML = '';
+            this.messages.forEach(message => {
+                this.appendMessage(message);
             });
-        }, 100);
+        }
+
+        // Scroll to bottom for initial load
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    // Render only new messages incrementally
+    renderNewMessagesOnly(oldLength, newMessages) {
+        const messagesContainer = document.getElementById('messagesContainer');
+        const wasAtBottom = this.isScrolledToBottom(messagesContainer);
+        
+        // Add only the new messages
+        for (let i = oldLength; i < newMessages.length; i++) {
+            const message = newMessages[i];
+            if (!this.renderedMessageIds.has(message.id)) {
+                this.appendMessage(message, true); // true = animate
+            }
+        }
+        
+        // Auto-scroll if user was at bottom
+        if (wasAtBottom) {
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+    }
+
+    // Append single message to DOM
+    appendMessage(message, animate = false) {
+        const messagesContainer = document.getElementById('messagesContainer');
+        
+        // Skip if already rendered
+        if (this.renderedMessageIds.has(message.id)) {
+            return;
+        }
+        
+        const messageElement = this.createMessageElement(message, animate);
+        messagesContainer.appendChild(messageElement);
+        
+        // Track as rendered
+        this.renderedMessageIds.add(message.id);
+    }
+
+    // Create message element
+    createMessageElement(message, animate = false) {
+        const isOwn = message.PostedBy === this.userName;
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${isOwn ? 'own' : 'other'}`;
+        messageDiv.dataset.messageId = message.id;
+        
+        if (animate) {
+            messageDiv.classList.add('message-fade-in');
+        }
+        
+        // Render different message types
+        switch (message.MessageType) {
+            case 'voice':
+                messageDiv.innerHTML = this.renderVoiceMessage(message, isOwn);
+                break;
+            case 'image':
+                messageDiv.innerHTML = this.renderImageMessage(message, isOwn);
+                break;
+            case 'file':
+                messageDiv.innerHTML = this.renderFileMessage(message, isOwn);
+                break;
+            default:
+                messageDiv.innerHTML = this.renderTextMessage(message, isOwn);
+                break;
+        }
+        
+        return messageDiv;
     }
 
     renderTextMessage(message, isOwn) {
         return `
-            <div class="message ${isOwn ? 'own' : 'other'}">
-                <div class="message-header">
-                    <span class="message-author">${this.escapeHtml(message.PostedBy)}</span>
-                    <span class="message-time">${this.formatTime(message.CreatedAt)}</span>
-                </div>
-                <div class="message-content">${this.processEmojis(this.escapeHtml(message.Content))}</div>
-                <div class="message-reactions"></div>
+            <div class="message-header">
+                <span class="message-author">${this.escapeHtml(message.PostedBy)}</span>
+                <span class="message-time">${this.formatTime(message.CreatedAt)}</span>
             </div>
+            <div class="message-content">${this.processEmojis(this.escapeHtml(message.Content))}</div>
+            <div class="message-reactions"></div>
         `;
     }
 
     renderVoiceMessage(message, isOwn) {
         const mediaData = message.MediaData || {};
         return `
-            <div class="message ${isOwn ? 'own' : 'other'}">
-                <div class="message-header">
-                    <span class="message-author">${this.escapeHtml(message.PostedBy)}</span>
-                    <span class="message-time">${this.formatTime(message.CreatedAt)}</span>
-                </div>
-                <div class="voice-message" data-audio-url="${message.AttachmentUrl || ''}">
-                    <button class="voice-play-btn" onclick="kitchenChat.playVoiceMessage(this)">
-                        <i class="fas fa-play"></i>
-                    </button>
-                    <div class="voice-waveform">
-                        ${(mediaData.waveform || []).map((height, index) => 
-                            `<div class="voice-waveform-bar" style="height: ${height}%"></div>`
-                        ).join('')}
-                    </div>
-                    <span class="voice-duration">${mediaData.duration || '0:05'}</span>
-                </div>
-                ${message.Content ? `<div class="message-content">${this.escapeHtml(message.Content)}</div>` : ''}
-                <div class="message-reactions"></div>
+            <div class="message-header">
+                <span class="message-author">${this.escapeHtml(message.PostedBy)}</span>
+                <span class="message-time">${this.formatTime(message.CreatedAt)}</span>
             </div>
+            <div class="voice-message" data-audio-url="${message.AttachmentUrl || ''}">
+                <button class="voice-play-btn" onclick="kitchenChat.playVoiceMessage(this)">
+                    <i class="fas fa-play"></i>
+                </button>
+                <div class="voice-waveform">
+                    ${(mediaData.waveform || []).map((height, index) => 
+                        `<div class="voice-waveform-bar" style="height: ${height}%"></div>`
+                    ).join('')}
+                </div>
+                <span class="voice-duration">${mediaData.duration || '0:05'}</span>
+            </div>
+            ${message.Content ? `<div class="message-content">${this.escapeHtml(message.Content)}</div>` : ''}
+            <div class="message-reactions"></div>
         `;
     }
 
@@ -625,40 +712,36 @@ class KitchenChat {
         const mediaData = message.MediaData || {};
         const imageUrl = message.AttachmentUrl || '#';
         return `
-            <div class="message ${isOwn ? 'own' : 'other'}">
-                <div class="message-header">
-                    <span class="message-author">${this.escapeHtml(message.PostedBy)}</span>
-                    <span class="message-time">${this.formatTime(message.CreatedAt)}</span>
-                </div>
-                <div class="image-message" onclick="kitchenChat.openImageInLightbox('${imageUrl}', '${mediaData.name || 'Image'}')">
-                    <img class="message-image" src="${imageUrl}" alt="${mediaData.name || 'Image'}" loading="lazy">
-                </div>
-                ${message.Content ? `<div class="message-content">${this.escapeHtml(message.Content)}</div>` : ''}
-                <div class="message-reactions"></div>
+            <div class="message-header">
+                <span class="message-author">${this.escapeHtml(message.PostedBy)}</span>
+                <span class="message-time">${this.formatTime(message.CreatedAt)}</span>
             </div>
+            <div class="image-message" onclick="kitchenChat.openImageInLightbox('${imageUrl}', '${mediaData.name || 'Image'}')">
+                <img class="message-image" src="${imageUrl}" alt="${mediaData.name || 'Image'}" loading="lazy">
+            </div>
+            ${message.Content ? `<div class="message-content">${this.escapeHtml(message.Content)}</div>` : ''}
+            <div class="message-reactions"></div>
         `;
     }
 
     renderFileMessage(message, isOwn) {
         const mediaData = message.MediaData || {};
         return `
-            <div class="message ${isOwn ? 'own' : 'other'}">
-                <div class="message-header">
-                    <span class="message-author">${this.escapeHtml(message.PostedBy)}</span>
-                    <span class="message-time">${this.formatTime(message.CreatedAt)}</span>
-                </div>
-                <div class="file-message" onclick="kitchenChat.downloadFile('${mediaData.name || 'file'}', '${message.AttachmentUrl || '#'}')">
-                    <div class="file-icon">
-                        <i class="${mediaData.icon || 'fas fa-file'}"></i>
-                    </div>
-                    <div class="file-info">
-                        <div class="file-name">${mediaData.name || 'Unknown File'}</div>
-                        <div class="file-size">${mediaData.size || '0 KB'} • ${mediaData.extension || 'FILE'}</div>
-                    </div>
-                </div>
-                ${message.Content ? `<div class="message-content">${this.escapeHtml(message.Content)}</div>` : ''}
-                <div class="message-reactions"></div>
+            <div class="message-header">
+                <span class="message-author">${this.escapeHtml(message.PostedBy)}</span>
+                <span class="message-time">${this.formatTime(message.CreatedAt)}</span>
             </div>
+            <div class="file-message" onclick="kitchenChat.downloadFile('${mediaData.name || 'file'}', '${message.AttachmentUrl || '#'}')">
+                <div class="file-icon">
+                    <i class="${mediaData.icon || 'fas fa-file'}"></i>
+                </div>
+                <div class="file-info">
+                    <div class="file-name">${mediaData.name || 'Unknown File'}</div>
+                    <div class="file-size">${mediaData.size || '0 KB'} • ${mediaData.extension || 'FILE'}</div>
+                </div>
+            </div>
+            ${message.Content ? `<div class="message-content">${this.escapeHtml(message.Content)}</div>` : ''}
+            <div class="message-reactions"></div>
         `;
     }
 
@@ -799,7 +882,10 @@ class KitchenChat {
         // Update header
         document.getElementById('currentSubjectTitle').textContent = subjectTitle;
         
-        // Load messages with real-time polling
+        // Clear rendered messages tracking when switching subjects
+        this.renderedMessageIds.clear();
+        
+        // Load messages with smooth rendering
         this.currentSubjectId = subjectId;
         this.loadMessages(subjectId);
     }
@@ -1007,7 +1093,7 @@ class EmojiPicker {
                 '🫔', '🥙', '🧆', '🥚', '🍳', '🥘', '🍲', '🫕', '🥣', '🥗',
                 '🍿', '🧈', '🧂', '🥫', '🍱', '🍘', '🍙', '🍚', '🍛', '🍜',
                 '🍝', '🍠', '🍢', '🍣', '🍤', '🍥', '🥮', '🍡', '🥟', '🥠',
-                '🥡', '🦀', '🦞', '🦐', '🦑', '🦪', '🍦', '🍧', '🍨', '🍩',
+                '🥡', '🦀', '🦞', '🦐', '🦑', '🐙', '🍦', '🍧', '🍨', '🍩',
                 '🍪', '🎂', '🍰', '🧁', '🥧', '🍫', '🍬', '🍭', '🍮', '🍯'
             ],
             animals: [
@@ -1018,7 +1104,7 @@ class EmojiPicker {
                 '🐞', '🐜', '🪰', '🪲', '🪳', '🦟', '🦗', '🕷️', '🕸️', '🦂',
                 '🐢', '🐍', '🦎', '🦖', '🦕', '🐙', '🦑', '🦐', '🦞', '🦀',
                 '🐡', '🐠', '🐟', '🐬', '🐳', '🐋', '🦈', '🐊', '🐅', '🐆',
-                '🦓', '🦍', '🦧', '🦣', '🐘', '🦛', '🦏', '🐪', '🐫', '🦒',
+                '🦓', '🦍', '🦧', '🐘', '🦣', '🦛', '🦏', '🐪', '🐫', '🦒',
                 '🦘', '🦬', '🐃', '🐂', '🐄', '🐎', '🐖', '🐏', '🐑', '🦙'
             ],
             activities: [

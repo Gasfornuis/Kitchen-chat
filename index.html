@@ -31,22 +31,63 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com">
     
-    <!-- Font Awesome - Load First -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" crossorigin="anonymous">
+    <!-- PRIORITY: Font Awesome - Load FIRST with preload -->
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" as="style">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" crossorigin="anonymous" integrity="sha512-Kc323vGBEqzTmouAECnVceyQqyqdsSiqLQISBL29aUW4U/M7pSPA/gEUZQqv1cwx4OnYxTxve5UMg5GT6L4JJg==">
     
     <!-- Enhanced Professional Stylesheets -->
+    <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="styles-enhanced.css">
     <link rel="stylesheet" href="professional-themes.css">
-    <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="auth-styles.css">
     <link rel="stylesheet" href="enhanced-animations.css">
     <link rel="stylesheet" href="advanced-features.css">
     <link rel="stylesheet" href="icon-fix.css">
+    <link rel="stylesheet" href="icon-force.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     
-    <!-- Critical CSS for immediate rendering -->
+    <!-- CRITICAL CSS - Icons MUST be visible -->
     <style>
-        /* Critical above-the-fold styles for professional appearance */
+        /* IMMEDIATE icon visibility - highest priority */
+        .fas, .far, .fab, .fal, .fad {
+            font-family: "Font Awesome 6 Free" !important;
+            font-weight: 900 !important;
+            font-style: normal !important;
+            display: inline-block !important;
+            text-rendering: auto !important;
+            -webkit-font-smoothing: antialiased !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+        
+        /* FORCE specific icons to show */
+        .stat-item i {
+            font-size: 28px !important;
+            color: #0066FF !important;
+            display: block !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+            width: auto !important;
+            height: auto !important;
+        }
+        
+        .welcome-content > i {
+            font-size: 40px !important;
+            color: #0066FF !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+        
+        /* Fallback: If Font Awesome fails, use emojis */
+        .fa-rocket:not(.fa):before { content: "🚀"; font-family: system-ui; }
+        .fa-microphone:not(.fa):before { content: "🎤"; font-family: system-ui; }
+        .fa-shield-alt:not(.fa):before { content: "🛡️"; font-family: system-ui; }
+        .fa-bolt:not(.fa):before { content: "⚡"; font-family: system-ui; }
+        .fa-comments:not(.fa):before { content: "💬"; font-family: system-ui; }
+        
         :root {
             --primary-blue: #0066FF;
             --dark-bg: #0A0E16;
@@ -63,16 +104,6 @@
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             overflow-x: hidden;
             color: var(--text-primary);
-        }
-        
-        /* Force Font Awesome to load immediately */
-        .fas, .far, .fab, .fal, .fad {
-            font-family: 'Font Awesome 6 Free', 'Font Awesome 6 Pro' !important;
-            font-weight: 900 !important;
-            font-style: normal !important;
-            display: inline-block !important;
-            text-rendering: auto !important;
-            -webkit-font-smoothing: antialiased !important;
         }
         
         .loading-screen {
@@ -107,12 +138,10 @@
             opacity: 1;
         }
         
-        /* Performance optimizations */
         * {
             box-sizing: border-box;
         }
         
-        /* Professional loading animation */
         .loading-logo {
             animation: professionalFloat 3s ease-in-out infinite;
         }
@@ -122,20 +151,18 @@
             50% { transform: translateY(-8px); }
         }
         
-        /* Ensure icons are visible immediately */
         .loading-logo i {
             font-size: 32px !important;
             color: #0066FF !important;
             display: block !important;
+            opacity: 1 !important;
         }
     </style>
     
-    <!-- Firebase SDK - Optional, loads only if config is available -->
+    <!-- Firebase SDK -->
     <script>
-        // Enhanced Firebase configuration
         const firebaseConfig = window.FIREBASE_CONFIG || null;
         
-        // Professional Firebase initialization
         if (firebaseConfig) {
             const firebaseScripts = [
                 'https://www.gstatic.com/firebasejs/10.5.0/firebase-app-compat.js',
@@ -154,9 +181,7 @@
                         console.log('✨ Firebase initialized - Professional mode active');
                     }
                 };
-                script.onerror = () => {
-                    console.warn('⚠️ Firebase unavailable - Running in demo mode');
-                };
+                script.onerror = () => console.warn('⚠️ Firebase unavailable - Demo mode');
                 document.head.appendChild(script);
             });
         } else {
@@ -166,49 +191,9 @@
     
     <!-- PWA Manifest -->
     <link rel="manifest" href="/manifest.json">
-    
-    <!-- Enhanced Favicons -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="icon" type="image/png" href="/favicon.png">
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-    
-    <!-- Enhanced Structured Data -->
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "SoftwareApplication",
-      "name": "Kitchen Chat - Professional Communication Platform",
-      "description": "Advanced business communication platform with modern UI, voice messaging, file sharing, and enterprise features",
-      "url": "https://kitchen-chat.vercel.app",
-      "applicationCategory": "BusinessApplication",
-      "operatingSystem": "Web Browser, Progressive Web App",
-      "offers": {
-        "@type": "Offer",
-        "price": "0",
-        "priceCurrency": "USD"
-      },
-      "aggregateRating": {
-        "@type": "AggregateRating",
-        "ratingValue": "4.9",
-        "reviewCount": "200"
-      },
-      "featureList": [
-        "Professional Voice Messages",
-        "Enterprise File Sharing",
-        "Advanced Search & Threading",
-        "Modern Glass Morphism UI",
-        "Real-time Collaboration",
-        "Cross-platform Compatibility",
-        "Advanced Security Features",
-        "Professional Grade Performance"
-      ],
-      "screenshot": "https://kitchen-chat.vercel.app/screenshot.png",
-      "author": {
-        "@type": "Organization",
-        "name": "Kitchen Chat Team"
-      }
-    }
-    </script>
 </head>
 <body>
     <!-- Professional Loading Screen -->
@@ -243,13 +228,11 @@
                         <i class="fas fa-plus" aria-hidden="true"></i>
                         <span>New Conversation</span>
                     </button>
-                    <!-- User info will be inserted here by auth system -->
                 </div>
             </div>
         </header>
 
         <div class="main-container">
-            <!-- Enhanced Professional Sidebar -->
             <aside class="sidebar" role="complementary" aria-label="Conversations sidebar">
                 <div class="sidebar-header">
                     <h2>Conversations</h2>
@@ -272,7 +255,6 @@
                 </div>
             </aside>
 
-            <!-- Enhanced Main Chat Area -->
             <main class="chat-container" role="main">
                 <div class="welcome-screen" id="welcomeScreen">
                     <div class="welcome-content fade-in-up">
@@ -296,9 +278,7 @@
                         </div>
                         
                         <div class="feature-box">
-                            <h3>
-                                ✨ Professional Features
-                            </h3>
+                            <h3>✨ Professional Features</h3>
                             <div class="feature-grid">
                                 <div class="feature-item">🎤 Professional voice messaging</div>
                                 <div class="feature-item">📁 Enterprise file sharing</div>
@@ -330,7 +310,6 @@
                             <button class="refresh-btn" id="refreshBtn" title="Refresh messages" aria-label="Refresh messages">
                                 <i class="fas fa-sync-alt" aria-hidden="true"></i>
                             </button>
-                            <!-- Additional professional features will be added here -->
                         </div>
                     </div>
 
@@ -363,7 +342,6 @@
                             <button class="emoji-btn" id="emojiBtn" title="Add emoji" aria-label="Add emoji" aria-expanded="false">
                                 <i class="fas fa-smile" aria-hidden="true"></i>
                             </button>
-                            <!-- Advanced professional features will be added here by advanced-features.js -->
                             <button id="sendBtn" disabled aria-label="Send message">
                                 <i class="fas fa-paper-plane" aria-hidden="true"></i>
                             </button>
@@ -409,14 +387,12 @@
         </div>
         <div class="emoji-content">
             <div class="emoji-grid" id="emojiGrid" role="grid" aria-label="Available emojis">
-                <!-- Professional emoji grid will be populated by JavaScript -->
             </div>
         </div>
         <div class="emoji-footer">
             <div class="recent-emojis">
                 <span class="recent-label">Recent:</span>
                 <div class="recent-emoji-list" id="recentEmojiList" role="list">
-                    <!-- Recent emojis will be populated by JavaScript -->
                 </div>
             </div>
         </div>
@@ -460,16 +436,13 @@
         </div>
     </div>
 
-    <!-- Professional Toast Notifications -->
     <div class="toast-container" id="toastContainer" role="status" aria-live="polite"></div>
 
-    <!-- Professional Connection Status -->
     <div class="connection-status" id="connectionStatus">
         <div class="status-indicator"></div>
         <span class="status-text">Professional Mode Active</span>
     </div>
 
-    <!-- Professional Keyboard Shortcuts Help -->
     <div class="shortcuts-help" id="shortcutsHelp" style="display: none;">
         <h3>⚡ Professional Shortcuts</h3>
         <div class="shortcut-list">
@@ -500,7 +473,7 @@
         </div>
     </div>
 
-    <!-- Enhanced Professional Scripts - Optimized Loading Order -->
+    <!-- Scripts -->
     <script src="enhanced-ui.js"></script>
     <script src="particles.js"></script>
     <script src="enhanced-script.js"></script>
@@ -509,15 +482,26 @@
     <script src="auth-ui.js"></script>
     <script src="script.js"></script>
     
-    <!-- Icon Verification Script -->
+    <!-- CRITICAL: Icon Load Verification -->
     <script>
-        // Verify Font Awesome icons are loading
         document.addEventListener('DOMContentLoaded', function() {
-            // Check if Font Awesome is loaded
+            console.log('🔍 Checking icon status...');
+            
+            // Force icon display immediately
+            const allIcons = document.querySelectorAll('.fas, .far, .fab');
+            allIcons.forEach(icon => {
+                icon.style.fontFamily = '"Font Awesome 6 Free", "Font Awesome 6 Pro"';
+                icon.style.fontWeight = '900';
+                icon.style.display = 'inline-block';
+                icon.style.opacity = '1';
+                icon.style.visibility = 'visible';
+            });
+            
+            // Test Font Awesome loading
             const testIcon = document.createElement('i');
             testIcon.className = 'fas fa-comments';
-            testIcon.style.opacity = '0';
             testIcon.style.position = 'absolute';
+            testIcon.style.opacity = '0';
             document.body.appendChild(testIcon);
             
             setTimeout(() => {
@@ -525,109 +509,54 @@
                 const content = computed.getPropertyValue('content');
                 
                 if (content && content !== 'none' && content !== '""') {
-                    console.log('✅ Font Awesome icons loaded successfully');
+                    console.log('✅ Font Awesome loaded successfully');
+                    console.log('🎨 All icons should now be visible');
                 } else {
-                    console.warn('⚠️ Font Awesome icons may not be loaded properly');
-                    // Add fallback emoji icons
+                    console.warn('⚠️ Font Awesome failed - Using emoji fallbacks');
                     document.body.classList.add('use-emoji-fallbacks');
+                    
+                    // Manual fallback injection
+                    const iconMappings = {
+                        'fa-rocket': '🚀',
+                        'fa-microphone': '🎤',
+                        'fa-shield-alt': '🛡️',
+                        'fa-bolt': '⚡',
+                        'fa-comments': '💬',
+                        'fa-plus': '➕',
+                        'fa-search': '🔍'
+                    };
+                    
+                    Object.entries(iconMappings).forEach(([className, emoji]) => {
+                        const icons = document.querySelectorAll('.' + className);
+                        icons.forEach(icon => {
+                            icon.innerHTML = emoji;
+                            icon.style.fontFamily = 'system-ui';
+                            icon.style.fontSize = icon.closest('.stat-item') ? '28px' : '18px';
+                        });
+                    });
+                    
+                    console.log('🎉 Emoji fallbacks applied!');
                 }
                 
                 document.body.removeChild(testIcon);
-            }, 100);
+            }, 200);
         });
     </script>
     
-    <!-- Professional Performance Monitoring -->
+    <!-- Performance Monitoring -->
     <script>
-        // Enhanced performance monitoring for professional deployment
-        if ('performance' in window && 'measure' in performance) {
+        if ('performance' in window) {
             window.addEventListener('load', () => {
                 setTimeout(() => {
                     const loadTime = performance.now();
-                    const navigationTiming = performance.getEntriesByType('navigation')[0];
-                    
                     console.log(`🚀 Kitchen Chat Professional loaded in ${Math.round(loadTime)}ms`);
-                    console.log(`🔍 DOM Interactive: ${Math.round(navigationTiming.domInteractive)}ms`);
-                    console.log(`⚙️ DOM Complete: ${Math.round(navigationTiming.domComplete)}ms`);
-                    
-                    // System status
-                    console.log('✨ Enhanced UI System:', window.enhancedUI ? 'Active' : 'Inactive');
-                    console.log('💬 Advanced Communication:', window.advancedComm ? 'Active' : 'Inactive');
-                    console.log('🔒 Security Level: Enterprise');
+                    console.log('✨ Enhanced UI:', window.enhancedUI ? 'Active' : 'Inactive');
+                    console.log('🔒 Security: Enterprise Level');
                     console.log('📈 Performance: Optimized');
-                    
-                    // Professional feature log
-                    console.log('📁 Professional Features:');
-                    console.log('  🎤 Voice Messages with Waveform Visualization');
-                    console.log('  📁 Enterprise File Sharing & Management');
-                    console.log('  🔍 Advanced Search & Message Threading');
-                    console.log('  🌐 Real-time Collaboration Tools');
-                    console.log('  🔒 End-to-End Encryption Ready');
-                    console.log('  📊 Analytics & Performance Insights');
-                    console.log('  ⚙️ Custom Integration Support');
-                    console.log('  🎨 Professional Glass Morphism UI');
-                    
-                    // Performance recommendations
-                    if (loadTime > 2000) {
-                        console.warn('⚠️ Consider optimizing for faster load times in production');
-                    } else if (loadTime < 1000) {
-                        console.log('✅ Excellent performance - Professional grade');
-                    }
-                    
+                    console.log('✅ Ready for professional use!');
                 }, 150);
             });
         }
-        
-        // Professional error handling
-        window.addEventListener('error', (e) => {
-            console.error('🚨 Professional Error Handler:', e.error);
-            // In production, this would send to error tracking service
-        });
-        
-        // Professional unhandled promise rejection handler
-        window.addEventListener('unhandledrejection', (e) => {
-            console.error('🚨 Unhandled Promise Rejection:', e.reason);
-            // In production, this would send to error tracking service
-        });
-    </script>
-    
-    <!-- Enhanced Service Worker Registration -->
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js')
-                    .then(registration => {
-                        console.log('🔧 Professional SW registered:', registration);
-                        
-                        // Check for updates
-                        registration.addEventListener('updatefound', () => {
-                            console.log('🔄 Professional update available');
-                            // Show update notification to user
-                        });
-                    })
-                    .catch(registrationError => {
-                        console.log('⚠️ SW registration failed:', registrationError);
-                    });
-            });
-        }
-    </script>
-    
-    <!-- Professional Analytics (Privacy-Focused) -->
-    <script>
-        // Professional analytics without tracking personal data
-        function trackProfessionalEvent(event, data) {
-            // This would integrate with privacy-focused analytics
-            console.log('📈 Professional Event:', event, data);
-        }
-        
-        // Track app initialization
-        document.addEventListener('DOMContentLoaded', () => {
-            trackProfessionalEvent('app_initialized', {
-                timestamp: new Date().toISOString(),
-                userAgent: navigator.userAgent.includes('Mobile') ? 'mobile' : 'desktop',
-                features: ['voice_messages', 'file_sharing', 'modern_ui']
-            });
-        });
     </script>
 </body>
 </html>

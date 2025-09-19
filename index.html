@@ -154,24 +154,41 @@
             color: #007cba;
         }
         
-        /* Typing indicator styles */
+        /* Improved typing indicator styles */
         .typing-indicator {
-            font-size: 12px;
+            font-size: 13px;
             color: #666;
             font-style: italic;
-            margin-top: 5px;
-            min-height: 16px;
-            padding: 2px 5px;
+            margin: 8px 0;
+            min-height: 20px;
+            padding: 4px 8px;
+            background: #f9f9f9;
+            border-radius: 4px;
+            border-left: 3px solid #007cba;
+        }
+        
+        .typing-indicator:empty {
+            display: none;
         }
         
         .typing-dots {
             display: inline-block;
-            animation: typing-dots 1.4s infinite;
+            position: relative;
+            margin-left: 3px;
         }
         
-        @keyframes typing-dots {
-            0%, 60%, 100% { opacity: 0; }
-            30% { opacity: 1; }
+        .typing-dots::after {
+            content: '...';
+            display: inline-block;
+            animation: typing-dots-animation 1.5s infinite;
+        }
+        
+        @keyframes typing-dots-animation {
+            0% { content: ''; }
+            25% { content: '.'; }
+            50% { content: '..'; }
+            75% { content: '...'; }
+            100% { content: '...'; }
         }
         
         input, button, select {
@@ -354,6 +371,7 @@
         let selectedFile = null;
         let typingTimer = null;
         let typingUsers = new Map();
+        let typingPollTimer = null;
         
         // Generate unique user ID
         function generateUserId() {
@@ -402,7 +420,7 @@
             document.getElementById('sendBtn').disabled = !hasContent || !currentConversationId;
         }
         
-        // Typing indicator functions
+        // Improved typing indicator functions
         function handleTyping() {
             if (!currentConversationId || !userName) return;
             
@@ -412,10 +430,10 @@
             // Clear existing timer
             if (typingTimer) clearTimeout(typingTimer);
             
-            // Set new timer to stop typing after 3 seconds
+            // Set new timer to stop typing after 2 seconds of inactivity
             typingTimer = setTimeout(() => {
                 sendTypingStatus(false);
-            }, 3000);
+            }, 2000);
         }
         
         function sendTypingStatus(isTyping) {
@@ -449,22 +467,22 @@
             if (typingNames.length === 0) {
                 indicator.innerHTML = '';
             } else if (typingNames.length === 1) {
-                indicator.innerHTML = `${typingNames[0]} is typing<span class="typing-dots">...</span>`;
+                indicator.innerHTML = `${typingNames[0]} is typing<span class="typing-dots"></span>`;
             } else if (typingNames.length === 2) {
-                indicator.innerHTML = `${typingNames[0]} and ${typingNames[1]} are typing<span class="typing-dots">...</span>`;
+                indicator.innerHTML = `${typingNames[0]} and ${typingNames[1]} are typing<span class="typing-dots"></span>`;
             } else {
-                indicator.innerHTML = `${typingNames.slice(0, -1).join(', ')}, and ${typingNames[typingNames.length - 1]} are typing<span class="typing-dots">...</span>`;
+                indicator.innerHTML = `${typingNames.slice(0, -1).join(', ')}, and ${typingNames[typingNames.length - 1]} are typing<span class="typing-dots"></span>`;
             }
         }
         
         function startTypingStatusCleanup() {
-            // Clean up old typing statuses every 10 seconds
+            // Clean up old typing statuses every 8 seconds
             setInterval(() => {
                 const now = Date.now();
                 let updated = false;
                 
                 for (let [key, user] of typingUsers) {
-                    if (now - user.timestamp > 5000) { // 5 second timeout
+                    if (now - user.timestamp > 8000) { // 8 second timeout
                         typingUsers.delete(key);
                         updated = true;
                     }
@@ -473,13 +491,18 @@
                 if (updated) {
                     updateTypingIndicator();
                 }
-            }, 10000);
+            }, 8000);
         }
         
         function loadTypingStatus() {
             if (!currentConversationId) return;
             
-            // Poll typing status every 2 seconds
+            // Clear any existing polling
+            if (typingPollTimer) {
+                clearInterval(typingPollTimer);
+            }
+            
+            // Poll typing status every 1.5 seconds for better responsiveness
             const loadTyping = async () => {
                 if (!currentConversationId) return;
                 
@@ -487,14 +510,16 @@
                     const response = await apiCall(`/api/typing?SubjectId=${currentConversationId}`);
                     
                     // Update typing users
+                    const now = Date.now();
                     typingUsers.clear();
+                    
                     if (response && Array.isArray(response)) {
                         response.forEach(user => {
                             typingUsers.set(user.UserId, {
                                 userId: user.UserId,
                                 userName: user.UserName,
                                 isTyping: user.IsTyping,
-                                timestamp: new Date(user.Timestamp).getTime()
+                                timestamp: now // Use current timestamp for freshness
                             });
                         });
                     }
@@ -508,14 +533,8 @@
             // Initial load
             loadTyping();
             
-            // Poll every 2 seconds
-            const typingInterval = setInterval(loadTyping, 2000);
-            
-            // Clear interval when conversation changes
-            if (window.typingInterval) {
-                clearInterval(window.typingInterval);
-            }
-            window.typingInterval = typingInterval;
+            // Poll every 1.5 seconds
+            typingPollTimer = setInterval(loadTyping, 1500);
         }
         
         // File handling functions
@@ -656,10 +675,10 @@
             
             let html = '';
             conversations.forEach(conv => {
-                html += `<div class="subject-item" onclick="selectConversation('${conv.id}', '${escapeHtml(conv.Title)}')">` +
-                       `<strong>${escapeHtml(conv.Title)}</strong><br>` +
-                       `<small>by ${escapeHtml(conv.CreatedBy)} • ${formatDate(conv.CreatedAt)}</small>` +
-                       `</div>`;
+                html += `<div class="subject-item" onclick="selectConversation('${conv.id}', '${escapeHtml(conv.Title)}')">`;
+                html += `<strong>${escapeHtml(conv.Title)}</strong><br>`;
+                html += `<small>by ${escapeHtml(conv.CreatedBy)} • ${formatDate(conv.CreatedAt)}</small>`;
+                html += `</div>`;
             });
             
             container.innerHTML = html;
@@ -683,7 +702,7 @@
             
             // Stop polling
             if (pollTimer) clearInterval(pollTimer);
-            if (window.typingInterval) clearInterval(window.typingInterval);
+            if (typingPollTimer) clearInterval(typingPollTimer);
             
             // Update UI
             document.querySelectorAll('.subject-item').forEach(item => {

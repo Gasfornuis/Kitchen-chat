@@ -77,10 +77,40 @@
         .file-link {
             color: #007cba;
             text-decoration: none;
+            display: inline-block;
+            padding: 2px 5px;
+            border-radius: 2px;
+            background: #e7f3ff;
         }
         
         .file-link:hover {
             text-decoration: underline;
+            background: #d0e7ff;
+        }
+        
+        .file-download-btn {
+            color: #007cba;
+            text-decoration: none;
+            background: #e7f3ff;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+            border: 1px solid #007cba;
+            display: inline-block;
+            margin-left: 5px;
+        }
+        
+        .file-download-btn:hover {
+            background: #007cba;
+            color: white;
+        }
+        
+        .file-preview-image {
+            max-width: 200px;
+            max-height: 150px;
+            border-radius: 3px;
+            margin-top: 5px;
+            cursor: pointer;
         }
         
         .file-upload-area {
@@ -386,17 +416,41 @@
         
         function getFileIcon(extension) {
             const icons = {
-                'pdf': 'fas fa-file-pdf',
-                'doc': 'fas fa-file-word', 'docx': 'fas fa-file-word',
-                'xls': 'fas fa-file-excel', 'xlsx': 'fas fa-file-excel',
-                'ppt': 'fas fa-file-powerpoint', 'pptx': 'fas fa-file-powerpoint',
-                'jpg': 'fas fa-file-image', 'jpeg': 'fas fa-file-image', 'png': 'fas fa-file-image', 'gif': 'fas fa-file-image',
-                'mp3': 'fas fa-file-audio', 'wav': 'fas fa-file-audio',
-                'mp4': 'fas fa-file-video', 'avi': 'fas fa-file-video',
-                'zip': 'fas fa-file-archive', 'rar': 'fas fa-file-archive',
-                'txt': 'fas fa-file-alt'
+                'pdf': '📄',
+                'doc': '📝', 'docx': '📝',
+                'xls': '📊', 'xlsx': '📊',
+                'ppt': '📈', 'pptx': '📈',
+                'jpg': '🖼️', 'jpeg': '🖼️', 'png': '🖼️', 'gif': '🖼️',
+                'mp3': '🎵', 'wav': '🎵',
+                'mp4': '🎬', 'avi': '🎬',
+                'zip': '🗜️', 'rar': '🗜️',
+                'txt': '📝'
             };
-            return icons[extension] || 'fas fa-file';
+            return icons[extension] || '📁';
+        }
+        
+        // Check if file is an image
+        function isImageFile(filename) {
+            const extension = getFileExtension(filename);
+            return ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'].includes(extension);
+        }
+        
+        // Create download link for file
+        function createDownloadLink(base64Data, filename) {
+            // Create blob URL for proper downloading
+            try {
+                const byteCharacters = atob(base64Data.split(',')[1]);
+                const byteNumbers = new Array(byteCharacters.length);
+                for (let i = 0; i < byteCharacters.length; i++) {
+                    byteNumbers[i] = byteCharacters.charCodeAt(i);
+                }
+                const byteArray = new Uint8Array(byteNumbers);
+                const blob = new Blob([byteArray]);
+                return URL.createObjectURL(blob);
+            } catch (e) {
+                // Fallback to base64 data URL
+                return base64Data;
+            }
         }
         
         // API calls
@@ -519,15 +573,23 @@
                 html += `${escapeHtml(msg.Content)}`;
                 
                 // Display file attachment if present
-                if (msg.MessageType === 'file' && msg.MediaData) {
+                if (msg.MessageType === 'file' && msg.MediaData && msg.AttachmentUrl) {
                     const mediaData = msg.MediaData;
+                    const filename = mediaData.name || 'File';
+                    const fileIcon = getFileIcon(getFileExtension(filename));
+                    
                     html += `<div class="file-attachment">`;
-                    if (msg.AttachmentUrl && msg.AttachmentUrl !== '#') {
-                        html += `📎 <a href="${msg.AttachmentUrl}" class="file-link" target="_blank">${escapeHtml(mediaData.name || 'File')}</a>`;
-                    } else {
-                        html += `📎 ${escapeHtml(mediaData.name || 'File')}`;
+                    html += `${fileIcon} ${escapeHtml(filename)} (${mediaData.size || 'Unknown size'})`;
+                    
+                    // Check if it's an image and show preview
+                    if (isImageFile(filename)) {
+                        const downloadUrl = createDownloadLink(msg.AttachmentUrl, filename);
+                        html += `<br><img src="${msg.AttachmentUrl}" class="file-preview-image" onclick="window.open('${downloadUrl}', '_blank')" title="Click to open full size">`;
                     }
-                    html += ` (${mediaData.size || 'Unknown size'})`;
+                    
+                    // Add download button
+                    const downloadUrl = createDownloadLink(msg.AttachmentUrl, filename);
+                    html += `<a href="${downloadUrl}" class="file-download-btn" download="${escapeHtml(filename)}">Download</a>`;
                     html += `</div>`;
                 }
                 
@@ -594,11 +656,10 @@
                             size: formatFileSize(selectedFile.size),
                             extension: extension.toUpperCase(),
                             icon: getFileIcon(extension),
-                            url: base64Data // Store base64 data directly for now
+                            url: base64Data
                         };
                         
-                        // For now, we'll use the base64 data as the attachment URL
-                        // In production, you'd upload to Firebase Storage first
+                        // Set attachment URL for direct access
                         messageData.AttachmentUrl = base64Data;
                     } catch (error) {
                         showToast('Error processing file: ' + error.message, 'error');

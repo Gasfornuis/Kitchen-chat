@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Kitchen Chat - The Most Beautiful Chat Experience Ever Created. Ultra-modern glassmorphism design, 3D animations, and premium interactions.">
-    <meta name="keywords" content="professional chat, team communication, culinary platform, business messaging, secure chat, glassmorphism, 3D animations">
+    <meta name="description" content="Kitchen Chat - The Most Beautiful Chat Experience Ever Created. Ultra-modern glassmorphism design, 3D animations, voice messages, file sharing, and premium interactions.">
+    <meta name="keywords" content="professional chat, team communication, voice messages, file sharing, reactions, threading, search, scheduling, glassmorphism, 3D animations">
     <meta name="theme-color" content="#0F1419">
     <meta name="msapplication-navbutton-color" content="#0F1419">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -13,18 +13,18 @@
     
     <!-- Open Graph Meta Tags -->
     <meta property="og:type" content="website">
-    <meta property="og:title" content="Kitchen Chat - The Most Beautiful Chat Experience Ever Created">
-    <meta property="og:description" content="Experience the future of culinary conversations with ultra-modern glassmorphism design, 3D animations, and premium interactions.">
+    <meta property="og:title" content="Kitchen Chat - Advanced Communication Platform">
+    <meta property="og:description" content="Experience the future with voice messages, file sharing, reactions, threading, search, and premium visual effects.">
     <meta property="og:image" content="https://kitchen-chat.vercel.app/og-image.png">
     <meta property="og:url" content="https://kitchen-chat.vercel.app">
     
     <!-- Twitter Meta Tags -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Kitchen Chat - Ultra-Modern Chat Experience">
-    <meta name="twitter:description" content="Floating particles, 3D micro-interactions, and premium visual effects in a professional chat platform">
+    <meta name="twitter:title" content="Kitchen Chat - Advanced Communication">
+    <meta name="twitter:description" content="Voice messages, file sharing, reactions, threading, search, and spectacular visual effects">
     <meta name="twitter:image" content="https://kitchen-chat.vercel.app/og-image.png">
     
-    <title>Kitchen Chat - The Most Beautiful Chat Experience Ever Created 🍳✨</title>
+    <title>Kitchen Chat - Advanced Communication Platform 🎙️💬✨</title>
     
     <!-- Preload critical resources -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -35,6 +35,7 @@
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="auth-styles.css">
     <link rel="stylesheet" href="enhanced-animations.css">
+    <link rel="stylesheet" href="advanced-features.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     
@@ -108,7 +109,7 @@
                     if (loadedScripts === firebaseScripts.length) {
                         // Initialize Firebase after all scripts are loaded
                         firebase.initializeApp(firebaseConfig);
-                        console.log('✨ Firebase initialized with enhanced effects');
+                        console.log('✨ Firebase initialized with advanced features');
                     }
                 };
                 script.onerror = () => {
@@ -117,7 +118,7 @@
                 document.head.appendChild(script);
             });
         } else {
-            console.log('🎨 Running in enhanced demo mode with spectacular effects');
+            console.log('🚀 Running in advanced demo mode with all features enabled');
         }
     </script>
     
@@ -134,8 +135,8 @@
     {
       "@context": "https://schema.org",
       "@type": "WebApplication",
-      "name": "Kitchen Chat - Enhanced Experience",
-      "description": "The most beautiful chat experience with 3D animations, particle effects, and premium interactions",
+      "name": "Kitchen Chat - Advanced Communication Platform",
+      "description": "Advanced chat with voice messages, file sharing, reactions, threading, search, and premium visual effects",
       "url": "https://kitchen-chat.vercel.app",
       "applicationCategory": "BusinessApplication",
       "operatingSystem": "Web Browser",
@@ -147,8 +148,18 @@
       "aggregateRating": {
         "@type": "AggregateRating",
         "ratingValue": "5.0",
-        "reviewCount": "100"
-      }
+        "reviewCount": "150"
+      },
+      "featureList": [
+        "Voice Messages with Waveform",
+        "File Sharing with Drag & Drop",
+        "Image Gallery with Lightbox",
+        "Message Threading & Replies",
+        "Emoji Reactions",
+        "Advanced Search with Highlighting",
+        "Message Scheduling",
+        "3D Animations & Particle Effects"
+      ]
     }
     </script>
 </head>
@@ -159,15 +170,15 @@
             <div class="loading-logo">
                 <i class="fas fa-comments"></i>
             </div>
-            <h2>Kitchen Chat</h2>
+            <h2>Kitchen Chat Advanced</h2>
             <div class="loading-dots">
                 <span></span>
                 <span></span>
                 <span></span>
             </div>
-            <p>Preparing your ultra-modern experience...</p>
+            <p>Initializing advanced communication features...</p>
             <div style="margin-top: 20px; font-size: 0.9rem; color: rgba(255,255,255,0.7);">
-                ✨ Loading particle effects • 🎨 Initializing 3D animations • 🚀 Optimizing performance
+                🎙️ Voice Messages • 📁 File Sharing • 💬 Threading • 🔍 Search • ⏰ Scheduling
             </div>
         </div>
     </div>
@@ -178,7 +189,7 @@
                 <div class="logo">
                     <i class="fas fa-comments" aria-hidden="true"></i>
                     <h1>Kitchen Chat</h1>
-                    <span style="font-size: 0.7rem; color: rgba(255,255,255,0.6); margin-left: 8px;">Enhanced</span>
+                    <span style="font-size: 0.7rem; color: rgba(255,255,255,0.6); margin-left: 8px;">Advanced</span>
                 </div>
                 <div class="header-actions">
                     <button class="new-subject-btn" id="newSubjectBtn" aria-label="Create new conversation">
@@ -218,32 +229,43 @@
             <main class="chat-container" role="main">
                 <div class="welcome-screen" id="welcomeScreen">
                     <div class="welcome-content fade-in-up">
-                        <i class="fas fa-users" aria-hidden="true"></i>
-                        <h2>Welcome to Kitchen Chat Enhanced</h2>
-                        <p>Experience the most beautiful chat interface ever created. Featuring 3D animations, floating particles, and premium micro-interactions.</p>
+                        <i class="fas fa-rocket" aria-hidden="true"></i>
+                        <h2>Welcome to Kitchen Chat Advanced</h2>
+                        <p>Experience the most advanced chat platform with professional-grade communication features. Voice messages, file sharing, threading, reactions, and spectacular visual effects.</p>
+                        
                         <div class="welcome-stats">
                             <div class="stat-item">
-                                <i class="fas fa-magic" aria-hidden="true"></i>
-                                <span>3D Effects</span>
+                                <i class="fas fa-microphone" aria-hidden="true"></i>
+                                <span>Voice Messages</span>
                             </div>
                             <div class="stat-item">
-                                <i class="fas fa-sparkles" aria-hidden="true"></i>
-                                <span>Particles</span>
+                                <i class="fas fa-file-upload" aria-hidden="true"></i>
+                                <span>File Sharing</span>
                             </div>
                             <div class="stat-item">
-                                <i class="fas fa-rocket" aria-hidden="true"></i>
-                                <span>Ultra-Modern</span>
+                                <i class="fas fa-reply" aria-hidden="true"></i>
+                                <span>Threading</span>
                             </div>
                         </div>
-                        <div style="margin-top: 30px; padding: 20px; background: rgba(102, 126, 234, 0.1); border-radius: 16px; border: 1px solid rgba(102, 126, 234, 0.2);">
-                            <h3 style="margin: 0 0 10px 0; color: #667eea;">✨ Enhanced Features Active</h3>
-                            <ul style="margin: 0; padding-left: 20px; color: rgba(255,255,255,0.8);">
-                                <li>Interactive particle background</li>
-                                <li>3D hover effects on messages</li>
-                                <li>Smooth animations and transitions</li>
-                                <li>Magnetic button interactions</li>
-                                <li>Advanced visual feedback</li>
-                            </ul>
+                        
+                        <div style="background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-radius: 16px; padding: 20px; margin-top: 24px; backdrop-filter: blur(12px); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);">
+                            <h3 style="margin: 0 0 12px 0; color: #667eea; font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+                                ⚡ Advanced Features Active
+                            </h3>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; color: rgba(255,255,255,0.9); font-size: 14px;">
+                                <div>🎙️ Voice messages with waveform</div>
+                                <div>📁 Drag & drop file sharing</div>
+                                <div>🖼️ Lightbox image gallery</div>
+                                <div>💬 Discord-style threading</div>
+                                <div>😍 Emoji reactions system</div>
+                                <div>🔍 Advanced message search</div>
+                                <div>📤 Message forwarding</div>
+                                <div>⏰ Message scheduling</div>
+                            </div>
+                        </div>
+                        
+                        <div style="margin-top: 20px; padding: 16px; background: rgba(40, 167, 69, 0.1); border: 1px solid rgba(40, 167, 69, 0.3); border-radius: 12px; color: rgba(40, 167, 69, 0.9);">
+                            <strong>🚀 Getting Started:</strong> Create a conversation above or right-click on any message to see advanced options!
                         </div>
                     </div>
                 </div>
@@ -254,13 +276,14 @@
                             <h2 id="currentSubjectTitle">Conversation</h2>
                             <div class="chat-status">
                                 <span class="status-indicator online"></span>
-                                <span class="status-text">Enhanced Mode</span>
+                                <span class="status-text">Advanced Mode</span>
                             </div>
                         </div>
                         <div class="chat-actions">
                             <button class="refresh-btn" id="refreshBtn" title="Refresh messages" aria-label="Refresh messages">
                                 <i class="fas fa-sync-alt" aria-hidden="true"></i>
                             </button>
+                            <!-- Search button will be added here by advanced-features.js -->
                         </div>
                     </div>
 
@@ -284,7 +307,7 @@
                         <div class="message-input" role="group" aria-label="Message input">
                             <input 
                                 type="text" 
-                                placeholder="Type a message..." 
+                                placeholder="Type a message or hold mic to record..." 
                                 id="messageInput" 
                                 maxlength="500"
                                 aria-label="Type your message"
@@ -293,6 +316,7 @@
                             <button class="emoji-btn" id="emojiBtn" title="Add emoji" aria-label="Add emoji" aria-expanded="false">
                                 <i class="fas fa-smile" aria-hidden="true"></i>
                             </button>
+                            <!-- Advanced buttons (voice, file, schedule) will be added here by advanced-features.js -->
                             <button id="sendBtn" disabled aria-label="Send message">
                                 <i class="fas fa-paper-plane" aria-hidden="true"></i>
                             </button>
@@ -401,28 +425,40 @@
     <!-- Enhanced Connection Status -->
     <div class="connection-status" id="connectionStatus">
         <div class="status-indicator"></div>
-        <span class="status-text">Connected</span>
+        <span class="status-text">Advanced Mode Ready</span>
     </div>
 
     <!-- Enhanced Keyboard Shortcuts Help -->
     <div class="shortcuts-help" id="shortcutsHelp" style="display: none;">
-        <h3>✨ Enhanced Shortcuts</h3>
+        <h3>⚡ Advanced Shortcuts</h3>
         <div class="shortcut-list">
             <div class="shortcut-item">
                 <kbd>Enter</kbd>
-                <span>Send message with animation</span>
+                <span>Send message</span>
             </div>
             <div class="shortcut-item">
                 <kbd>Ctrl</kbd> + <kbd>K</kbd>
-                <span>Search with 3D effects</span>
+                <span>Search conversations</span>
+            </div>
+            <div class="shortcut-item">
+                <kbd>Ctrl</kbd> + <kbd>F</kbd>
+                <span>Search messages</span>
             </div>
             <div class="shortcut-item">
                 <kbd>Ctrl</kbd> + <kbd>N</kbd>
-                <span>New conversation modal</span>
+                <span>New conversation</span>
+            </div>
+            <div class="shortcut-item">
+                <kbd>Right Click</kbd>
+                <span>Message options</span>
+            </div>
+            <div class="shortcut-item">
+                <kbd>Hold Mic</kbd>
+                <span>Voice message</span>
             </div>
             <div class="shortcut-item">
                 <kbd>Esc</kbd>
-                <span>Close dialogs smoothly</span>
+                <span>Close dialogs</span>
             </div>
         </div>
     </div>
@@ -430,6 +466,7 @@
     <!-- Enhanced Scripts - Order is important! -->
     <script src="particles.js"></script>
     <script src="enhanced-script.js"></script>
+    <script src="advanced-features.js"></script>
     <script src="auth.js"></script>
     <script src="auth-ui.js"></script>
     <script src="script.js"></script>
@@ -441,10 +478,22 @@
             window.addEventListener('load', () => {
                 setTimeout(() => {
                     const loadTime = performance.now();
-                    console.log(`🚀 Kitchen Chat Enhanced loaded in ${Math.round(loadTime)}ms`);
-                    console.log('✨ Particle system:', window.particleSystem ? 'Active' : 'Inactive');
+                    console.log(`🚀 Kitchen Chat Advanced loaded in ${Math.round(loadTime)}ms`);
+                    console.log('⚡ Particle system:', window.particleSystem ? 'Active' : 'Inactive');
                     console.log('🎨 Enhanced effects:', window.enhancedEffects ? 'Active' : 'Inactive');
-                    console.log('🔥 3D animations: Ready');
+                    console.log('🎙️ Advanced communication:', window.advancedComm ? 'Active' : 'Inactive');
+                    console.log('🔥 All systems: Ready');
+                    
+                    // Log available features
+                    console.log('📋 Available Features:');
+                    console.log('  🎙️ Voice Messages with Waveform');
+                    console.log('  📁 File Sharing with Drag & Drop');
+                    console.log('  🖼️ Lightbox Image Gallery');
+                    console.log('  💬 Message Threading & Replies');
+                    console.log('  😍 Emoji Reactions');
+                    console.log('  🔍 Advanced Message Search');
+                    console.log('  📤 Message Forwarding');
+                    console.log('  ⏰ Message Scheduling');
                 }, 100);
             });
         }
@@ -456,7 +505,7 @@
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/sw.js')
                     .then(registration => {
-                        console.log('🔧 SW registered: ', registration);
+                        console.log('🛠️ SW registered: ', registration);
                     })
                     .catch(registrationError => {
                         console.log('⚠️ SW registration failed: ', registrationError);

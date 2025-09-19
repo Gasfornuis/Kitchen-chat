@@ -54,8 +54,3 @@ No installation, no dependencies: one HTML file contains everything.
 ## 📄 License
 
 MIT License
-
-## 👏 Credits
-
-Made with ❤️ by Gasfornuis  
-Student at Zuyd University of Applied Sciences

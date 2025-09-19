@@ -31,14 +31,18 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com">
     
+    <!-- Font Awesome - Load First -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" crossorigin="anonymous">
+    
     <!-- Enhanced Professional Stylesheets -->
     <link rel="stylesheet" href="styles-enhanced.css">
+    <link rel="stylesheet" href="professional-themes.css">
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="auth-styles.css">
     <link rel="stylesheet" href="enhanced-animations.css">
     <link rel="stylesheet" href="advanced-features.css">
+    <link rel="stylesheet" href="icon-fix.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     
     <!-- Critical CSS for immediate rendering -->
     <style>
@@ -59,6 +63,16 @@
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             overflow-x: hidden;
             color: var(--text-primary);
+        }
+        
+        /* Force Font Awesome to load immediately */
+        .fas, .far, .fab, .fal, .fad {
+            font-family: 'Font Awesome 6 Free', 'Font Awesome 6 Pro' !important;
+            font-weight: 900 !important;
+            font-style: normal !important;
+            display: inline-block !important;
+            text-rendering: auto !important;
+            -webkit-font-smoothing: antialiased !important;
         }
         
         .loading-screen {
@@ -106,6 +120,13 @@
         @keyframes professionalFloat {
             0%, 100% { transform: translateY(0px); }
             50% { transform: translateY(-8px); }
+        }
+        
+        /* Ensure icons are visible immediately */
+        .loading-logo i {
+            font-size: 32px !important;
+            color: #0066FF !important;
+            display: block !important;
         }
     </style>
     
@@ -487,6 +508,34 @@
     <script src="auth.js"></script>
     <script src="auth-ui.js"></script>
     <script src="script.js"></script>
+    
+    <!-- Icon Verification Script -->
+    <script>
+        // Verify Font Awesome icons are loading
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if Font Awesome is loaded
+            const testIcon = document.createElement('i');
+            testIcon.className = 'fas fa-comments';
+            testIcon.style.opacity = '0';
+            testIcon.style.position = 'absolute';
+            document.body.appendChild(testIcon);
+            
+            setTimeout(() => {
+                const computed = window.getComputedStyle(testIcon, ':before');
+                const content = computed.getPropertyValue('content');
+                
+                if (content && content !== 'none' && content !== '""') {
+                    console.log('✅ Font Awesome icons loaded successfully');
+                } else {
+                    console.warn('⚠️ Font Awesome icons may not be loaded properly');
+                    // Add fallback emoji icons
+                    document.body.classList.add('use-emoji-fallbacks');
+                }
+                
+                document.body.removeChild(testIcon);
+            }, 100);
+        });
+    </script>
     
     <!-- Professional Performance Monitoring -->
     <script>

@@ -154,6 +154,26 @@
             color: #007cba;
         }
         
+        /* Typing indicator styles */
+        .typing-indicator {
+            font-size: 12px;
+            color: #666;
+            font-style: italic;
+            margin-top: 5px;
+            min-height: 16px;
+            padding: 2px 5px;
+        }
+        
+        .typing-dots {
+            display: inline-block;
+            animation: typing-dots 1.4s infinite;
+        }
+        
+        @keyframes typing-dots {
+            0%, 60%, 100% { opacity: 0; }
+            30% { opacity: 1; }
+        }
+        
         input, button, select {
             padding: 5px;
             margin: 2px;
@@ -264,6 +284,7 @@
                     <ul style="text-align: left; display: inline-block;">
                         <li>Real-time messaging</li>
                         <li>File sharing</li>
+                        <li>Typing indicators</li>
                         <li>Conversation management</li>
                         <li>Easy search</li>
                         <li>User-friendly</li>
@@ -280,8 +301,11 @@
                         <p>Loading messages...</p>
                     </div>
                     
+                    <!-- Typing indicator -->
+                    <div id="typingIndicator" class="typing-indicator"></div>
+                    
                     <div>
-                        <input type="text" id="messageText" placeholder="Type your message..." style="width: 60%;" maxlength="500" onkeypress="checkEnter(event)">
+                        <input type="text" id="messageText" placeholder="Type your message..." style="width: 60%;" maxlength="500" onkeypress="checkEnter(event)" oninput="handleTyping()">
                         <button id="sendBtn" onclick="sendMessage()" disabled>Send</button>
                         
                         <!-- File upload area -->
@@ -325,13 +349,24 @@
         let conversations = [];
         let messages = [];
         let userName = localStorage.getItem('kitchenChatUser') || '';
+        let userId = localStorage.getItem('kitchenChatUserId') || generateUserId();
         let pollTimer = null;
         let selectedFile = null;
+        let typingTimer = null;
+        let typingUsers = new Map();
+        
+        // Generate unique user ID
+        function generateUserId() {
+            const id = 'user_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
+            localStorage.setItem('kitchenChatUserId', id);
+            return id;
+        }
         
         // Start the application
         window.onload = function() {
             loadConversations();
             setupEventListeners();
+            startTypingStatusCleanup();
         };
         
         function setupEventListeners() {
@@ -352,12 +387,135 @@
             document.getElementById('modal').onclick = function(e) {
                 if (e.target === this) closeModal();
             };
+            
+            // Clear typing status when user leaves
+            window.addEventListener('beforeunload', () => {
+                if (currentConversationId) {
+                    clearTypingStatus();
+                }
+            });
         }
         
         function updateSendButton() {
             const text = document.getElementById('messageText').value.trim();
             const hasContent = text || selectedFile;
             document.getElementById('sendBtn').disabled = !hasContent || !currentConversationId;
+        }
+        
+        // Typing indicator functions
+        function handleTyping() {
+            if (!currentConversationId || !userName) return;
+            
+            // Send typing status
+            sendTypingStatus(true);
+            
+            // Clear existing timer
+            if (typingTimer) clearTimeout(typingTimer);
+            
+            // Set new timer to stop typing after 3 seconds
+            typingTimer = setTimeout(() => {
+                sendTypingStatus(false);
+            }, 3000);
+        }
+        
+        function sendTypingStatus(isTyping) {
+            if (!currentConversationId) return;
+            
+            // Send typing status to backend
+            apiCall('/api/typing', 'POST', {
+                SubjectId: currentConversationId,
+                UserId: userId,
+                UserName: userName,
+                IsTyping: isTyping
+            }).catch(() => {
+                // Silently ignore typing errors
+            });
+        }
+        
+        function clearTypingStatus() {
+            if (typingTimer) {
+                clearTimeout(typingTimer);
+                typingTimer = null;
+            }
+            sendTypingStatus(false);
+        }
+        
+        function updateTypingIndicator() {
+            const indicator = document.getElementById('typingIndicator');
+            const typingNames = Array.from(typingUsers.values())
+                .filter(user => user.userId !== userId && user.isTyping)
+                .map(user => user.userName);
+            
+            if (typingNames.length === 0) {
+                indicator.innerHTML = '';
+            } else if (typingNames.length === 1) {
+                indicator.innerHTML = `${typingNames[0]} is typing<span class="typing-dots">...</span>`;
+            } else if (typingNames.length === 2) {
+                indicator.innerHTML = `${typingNames[0]} and ${typingNames[1]} are typing<span class="typing-dots">...</span>`;
+            } else {
+                indicator.innerHTML = `${typingNames.slice(0, -1).join(', ')}, and ${typingNames[typingNames.length - 1]} are typing<span class="typing-dots">...</span>`;
+            }
+        }
+        
+        function startTypingStatusCleanup() {
+            // Clean up old typing statuses every 10 seconds
+            setInterval(() => {
+                const now = Date.now();
+                let updated = false;
+                
+                for (let [key, user] of typingUsers) {
+                    if (now - user.timestamp > 5000) { // 5 second timeout
+                        typingUsers.delete(key);
+                        updated = true;
+                    }
+                }
+                
+                if (updated) {
+                    updateTypingIndicator();
+                }
+            }, 10000);
+        }
+        
+        function loadTypingStatus() {
+            if (!currentConversationId) return;
+            
+            // Poll typing status every 2 seconds
+            const loadTyping = async () => {
+                if (!currentConversationId) return;
+                
+                try {
+                    const response = await apiCall(`/api/typing?SubjectId=${currentConversationId}`);
+                    
+                    // Update typing users
+                    typingUsers.clear();
+                    if (response && Array.isArray(response)) {
+                        response.forEach(user => {
+                            typingUsers.set(user.UserId, {
+                                userId: user.UserId,
+                                userName: user.UserName,
+                                isTyping: user.IsTyping,
+                                timestamp: new Date(user.Timestamp).getTime()
+                            });
+                        });
+                    }
+                    
+                    updateTypingIndicator();
+                } catch (error) {
+                    // Silently ignore typing status errors
+                }
+            };
+            
+            // Initial load
+            loadTyping();
+            
+            // Poll every 2 seconds
+            const typingInterval = setInterval(loadTyping, 2000);
+            
+            // Clear interval when conversation changes
+            if (window.typingInterval) {
+                clearInterval(window.typingInterval);
+            }
+            window.typingInterval = typingInterval;
         }
         
         // File handling functions
@@ -520,8 +678,12 @@
         
         // Select conversation
         function selectConversation(id, title) {
+            // Clear typing status from previous conversation
+            clearTypingStatus();
+            
             // Stop polling
             if (pollTimer) clearInterval(pollTimer);
+            if (window.typingInterval) clearInterval(window.typingInterval);
             
             // Update UI
             document.querySelectorAll('.subject-item').forEach(item => {
@@ -537,9 +699,12 @@
             // Load messages
             currentConversationId = id;
             loadMessages();
+            loadTypingStatus();
             
-            // Clear any selected file
+            // Clear any selected file and typing indicator
             clearSelectedFile();
+            document.getElementById('typingIndicator').innerHTML = '';
+            typingUsers.clear();
         }
         
         // Load messages
@@ -635,6 +800,9 @@
                 if (!userName) return;
                 localStorage.setItem('kitchenChatUser', userName);
             }
+            
+            // Clear typing status
+            clearTypingStatus();
             
             try {
                 // Prepare message data

@@ -64,6 +64,66 @@
             background: #e7f3ff;
         }
         
+        /* File upload styles */
+        .file-attachment {
+            margin-top: 5px;
+            padding: 5px;
+            background: #f0f8ff;
+            border: 1px solid #cce7ff;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+        
+        .file-link {
+            color: #007cba;
+            text-decoration: none;
+        }
+        
+        .file-link:hover {
+            text-decoration: underline;
+        }
+        
+        .file-upload-area {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin-top: 5px;
+        }
+        
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+        
+        .file-input-wrapper input[type=file] {
+            position: absolute;
+            left: -9999px;
+        }
+        
+        .file-select-btn {
+            background: #666;
+            color: white;
+            padding: 5px 10px;
+            cursor: pointer;
+            border: 1px solid #555;
+            font-size: 12px;
+        }
+        
+        .file-select-btn:hover {
+            background: #555;
+        }
+        
+        .file-preview {
+            font-size: 12px;
+            color: #666;
+            margin-left: 5px;
+        }
+        
+        .file-preview.selected {
+            color: #007cba;
+        }
+        
         input, button, select {
             padding: 5px;
             margin: 2px;
@@ -173,6 +233,7 @@
                     <h3>Features:</h3>
                     <ul style="text-align: left; display: inline-block;">
                         <li>Real-time messaging</li>
+                        <li>File sharing</li>
                         <li>Conversation management</li>
                         <li>Easy search</li>
                         <li>User-friendly</li>
@@ -190,10 +251,22 @@
                     </div>
                     
                     <div>
-                        <input type="text" id="messageText" placeholder="Type your message..." style="width: 70%;" maxlength="500" onkeypress="checkEnter(event)">
+                        <input type="text" id="messageText" placeholder="Type your message..." style="width: 60%;" maxlength="500" onkeypress="checkEnter(event)">
                         <button id="sendBtn" onclick="sendMessage()" disabled>Send</button>
+                        
+                        <!-- File upload area -->
+                        <div class="file-upload-area">
+                            <div class="file-input-wrapper">
+                                <input type="file" id="fileInput" onchange="handleFileSelect()" accept="*/*">
+                                <label for="fileInput" class="file-select-btn">📎 Attach File</label>
+                            </div>
+                            <span id="filePreview" class="file-preview">No file selected</span>
+                            <button id="clearFileBtn" onclick="clearSelectedFile()" style="display: none; font-size: 12px; padding: 2px 8px;">✕</button>
+                        </div>
+                        
                         <div style="font-size: 12px; color: #666; margin: 5px 0;">
                             <span id="charCount">0/500 characters</span>
+                            <span id="fileInfo" style="margin-left: 10px;"></span>
                         </div>
                     </div>
                 </div>
@@ -223,6 +296,7 @@
         let messages = [];
         let userName = localStorage.getItem('kitchenChatUser') || '';
         let pollTimer = null;
+        let selectedFile = null;
         
         // Start the application
         window.onload = function() {
@@ -235,7 +309,7 @@
             document.getElementById('messageText').oninput = function() {
                 const text = this.value;
                 document.getElementById('charCount').textContent = text.length + '/500 characters';
-                document.getElementById('sendBtn').disabled = !text.trim() || !currentConversationId;
+                updateSendButton();
             };
             
             // Title input events
@@ -248,6 +322,61 @@
             document.getElementById('modal').onclick = function(e) {
                 if (e.target === this) closeModal();
             };
+        }
+        
+        function updateSendButton() {
+            const text = document.getElementById('messageText').value.trim();
+            const hasContent = text || selectedFile;
+            document.getElementById('sendBtn').disabled = !hasContent || !currentConversationId;
+        }
+        
+        // File handling functions
+        function handleFileSelect() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            
+            if (file) {
+                selectedFile = file;
+                const preview = document.getElementById('filePreview');
+                const clearBtn = document.getElementById('clearFileBtn');
+                const fileInfo = document.getElementById('fileInfo');
+                
+                preview.textContent = file.name;
+                preview.classList.add('selected');
+                clearBtn.style.display = 'inline';
+                
+                // Show file size
+                const sizeInMB = (file.size / (1024 * 1024)).toFixed(2);
+                fileInfo.textContent = `File size: ${sizeInMB} MB`;
+                
+                updateSendButton();
+            }
+        }
+        
+        function clearSelectedFile() {
+            selectedFile = null;
+            const fileInput = document.getElementById('fileInput');
+            const preview = document.getElementById('filePreview');
+            const clearBtn = document.getElementById('clearFileBtn');
+            const fileInfo = document.getElementById('fileInfo');
+            
+            fileInput.value = '';
+            preview.textContent = 'No file selected';
+            preview.classList.remove('selected');
+            clearBtn.style.display = 'none';
+            fileInfo.textContent = '';
+            
+            updateSendButton();
+        }
+        
+        // Convert file to base64
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
+            });
         }
         
         // API calls
@@ -334,6 +463,9 @@
             // Load messages
             currentConversationId = id;
             loadMessages();
+            
+            // Clear any selected file
+            clearSelectedFile();
         }
         
         // Load messages
@@ -362,10 +494,25 @@
             let html = '';
             messages.forEach(msg => {
                 const isOwn = msg.PostedBy === userName;
-                html += `<div class="message ${isOwn ? 'own' : ''}">` +
-                       `<strong>${escapeHtml(msg.PostedBy)}</strong> • <small>${formatTime(msg.CreatedAt)}</small><br>` +
-                       `${escapeHtml(msg.Content)}` +
-                       `</div>`;
+                html += `<div class="message ${isOwn ? 'own' : ''}">`;
+                html += `<strong>${escapeHtml(msg.PostedBy)}</strong> • <small>${formatTime(msg.CreatedAt)}</small><br>`;
+                html += `${escapeHtml(msg.Content)}`;
+                
+                // Display file attachment if present
+                if (msg.FileAttachment) {
+                    try {
+                        const fileData = JSON.parse(msg.FileAttachment);
+                        html += `<div class="file-attachment">`;
+                        html += `📎 <a href="${fileData.url}" class="file-link" target="_blank">${escapeHtml(fileData.name)}</a>`;
+                        html += ` (${formatFileSize(fileData.size)})`;
+                        html += `</div>`;
+                    } catch (e) {
+                        // Fallback for old file format
+                        html += `<div class="file-attachment">📎 File attachment</div>`;
+                    }
+                }
+                
+                html += `</div>`;
             });
             
             container.innerHTML = html;
@@ -399,7 +546,7 @@
         // Send message
         async function sendMessage() {
             const text = document.getElementById('messageText').value.trim();
-            if (!text || !currentConversationId) return;
+            if ((!text && !selectedFile) || !currentConversationId) return;
             
             // Get user name if not set
             if (!userName) {
@@ -409,16 +556,36 @@
             }
             
             try {
+                // Prepare message data
+                const messageData = {
+                    Content: text || '',
+                    SubjectId: currentConversationId,
+                    PostedBy: userName
+                };
+                
+                // Handle file attachment
+                if (selectedFile) {
+                    try {
+                        const base64Data = await fileToBase64(selectedFile);
+                        messageData.FileAttachment = JSON.stringify({
+                            name: selectedFile.name,
+                            size: selectedFile.size,
+                            type: selectedFile.type,
+                            data: base64Data
+                        });
+                    } catch (error) {
+                        showToast('Error processing file: ' + error.message, 'error');
+                        return;
+                    }
+                }
+                
                 // Clear input immediately
                 document.getElementById('messageText').value = '';
                 document.getElementById('charCount').textContent = '0/500 characters';
+                clearSelectedFile();
                 document.getElementById('sendBtn').disabled = true;
                 
-                await apiCall('/api/posts', 'POST', {
-                    Content: text,
-                    SubjectId: currentConversationId,
-                    PostedBy: userName
-                });
+                await apiCall('/api/posts', 'POST', messageData);
                 
                 showToast('Message sent!', 'success');
                 loadMessages(); // Reload messages
@@ -426,6 +593,9 @@
             } catch (error) {
                 // Restore input on error
                 document.getElementById('messageText').value = text;
+                if (selectedFile) {
+                    handleFileSelect(); // Restore file selection UI
+                }
             }
         }
         
@@ -507,6 +677,14 @@
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+        
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
         }
         
         function formatDate(dateString) {

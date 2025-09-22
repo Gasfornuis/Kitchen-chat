@@ -543,7 +543,7 @@
         Conversation: <span id="debugConv">none</span><br>
         User: <span id="debugUser">none</span><br>
         Online Users: <span id="debugOnlineUsers">0</span><br>
-        API Status: <span id="debugAPI">unknown</span><br>
+        API Status: <span id="debugAPI">checking...</span><br>
     </div>
     
     <div class="container">
@@ -849,10 +849,10 @@
                     soundEnabled: userProfile.soundEnabled !== false
                 };
                 
-                console.log('Sending user data:', userData);
+                console.log('Sending user data to /api/user-status:', userData);
                 
-                // Use the new user-status-simple API
-                const response = await fetch('/api/user-status-simple', {
+                // Use the new Vercel API endpoint
+                const response = await fetch('/api/user-status', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -867,8 +867,8 @@
                     loadOnlineUsers(); // Refresh user list
                     startHeartbeat(); // Start keeping user online
                 } else {
-                    const error = await response.text();
-                    console.log('User registration failed:', response.status, error);
+                    const errorText = await response.text();
+                    console.log('User registration failed:', response.status, errorText);
                     apiWorking = false;
                 }
                 
@@ -888,8 +888,8 @@
                     status: status
                 };
                 
-                // Try the new user-status-simple endpoint for status updates
-                const response = await fetch('/api/user-status-simple', {
+                // Use the Vercel API endpoint for status updates
+                const response = await fetch('/api/user-status', {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json'
@@ -906,8 +906,8 @@
                     saveProfileToStorage();
                     loadOnlineUsers(); // Refresh user list
                 } else {
-                    const error = await response.text();
-                    console.log('Status update failed:', response.status, error);
+                    const errorText = await response.text();
+                    console.log('Status update failed:', response.status, errorText);
                     apiWorking = false;
                     // Fallback to local update
                     userProfile.status = status;
@@ -928,10 +928,10 @@
         
         async function loadOnlineUsers() {
             try {
-                console.log('Loading online users from API');
+                console.log('Loading online users from /api/user-status');
                 
-                // Try to get real users from the new API
-                const response = await fetch('/api/user-status-simple');
+                // Get real users from the Vercel API
+                const response = await fetch('/api/user-status');
                 
                 if (response.ok) {
                     const data = await response.json();
@@ -945,16 +945,7 @@
                             status: user.status,
                             lastSeen: user.lastSeen
                         }));
-                        console.log(`Loaded ${onlineUsers.length} online users from API`);
-                    } else if (Array.isArray(data)) {
-                        // Handle direct array response
-                        onlineUsers = data.map(user => ({
-                            uid: user.uid || user.userId,
-                            displayName: user.displayName || user.username,
-                            status: user.status,
-                            lastSeen: user.lastSeen || new Date(user.lastseen * 1000).toISOString()
-                        }));
-                        console.log(`Loaded ${onlineUsers.length} online users from API (array format)`);
+                        console.log(`Loaded ${onlineUsers.length} online users from Vercel API`);
                     } else {
                         console.log('Unexpected API response format:', data);
                         // Fallback to at least show current user
@@ -967,6 +958,8 @@
                     }
                 } else {
                     console.log('User status API not available, status:', response.status);
+                    const errorText = await response.text();
+                    console.log('Error details:', errorText);
                     apiWorking = false;
                     // Fallback to show just current user
                     onlineUsers = [{

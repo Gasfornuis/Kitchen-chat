@@ -542,8 +542,8 @@
         Debug Info:<br>
         Conversation: <span id="debugConv">none</span><br>
         User: <span id="debugUser">none</span><br>
-        Typing Users: <span id="debugTyping">none</span><br>
-        Last Typing Poll: <span id="debugPoll">never</span>
+        Online Users: <span id="debugOnlineUsers">0</span><br>
+        API Status: <span id="debugAPI">unknown</span><br>
     </div>
     
     <div class="container">
@@ -716,13 +716,14 @@
         let typingPollTimer = null;
         let usersPollTimer = null;
         let heartbeatTimer = null;
+        let apiWorking = false;
         
         // Debug function
         function updateDebugInfo() {
             document.getElementById('debugConv').textContent = currentConversationId || 'none';
             document.getElementById('debugUser').textContent = userName || 'none';
-            document.getElementById('debugTyping').textContent = typingUsers.size;
-            document.getElementById('debugPoll').textContent = new Date().toLocaleTimeString();
+            document.getElementById('debugOnlineUsers').textContent = onlineUsers.length;
+            document.getElementById('debugAPI').textContent = apiWorking ? 'working' : 'offline';
         }
         
         // Generate unique user ID
@@ -838,7 +839,6 @@
             try {
                 console.log('Registering user profile:', userProfile);
                 
-                // Try to use a simplified user status endpoint
                 const userData = {
                     userId: userId,
                     displayName: userProfile.displayName,
@@ -849,25 +849,34 @@
                     soundEnabled: userProfile.soundEnabled !== false
                 };
                 
-                // Try the user-status endpoint for registration
-                const response = await fetch('/api/user-status', {
+                console.log('Sending user data:', userData);
+                
+                // Use the new user-status-simple API
+                const response = await fetch('/api/user-status-simple', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
                     body: JSON.stringify(userData)
                 });
                 
                 if (response.ok) {
-                    console.log('User profile registered successfully');
+                    const result = await response.json();
+                    console.log('User profile registered successfully:', result);
+                    apiWorking = true;
                     loadOnlineUsers(); // Refresh user list
                     startHeartbeat(); // Start keeping user online
                 } else {
-                    console.log('User status API not available, using fallback');
+                    const error = await response.text();
+                    console.log('User registration failed:', response.status, error);
+                    apiWorking = false;
                 }
                 
             } catch (error) {
                 console.error('Error registering user profile:', error);
-                // Continue anyway - the app should work without this
+                apiWorking = false;
             }
+            updateDebugInfo();
         }
         
         async function updateUserStatus(status) {
@@ -879,21 +888,27 @@
                     status: status
                 };
                 
-                // Try the user-status endpoint for status updates
-                const response = await fetch('/api/user-status', {
+                // Try the new user-status-simple endpoint for status updates
+                const response = await fetch('/api/user-status-simple', {
                     method: 'PUT',
-                    headers: {'Content-Type': 'application/json'},
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
                     body: JSON.stringify(userData)
                 });
                 
                 if (response.ok) {
-                    console.log('Status updated successfully');
+                    const result = await response.json();
+                    console.log('Status updated successfully:', result);
+                    apiWorking = true;
                     userProfile.status = status;
                     userProfile.lastSeen = new Date().toISOString();
                     saveProfileToStorage();
                     loadOnlineUsers(); // Refresh user list
                 } else {
-                    console.log('Status update failed, using fallback');
+                    const error = await response.text();
+                    console.log('Status update failed:', response.status, error);
+                    apiWorking = false;
                     // Fallback to local update
                     userProfile.status = status;
                     userProfile.lastSeen = new Date().toISOString();
@@ -902,27 +917,46 @@
                 
             } catch (error) {
                 console.error('Error updating user status:', error);
+                apiWorking = false;
                 // Fallback to local update
                 userProfile.status = status;
                 userProfile.lastSeen = new Date().toISOString();
                 saveProfileToStorage();
             }
+            updateDebugInfo();
         }
         
         async function loadOnlineUsers() {
             try {
                 console.log('Loading online users from API');
                 
-                // Try to get real users from the API
-                const response = await fetch('/api/user-status');
+                // Try to get real users from the new API
+                const response = await fetch('/api/user-status-simple');
                 
                 if (response.ok) {
                     const data = await response.json();
                     console.log('User status API response:', data);
+                    apiWorking = true;
                     
                     if (data.users && Array.isArray(data.users)) {
-                        onlineUsers = data.users;
+                        onlineUsers = data.users.map(user => ({
+                            uid: user.uid,
+                            displayName: user.displayName,
+                            status: user.status,
+                            lastSeen: user.lastSeen
+                        }));
+                        console.log(`Loaded ${onlineUsers.length} online users from API`);
+                    } else if (Array.isArray(data)) {
+                        // Handle direct array response
+                        onlineUsers = data.map(user => ({
+                            uid: user.uid || user.userId,
+                            displayName: user.displayName || user.username,
+                            status: user.status,
+                            lastSeen: user.lastSeen || new Date(user.lastseen * 1000).toISOString()
+                        }));
+                        console.log(`Loaded ${onlineUsers.length} online users from API (array format)`);
                     } else {
+                        console.log('Unexpected API response format:', data);
                         // Fallback to at least show current user
                         onlineUsers = [{
                             uid: userId,
@@ -932,7 +966,8 @@
                         }];
                     }
                 } else {
-                    console.log('User status API not available, showing only current user');
+                    console.log('User status API not available, status:', response.status);
+                    apiWorking = false;
                     // Fallback to show just current user
                     onlineUsers = [{
                         uid: userId,
@@ -946,6 +981,7 @@
                 
             } catch (error) {
                 console.error('Error loading online users:', error);
+                apiWorking = false;
                 // Fallback to show just current user
                 onlineUsers = [{
                     uid: userId,
@@ -955,6 +991,7 @@
                 }];
                 displayOnlineUsers();
             }
+            updateDebugInfo();
         }
         
         function displayOnlineUsers() {
@@ -1010,21 +1047,22 @@
         }
         
         function startUsersPolling() {
-            // Poll for online users every 30 seconds
+            // Poll for online users every 15 seconds
             usersPollTimer = setInterval(() => {
                 if (navigator.onLine) {
                     loadOnlineUsers();
                 }
-            }, 30000);
+            }, 15000);
         }
         
         function startHeartbeat() {
-            // Send heartbeat every 2 minutes to keep user online
+            // Send heartbeat every 1 minute to keep user online
             heartbeatTimer = setInterval(() => {
                 if (navigator.onLine && userProfile.displayName && userProfile.status !== 'offline') {
+                    console.log('Sending heartbeat...');
                     updateUserStatus(userProfile.status);
                 }
-            }, 120000); // 2 minutes
+            }, 60000); // 1 minute
         }
         
         // Start the application
@@ -1040,7 +1078,7 @@
             
             // Start heartbeat if user has a profile
             if (userProfile.displayName) {
-                startHeartbeat();
+                registerUserProfile(); // Register immediately
             }
         };
         
@@ -1076,7 +1114,7 @@
                     clearTypingStatus();
                 }
                 // Set status to offline when leaving
-                if (userProfile.displayName) {
+                if (userProfile.displayName && apiWorking) {
                     updateUserStatus('offline');
                 }
             });
@@ -1143,7 +1181,6 @@
                 .map(user => user.userName);
             
             console.log('Updating typing indicator. Typing users:', typingNames);
-            console.log('Current user ID:', userId, 'All typing users:', Array.from(typingUsers.values()));
             
             if (typingNames.length === 0) {
                 indicator.innerHTML = '';
@@ -1158,8 +1195,6 @@
                 indicator.innerHTML = `${typingNames.slice(0, -1).join(', ')}, and ${typingNames[typingNames.length - 1]} are typing<span class="typing-dots"></span>`;
                 console.log(`Multiple users typing: ${typingNames}`);
             }
-            
-            updateDebugInfo();
         }
         
         function startTypingStatusCleanup() {

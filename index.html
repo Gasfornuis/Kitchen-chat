@@ -715,6 +715,7 @@
         let typingUsers = new Map();
         let typingPollTimer = null;
         let usersPollTimer = null;
+        let heartbeatTimer = null;
         
         // Debug function
         function updateDebugInfo() {
@@ -825,80 +826,134 @@
             saveProfileToStorage();
             updateProfileUI();
             
-            // Save to server (simplified - in real app you'd use proper authentication)
-            saveUserProfile();
+            // Register/update user profile on server
+            registerUserProfile();
             
             closeProfileModal();
             showToast('Profile saved!', 'success');
         }
         
         // API calls for profiles and status
-        async function saveUserProfile() {
+        async function registerUserProfile() {
             try {
-                // In a real implementation, you would need proper Firebase authentication
-                // For now, we'll just save locally and update status
-                console.log('Saving profile:', userProfile);
+                console.log('Registering user profile:', userProfile);
                 
-                if (userProfile.status && userName) {
-                    await updateUserStatus(userProfile.status);
+                // Try to use a simplified user status endpoint
+                const userData = {
+                    userId: userId,
+                    displayName: userProfile.displayName,
+                    bio: userProfile.bio || '',
+                    status: userProfile.status || 'online',
+                    theme: userProfile.theme || 'light',
+                    notifications: userProfile.notifications !== false,
+                    soundEnabled: userProfile.soundEnabled !== false
+                };
+                
+                // Try the user-status endpoint for registration
+                const response = await fetch('/api/user-status', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(userData)
+                });
+                
+                if (response.ok) {
+                    console.log('User profile registered successfully');
+                    loadOnlineUsers(); // Refresh user list
+                    startHeartbeat(); // Start keeping user online
+                } else {
+                    console.log('User status API not available, using fallback');
                 }
+                
             } catch (error) {
-                console.error('Error saving profile:', error);
+                console.error('Error registering user profile:', error);
+                // Continue anyway - the app should work without this
             }
         }
         
         async function updateUserStatus(status) {
             try {
-                // Simplified status update - in real app you'd use proper authentication
                 console.log('Updating status to:', status);
                 
-                // For demo purposes, we'll simulate the API call
+                const userData = {
+                    userId: userId,
+                    status: status
+                };
+                
+                // Try the user-status endpoint for status updates
+                const response = await fetch('/api/user-status', {
+                    method: 'PUT',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(userData)
+                });
+                
+                if (response.ok) {
+                    console.log('Status updated successfully');
+                    userProfile.status = status;
+                    userProfile.lastSeen = new Date().toISOString();
+                    saveProfileToStorage();
+                    loadOnlineUsers(); // Refresh user list
+                } else {
+                    console.log('Status update failed, using fallback');
+                    // Fallback to local update
+                    userProfile.status = status;
+                    userProfile.lastSeen = new Date().toISOString();
+                    saveProfileToStorage();
+                }
+                
+            } catch (error) {
+                console.error('Error updating user status:', error);
+                // Fallback to local update
                 userProfile.status = status;
                 userProfile.lastSeen = new Date().toISOString();
                 saveProfileToStorage();
-                
-                loadOnlineUsers(); // Refresh user list
-            } catch (error) {
-                console.error('Error updating status:', error);
             }
         }
         
         async function loadOnlineUsers() {
             try {
-                // Simulate loading online users
-                // In real app, this would call /api/user-status
-                onlineUsers = [
-                    {
+                console.log('Loading online users from API');
+                
+                // Try to get real users from the API
+                const response = await fetch('/api/user-status');
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('User status API response:', data);
+                    
+                    if (data.users && Array.isArray(data.users)) {
+                        onlineUsers = data.users;
+                    } else {
+                        // Fallback to at least show current user
+                        onlineUsers = [{
+                            uid: userId,
+                            displayName: userProfile.displayName || userName || 'You',
+                            status: userProfile.status || 'online',
+                            lastSeen: new Date().toISOString()
+                        }];
+                    }
+                } else {
+                    console.log('User status API not available, showing only current user');
+                    // Fallback to show just current user
+                    onlineUsers = [{
                         uid: userId,
                         displayName: userProfile.displayName || userName || 'You',
                         status: userProfile.status || 'online',
                         lastSeen: new Date().toISOString()
-                    },
-                    // Add some demo users
-                    {
-                        uid: 'demo1',
-                        displayName: 'Alice Johnson',
-                        status: 'online',
-                        lastSeen: new Date().toISOString()
-                    },
-                    {
-                        uid: 'demo2', 
-                        displayName: 'Bob Smith',
-                        status: 'away',
-                        lastSeen: new Date(Date.now() - 300000).toISOString()
-                    },
-                    {
-                        uid: 'demo3',
-                        displayName: 'Carol Davis',
-                        status: 'busy',
-                        lastSeen: new Date().toISOString()
-                    }
-                ];
+                    }];
+                }
                 
                 displayOnlineUsers();
+                
             } catch (error) {
                 console.error('Error loading online users:', error);
-                document.getElementById('usersList').innerHTML = '<p style="color: red;">Error loading users</p>';
+                // Fallback to show just current user
+                onlineUsers = [{
+                    uid: userId,
+                    displayName: userProfile.displayName || userName || 'You',
+                    status: userProfile.status || 'online',
+                    lastSeen: new Date().toISOString()
+                }];
+                displayOnlineUsers();
             }
         }
         
@@ -963,6 +1018,15 @@
             }, 30000);
         }
         
+        function startHeartbeat() {
+            // Send heartbeat every 2 minutes to keep user online
+            heartbeatTimer = setInterval(() => {
+                if (navigator.onLine && userProfile.displayName && userProfile.status !== 'offline') {
+                    updateUserStatus(userProfile.status);
+                }
+            }, 120000); // 2 minutes
+        }
+        
         // Start the application
         window.onload = function() {
             console.log('Kitchen Chat loading...');
@@ -973,6 +1037,11 @@
             startTypingStatusCleanup();
             startUsersPolling();
             updateDebugInfo();
+            
+            // Start heartbeat if user has a profile
+            if (userProfile.displayName) {
+                startHeartbeat();
+            }
         };
         
         function setupEventListeners() {
@@ -1005,6 +1074,10 @@
             window.addEventListener('beforeunload', () => {
                 if (currentConversationId) {
                     clearTypingStatus();
+                }
+                // Set status to offline when leaving
+                if (userProfile.displayName) {
+                    updateUserStatus('offline');
                 }
             });
         }

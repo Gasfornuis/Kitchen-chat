@@ -14,7 +14,7 @@
         }
         
         .container {
-            max-width: 1000px;
+            max-width: 1200px;
             margin: 0 auto;
             background: white;
             border: 1px solid #ccc;
@@ -24,6 +24,20 @@
             background: #ddd;
             padding: 10px 20px;
             border-bottom: 1px solid #bbb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header-left {
+            display: flex;
+            align-items: center;
+        }
+        
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
         
         .main {
@@ -36,6 +50,15 @@
             background: #f5f5f5;
             border-right: 1px solid #ccc;
             padding: 10px;
+        }
+        
+        .users-sidebar {
+            width: 200px;
+            background: #f8f8f8;
+            border-left: 1px solid #ccc;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
         }
         
         .chat {
@@ -57,11 +80,221 @@
             padding: 5px;
             border-left: 3px solid #ccc;
             background: white;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
         }
         
         .message.own {
             border-left-color: #007cba;
             background: #e7f3ff;
+        }
+        
+        .message-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #007cba;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+        
+        .message-content {
+            flex: 1;
+        }
+        
+        .message-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 2px;
+        }
+        
+        .message-author {
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .message-time {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .message-text {
+            color: #444;
+            line-height: 1.4;
+        }
+        
+        /* User Profile Styles */
+        .profile-button {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #007cba;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .profile-button:hover {
+            background: #005a87;
+        }
+        
+        .user-avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #fff;
+            color: #007cba;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .profile-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1001;
+        }
+        
+        .profile-modal-content {
+            background: white;
+            margin: 50px auto;
+            padding: 20px;
+            width: 400px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+        
+        .profile-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .profile-avatar-large {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: #007cba;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .profile-info {
+            flex: 1;
+        }
+        
+        .profile-name {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .status-selector {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+        }
+        
+        .status-online { background: #4CAF50; }
+        .status-away { background: #FF9800; }
+        .status-busy { background: #F44336; }
+        .status-offline { background: #9E9E9E; }
+        
+        .status-option {
+            display: flex;
+            align-items: center;
+            padding: 5px 10px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 14px;
+            border: 1px solid transparent;
+        }
+        
+        .status-option:hover {
+            background: #f0f0f0;
+        }
+        
+        .status-option.active {
+            background: #e7f3ff;
+            border: 1px solid #007cba;
+        }
+        
+        /* Users List Styles */
+        .users-list {
+            margin-top: 10px;
+        }
+        
+        .user-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px;
+            margin-bottom: 5px;
+            background: white;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            font-size: 14px;
+        }
+        
+        .user-item-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #007cba;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .user-item-info {
+            flex: 1;
+        }
+        
+        .user-item-name {
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
+        
+        .user-item-status {
+            font-size: 12px;
+            color: #666;
+            display: flex;
+            align-items: center;
         }
         
         /* File upload styles */
@@ -208,10 +441,15 @@
             z-index: 1000;
         }
         
-        input, button, select {
+        input, button, select, textarea {
             padding: 5px;
             margin: 2px;
             border: 1px solid #ccc;
+        }
+        
+        textarea {
+            resize: vertical;
+            font-family: Arial, sans-serif;
         }
         
         button {
@@ -262,6 +500,7 @@
             padding: 20px;
             width: 400px;
             border: 1px solid #ccc;
+            border-radius: 8px;
         }
         
         .toast {
@@ -282,7 +521,7 @@
             background: #388e3c;
         }
         
-        @media (max-width: 600px) {
+        @media (max-width: 800px) {
             .main {
                 flex-direction: column;
             }
@@ -290,6 +529,9 @@
                 width: 100%;
                 height: 150px;
                 overflow-y: auto;
+            }
+            .users-sidebar {
+                display: none;
             }
         }
     </style>
@@ -306,8 +548,16 @@
     
     <div class="container">
         <header>
-            <h1 style="margin: 0; display: inline;">Kitchen Chat</h1>
-            <button onclick="openModal()" style="float: right;">New Conversation</button>
+            <div class="header-left">
+                <h1 style="margin: 0;">Kitchen Chat</h1>
+            </div>
+            <div class="header-right">
+                <button onclick="openModal()" style="float: right;">New Conversation</button>
+                <button id="profileBtn" class="profile-button" onclick="openProfileModal()">
+                    <div id="headerAvatar" class="user-avatar">?</div>
+                    <span id="headerUserName">Profile</span>
+                </button>
+            </div>
         </header>
         
         <div class="main">
@@ -328,12 +578,13 @@
                         <li>Real-time messaging</li>
                         <li>File sharing</li>
                         <li>Typing indicators</li>
+                        <li>User profiles & status</li>
                         <li>Conversation management</li>
                         <li>Easy search</li>
                         <li>User-friendly</li>
                         <li>Works on all devices</li>
                     </ul>
-                    <p><strong>Get Started:</strong> Click "New Conversation" to create your first chat room!</p>
+                    <p><strong>Get Started:</strong> Set up your profile and click "New Conversation" to create your first chat room!</p>
                 </div>
                 
                 <div id="chatArea" style="display: none;">
@@ -345,7 +596,7 @@
                     </div>
                     
                     <!-- Typing indicator - MADE VERY VISIBLE -->
-                    <div id="typingIndicator" class="typing-indicator">TEST: This should be visible when someone is typing!</div>
+                    <div id="typingIndicator" class="typing-indicator"></div>
                     
                     <div>
                         <!-- FIXED: Removed inline oninput handler to prevent conflict -->
@@ -369,10 +620,17 @@
                     </div>
                 </div>
             </div>
+            
+            <div class="users-sidebar">
+                <h3>Online Users</h3>
+                <div id="usersList" class="users-list">
+                    <p>Loading users...</p>
+                </div>
+            </div>
         </div>
     </div>
     
-    <!-- Modal -->
+    <!-- Modal for new conversation -->
     <div id="modal" class="modal">
         <div class="modal-content">
             <h3>Create New Conversation</h3>
@@ -387,6 +645,61 @@
         </div>
     </div>
     
+    <!-- Profile Modal -->
+    <div id="profileModal" class="profile-modal">
+        <div class="profile-modal-content">
+            <h3>User Profile</h3>
+            
+            <div class="profile-header">
+                <div id="profileAvatar" class="profile-avatar-large" onclick="changeAvatar()">?</div>
+                <div class="profile-info">
+                    <input type="text" id="profileDisplayName" placeholder="Display Name" style="width: 100%; font-size: 16px; font-weight: bold; margin-bottom: 10px;">
+                    <div class="status-selector">
+                        <div class="status-option" data-status="online" onclick="selectStatus('online')">
+                            <span class="status-indicator status-online"></span> Online
+                        </div>
+                        <div class="status-option" data-status="away" onclick="selectStatus('away')">
+                            <span class="status-indicator status-away"></span> Away
+                        </div>
+                        <div class="status-option" data-status="busy" onclick="selectStatus('busy')">
+                            <span class="status-indicator status-busy"></span> Busy
+                        </div>
+                        <div class="status-option" data-status="offline" onclick="selectStatus('offline')">
+                            <span class="status-indicator status-offline"></span> Offline
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="margin-bottom: 15px;">
+                <label>Bio:</label><br>
+                <textarea id="profileBio" placeholder="Tell others about yourself..." style="width: 90%; height: 60px; resize: vertical;"></textarea>
+            </div>
+            
+            <div style="margin-bottom: 15px;">
+                <label>Theme:</label><br>
+                <select id="profileTheme" style="width: 95%;">
+                    <option value="light">Light</option>
+                    <option value="dark">Dark</option>
+                </select>
+            </div>
+            
+            <div style="margin-bottom: 15px;">
+                <label>
+                    <input type="checkbox" id="profileNotifications"> Enable notifications
+                </label><br>
+                <label>
+                    <input type="checkbox" id="profileSound"> Enable sound
+                </label>
+            </div>
+            
+            <div>
+                <button onclick="saveProfile()">Save Profile</button>
+                <button onclick="closeProfileModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+    
     <script>
         // Basic JavaScript - as simple as possible
         let currentConversationId = null;
@@ -394,11 +707,14 @@
         let messages = [];
         let userName = localStorage.getItem('kitchenChatUser') || '';
         let userId = localStorage.getItem('kitchenChatUserId') || generateUserId();
+        let userProfile = JSON.parse(localStorage.getItem('kitchenChatProfile') || '{}');
+        let onlineUsers = [];
         let pollTimer = null;
         let selectedFile = null;
         let typingTimer = null;
         let typingUsers = new Map();
         let typingPollTimer = null;
+        let usersPollTimer = null;
         
         // Debug function
         function updateDebugInfo() {
@@ -415,25 +731,248 @@
             return id;
         }
         
+        // Profile management functions
+        function initializeProfile() {
+            if (!userProfile.displayName && userName) {
+                userProfile.displayName = userName;
+            }
+            if (!userProfile.status) {
+                userProfile.status = 'online';
+            }
+            if (!userProfile.theme) {
+                userProfile.theme = 'light';
+            }
+            if (userProfile.notifications === undefined) {
+                userProfile.notifications = true;
+            }
+            if (userProfile.soundEnabled === undefined) {
+                userProfile.soundEnabled = true;
+            }
+            
+            updateProfileUI();
+            saveProfileToStorage();
+        }
+        
+        function updateProfileUI() {
+            const displayName = userProfile.displayName || userName || 'User';
+            const avatar = getInitials(displayName);
+            
+            // Update header
+            document.getElementById('headerUserName').textContent = displayName;
+            document.getElementById('headerAvatar').textContent = avatar;
+            
+            // Update profile modal
+            document.getElementById('profileDisplayName').value = displayName;
+            document.getElementById('profileAvatar').textContent = avatar;
+            document.getElementById('profileBio').value = userProfile.bio || '';
+            document.getElementById('profileTheme').value = userProfile.theme || 'light';
+            document.getElementById('profileNotifications').checked = userProfile.notifications !== false;
+            document.getElementById('profileSound').checked = userProfile.soundEnabled !== false;
+            
+            // Update status selection
+            document.querySelectorAll('.status-option').forEach(option => {
+                option.classList.remove('active');
+                if (option.dataset.status === userProfile.status) {
+                    option.classList.add('active');
+                }
+            });
+        }
+        
+        function getInitials(name) {
+            return name.split(' ').map(word => word[0]).join('').toUpperCase().substring(0, 2);
+        }
+        
+        function saveProfileToStorage() {
+            localStorage.setItem('kitchenChatProfile', JSON.stringify(userProfile));
+            if (userProfile.displayName) {
+                userName = userProfile.displayName;
+                localStorage.setItem('kitchenChatUser', userName);
+            }
+        }
+        
+        function openProfileModal() {
+            updateProfileUI();
+            document.getElementById('profileModal').style.display = 'block';
+        }
+        
+        function closeProfileModal() {
+            document.getElementById('profileModal').style.display = 'none';
+        }
+        
+        function selectStatus(status) {
+            userProfile.status = status;
+            updateProfileUI();
+            
+            // Update status on server if we have a profile
+            if (userName) {
+                updateUserStatus(status);
+            }
+        }
+        
+        function saveProfile() {
+            const displayName = document.getElementById('profileDisplayName').value.trim();
+            if (!displayName) {
+                alert('Please enter a display name');
+                return;
+            }
+            
+            userProfile.displayName = displayName;
+            userProfile.bio = document.getElementById('profileBio').value.trim();
+            userProfile.theme = document.getElementById('profileTheme').value;
+            userProfile.notifications = document.getElementById('profileNotifications').checked;
+            userProfile.soundEnabled = document.getElementById('profileSound').checked;
+            
+            saveProfileToStorage();
+            updateProfileUI();
+            
+            // Save to server (simplified - in real app you'd use proper authentication)
+            saveUserProfile();
+            
+            closeProfileModal();
+            showToast('Profile saved!', 'success');
+        }
+        
+        // API calls for profiles and status
+        async function saveUserProfile() {
+            try {
+                // In a real implementation, you would need proper Firebase authentication
+                // For now, we'll just save locally and update status
+                console.log('Saving profile:', userProfile);
+                
+                if (userProfile.status && userName) {
+                    await updateUserStatus(userProfile.status);
+                }
+            } catch (error) {
+                console.error('Error saving profile:', error);
+            }
+        }
+        
+        async function updateUserStatus(status) {
+            try {
+                // Simplified status update - in real app you'd use proper authentication
+                console.log('Updating status to:', status);
+                
+                // For demo purposes, we'll simulate the API call
+                userProfile.status = status;
+                userProfile.lastSeen = new Date().toISOString();
+                saveProfileToStorage();
+                
+                loadOnlineUsers(); // Refresh user list
+            } catch (error) {
+                console.error('Error updating status:', error);
+            }
+        }
+        
+        async function loadOnlineUsers() {
+            try {
+                // Simulate loading online users
+                // In real app, this would call /api/user-status
+                onlineUsers = [
+                    {
+                        uid: userId,
+                        displayName: userProfile.displayName || userName || 'You',
+                        status: userProfile.status || 'online',
+                        lastSeen: new Date().toISOString()
+                    },
+                    // Add some demo users
+                    {
+                        uid: 'demo1',
+                        displayName: 'Alice Johnson',
+                        status: 'online',
+                        lastSeen: new Date().toISOString()
+                    },
+                    {
+                        uid: 'demo2', 
+                        displayName: 'Bob Smith',
+                        status: 'away',
+                        lastSeen: new Date(Date.now() - 300000).toISOString()
+                    },
+                    {
+                        uid: 'demo3',
+                        displayName: 'Carol Davis',
+                        status: 'busy',
+                        lastSeen: new Date().toISOString()
+                    }
+                ];
+                
+                displayOnlineUsers();
+            } catch (error) {
+                console.error('Error loading online users:', error);
+                document.getElementById('usersList').innerHTML = '<p style="color: red;">Error loading users</p>';
+            }
+        }
+        
+        function displayOnlineUsers() {
+            const container = document.getElementById('usersList');
+            
+            if (onlineUsers.length === 0) {
+                container.innerHTML = '<p>No users online</p>';
+                return;
+            }
+            
+            let html = '';
+            onlineUsers.forEach(user => {
+                const initials = getInitials(user.displayName);
+                const statusText = getStatusText(user.status, user.lastSeen);
+                
+                html += `<div class="user-item">`;
+                html += `<div class="user-item-avatar">${initials}</div>`;
+                html += `<div class="user-item-info">`;
+                html += `<div class="user-item-name">${escapeHtml(user.displayName)}</div>`;
+                html += `<div class="user-item-status">`;
+                html += `<span class="status-indicator status-${user.status}"></span>`;
+                html += `${statusText}`;
+                html += `</div>`;
+                html += `</div>`;
+                html += `</div>`;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        function getStatusText(status, lastSeen) {
+            switch (status) {
+                case 'online':
+                    return 'Online';
+                case 'away':
+                    return 'Away';
+                case 'busy':
+                    return 'Busy';
+                case 'offline':
+                    const lastSeenDate = new Date(lastSeen);
+                    const now = new Date();
+                    const diffMinutes = Math.floor((now - lastSeenDate) / (1000 * 60));
+                    if (diffMinutes < 60) {
+                        return `Last seen ${diffMinutes}m ago`;
+                    } else if (diffMinutes < 1440) {
+                        return `Last seen ${Math.floor(diffMinutes / 60)}h ago`;
+                    } else {
+                        return 'Offline';
+                    }
+                default:
+                    return 'Unknown';
+            }
+        }
+        
+        function startUsersPolling() {
+            // Poll for online users every 30 seconds
+            usersPollTimer = setInterval(() => {
+                if (navigator.onLine) {
+                    loadOnlineUsers();
+                }
+            }, 30000);
+        }
+        
         // Start the application
         window.onload = function() {
             console.log('Kitchen Chat loading...');
+            initializeProfile();
             loadConversations();
+            loadOnlineUsers();
             setupEventListeners();
             startTypingStatusCleanup();
+            startUsersPolling();
             updateDebugInfo();
-            
-            // Test typing indicator visibility
-            setTimeout(() => {
-                const indicator = document.getElementById('typingIndicator');
-                indicator.innerHTML = 'Test User is typing<span class="typing-dots"></span>';
-                console.log('Test typing indicator shown');
-                
-                setTimeout(() => {
-                    indicator.innerHTML = '';
-                    console.log('Test typing indicator hidden');
-                }, 3000);
-            }, 2000);
         };
         
         function setupEventListeners() {
@@ -453,9 +992,13 @@
                 document.getElementById('titleCount').textContent = text.length + '/100 characters';
             };
             
-            // Close modal when clicking outside
+            // Close modals when clicking outside
             document.getElementById('modal').onclick = function(e) {
                 if (e.target === this) closeModal();
+            };
+            
+            document.getElementById('profileModal').onclick = function(e) {
+                if (e.target === this) closeProfileModal();
             };
             
             // Clear typing status when user leaves
@@ -816,11 +1359,10 @@
             currentConversationId = id;
             
             // Get username if not set
-            if (!userName) {
-                userName = prompt('What is your name for this chat?');
-                if (userName) {
-                    localStorage.setItem('kitchenChatUser', userName);
-                }
+            if (!userName && !userProfile.displayName) {
+                openProfileModal();
+                showToast('Please set up your profile first', 'error');
+                return;
             }
             
             updateDebugInfo();
@@ -864,10 +1406,18 @@
             
             let html = '';
             messages.forEach(msg => {
-                const isOwn = msg.PostedBy === userName;
+                const isOwn = msg.PostedBy === userName || msg.PostedBy === userProfile.displayName;
+                const authorName = msg.PostedBy || 'Anonymous';
+                const initials = getInitials(authorName);
+                
                 html += `<div class="message ${isOwn ? 'own' : ''}">`;
-                html += `<strong>${escapeHtml(msg.PostedBy)}</strong> • <small>${formatTime(msg.CreatedAt)}</small><br>`;
-                html += `${escapeHtml(msg.Content)}`;
+                html += `<div class="message-avatar">${initials}</div>`;
+                html += `<div class="message-content">`;
+                html += `<div class="message-header">`;
+                html += `<span class="message-author">${escapeHtml(authorName)}</span>`;
+                html += `<span class="message-time">${formatTime(msg.CreatedAt)}</span>`;
+                html += `</div>`;
+                html += `<div class="message-text">${escapeHtml(msg.Content)}</div>`;
                 
                 // Display file attachment if present
                 if (msg.MessageType === 'file' && msg.MediaData && msg.AttachmentUrl) {
@@ -890,6 +1440,7 @@
                     html += `</div>`;
                 }
                 
+                html += `</div>`;
                 html += `</div>`;
             });
             
@@ -927,10 +1478,11 @@
             if ((!text && !selectedFile) || !currentConversationId) return;
             
             // Get user name if not set
-            if (!userName) {
-                userName = prompt('What is your name?');
-                if (!userName) return;
-                localStorage.setItem('kitchenChatUser', userName);
+            const authorName = userProfile.displayName || userName;
+            if (!authorName) {
+                openProfileModal();
+                showToast('Please set up your profile first', 'error');
+                return;
             }
             
             // Clear typing status
@@ -943,7 +1495,7 @@
                 const messageData = {
                     Content: text || '',
                     SubjectId: currentConversationId,
-                    PostedBy: userName,
+                    PostedBy: authorName,
                     MessageType: selectedFile ? 'file' : 'text'
                 };
                 
@@ -1026,10 +1578,11 @@
             }
             
             // Get user name if not set
-            if (!userName) {
-                userName = prompt('What is your name?');
-                if (!userName) return;
-                localStorage.setItem('kitchenChatUser', userName);
+            const authorName = userProfile.displayName || userName;
+            if (!authorName) {
+                openProfileModal();
+                showToast('Please set up your profile first', 'error');
+                return;
             }
             
             console.log('Creating conversation:', title);
@@ -1037,7 +1590,7 @@
             try {
                 await apiCall('/api/subjects', 'POST', {
                     Title: title,
-                    CreatedBy: userName
+                    CreatedBy: authorName
                 });
                 
                 showToast('Conversation created!', 'success');
@@ -1115,6 +1668,7 @@
         window.addEventListener('online', () => {
             showToast('Connection restored', 'success');
             if (currentConversationId) loadMessages();
+            loadOnlineUsers();
         });
         
         window.addEventListener('offline', () => {

@@ -18,7 +18,7 @@ No complex design, no advanced web-app features, just straightforward, real-time
 2. Open `index.html` in your browser
 3. Start chatting!
 
-(Or go to kitchenchat.live)
+**(Or go to kitchenchat.live)**
 
 No installation, no dependencies: one HTML file contains everything.
 

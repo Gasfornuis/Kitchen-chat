@@ -9,6 +9,9 @@ import base64
 import uuid
 from datetime import datetime
 
+# Import authentication functions from auth.py
+from .auth import require_authentication
+
 if not firebase_admin._apps:
     # Load service account from environment variable
     sa_json = os.environ.get("FIREBASE_SERVICE_ACCOUNT")
@@ -22,9 +25,23 @@ if not firebase_admin._apps:
 db = firestore.client() if firebase_admin._apps else None
 FIREBASE_SECRET = os.environ.get("FIREBASE_SECRET")
 
+def send_auth_error(handler):
+    """Send authentication error response"""
+    handler.send_response(401)
+    handler.send_header("Content-type", "application/json")
+    handler.send_header("Access-Control-Allow-Origin", "*")
+    handler.send_header("Access-Control-Allow-Credentials", "true")
+    handler.end_headers()
+    handler.wfile.write(json.dumps({"error": "Authentication required"}).encode())
+
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
         try:
+            # Require authentication for reading posts
+            current_user = require_authentication(self)
+            if not current_user:
+                return send_auth_error(self)
+            
             parsed_url = urlparse(self.path)
             query = parse_qs(parsed_url.query)
             subject_id = query.get("SubjectId", [None])[0]
@@ -32,6 +49,7 @@ class handler(BaseHTTPRequestHandler):
             if not subject_id:
                 self.send_response(400)
                 self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Access-Control-Allow-Credentials", "true")
                 self.end_headers()
                 self.wfile.write(json.dumps({"error": "Missing SubjectId"}).encode())
                 return
@@ -41,6 +59,7 @@ class handler(BaseHTTPRequestHandler):
                 self.send_response(200)
                 self.send_header("Content-type", "application/json")
                 self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Access-Control-Allow-Credentials", "true")
                 self.end_headers()
                 self.wfile.write(json.dumps([]).encode())
                 return
@@ -67,32 +86,50 @@ class handler(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-type", "application/json")
             self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Access-Control-Allow-Credentials", "true")
             self.end_headers()
             self.wfile.write(json.dumps(posts).encode())
 
         except Exception as e:
+            print(f"Posts GET error: {str(e)}")
             self.send_response(500)
             self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Access-Control-Allow-Credentials", "true")
             self.end_headers()
             self.wfile.write(json.dumps({"error": str(e)}).encode())
 
     def do_POST(self):
         try:
+            # Require authentication for posting messages
+            current_user = require_authentication(self)
+            if not current_user:
+                return send_auth_error(self)
+            
             content_length = int(self.headers.get("Content-Length", 0))
             body = self.rfile.read(content_length)
             data = json.loads(body)
 
             content = data.get("Content", "")
             subject_id = data.get("SubjectId")
-            posted_by = data.get("PostedBy", "Anonymous")
+            posted_by = data.get("PostedBy", current_user["displayName"])  # Default to authenticated user
             message_type = data.get("MessageType", "text")
             media_data = data.get("MediaData", None)
             
             if not subject_id:
                 self.send_response(400)
                 self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Access-Control-Allow-Credentials", "true")
                 self.end_headers()
                 self.wfile.write(json.dumps({"error": "Missing SubjectId"}).encode())
+                return
+            
+            # Security check - user can only post as themselves
+            if posted_by.lower() != current_user["displayName"].lower() and posted_by.lower() != current_user["username"].lower():
+                self.send_response(403)
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Access-Control-Allow-Credentials", "true")
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": "You can only post as yourself"}).encode())
                 return
 
             if not db:
@@ -100,6 +137,7 @@ class handler(BaseHTTPRequestHandler):
                 self.send_response(201)
                 self.send_header("Content-type", "application/json")
                 self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Access-Control-Allow-Credentials", "true")
                 self.end_headers()
                 self.wfile.write(json.dumps({
                     "message": "Message created (demo mode)",
@@ -159,6 +197,7 @@ class handler(BaseHTTPRequestHandler):
             self.send_response(201)
             self.send_header("Content-type", "application/json")
             self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Access-Control-Allow-Credentials", "true")
             self.end_headers()
             self.wfile.write(json.dumps({
                 "message": "Message created successfully",
@@ -170,6 +209,7 @@ class handler(BaseHTTPRequestHandler):
             print(f"Error creating post: {str(e)}")  # Server-side logging
             self.send_response(500)
             self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Access-Control-Allow-Credentials", "true")
             self.end_headers()
             self.wfile.write(json.dumps({"error": str(e)}).encode())
 
@@ -177,6 +217,7 @@ class handler(BaseHTTPRequestHandler):
         self.send_response(204)
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization, Cookie")
+        self.send_header("Access-Control-Allow-Credentials", "true")
         self.send_header("Access-Control-Max-Age", "86400")
         self.end_headers()

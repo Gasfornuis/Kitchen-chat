@@ -1,4 +1,4 @@
-# Kitchen Chat
+# Kitchen Chat, kitchenchat.live
 
 Kitchen Chat is a clean, minimalist chat website.  
 No complex design, no advanced web-app features, just straightforward, real-time conversations.
@@ -17,6 +17,8 @@ No complex design, no advanced web-app features, just straightforward, real-time
 1. **Clone or download the repository**
 2. Open `index.html` in your browser
 3. Start chatting!
+
+(Or go to kitchenchat.live)
 
 No installation, no dependencies: one HTML file contains everything.
 

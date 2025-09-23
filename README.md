@@ -31,7 +31,7 @@ No installation, no dependencies: one HTML file contains everything.
 ## 💡 Philosophy
 
 - **Super minimal**  
-  No glass morphism, animations, or advanced themes — just a clean website that works everywhere.
+  No glass morphism, animations, or advanced themes, just a clean website that works everywhere.
 - **All functionality preserved**  
   You can still create conversations, send and receive messages, and more.
 

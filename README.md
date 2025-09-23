@@ -1,4 +1,4 @@
-# Kitchen Chat again.
+# Kitchen Chat
 
 Kitchen Chat is a clean, minimalist chat website.  
 No complex design, no advanced web-app features — just straightforward, real-time conversations.

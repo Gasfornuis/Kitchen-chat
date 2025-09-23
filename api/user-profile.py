@@ -7,7 +7,7 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 import base64
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta  # FIXED: Added timedelta import
 
 # Import authentication functions from auth.py
 from .auth import require_authentication, hash_password, verify_password
@@ -112,7 +112,8 @@ class handler(BaseHTTPRequestHandler):
                 return
             
             # Get all users with recent activity (last 5 minutes)
-            cutoff_time = datetime.now() - datetime.timedelta(minutes=5)
+            # FIXED: Now using properly imported timedelta
+            cutoff_time = datetime.now() - timedelta(minutes=5)
             
             users_ref = db.collection("UserProfiles")
             docs = users_ref.stream()

@@ -2,7 +2,7 @@ from http.server import BaseHTTPRequestHandler
 import json
 from datetime import datetime, timezone
 import firebase_admin
-from firebase_admin import credentials, firestore
+from firebase_admin import credentials, firestore as fb_firestore
 import os
 import hashlib
 import logging
@@ -11,58 +11,93 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Initialize Firebase (similar to other files)
-try:
-    if not firebase_admin._apps:
-        # In Vercel, Firebase config is in environment variables
-        firebase_config = {
-            "type": "service_account",
-            "project_id": os.getenv('FIREBASE_PROJECT_ID'),
-            "private_key_id": os.getenv('FIREBASE_PRIVATE_KEY_ID'),
-            "private_key": os.getenv('FIREBASE_PRIVATE_KEY', '').replace('\\n', '\n'),
-            "client_email": os.getenv('FIREBASE_CLIENT_EMAIL'),
-            "client_id": os.getenv('FIREBASE_CLIENT_ID'),
-            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-            "token_uri": "https://oauth2.googleapis.com/token",
-            "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-            "client_x509_cert_url": f"https://www.googleapis.com/robot/v1/metadata/x509/{os.getenv('FIREBASE_CLIENT_EMAIL')}"
+# Initialize Firebase (consistent with other files)
+if not firebase_admin._apps:
+    # Load service account from environment variable
+    sa_json = os.environ.get("FIREBASE_SERVICE_ACCOUNT")
+    if sa_json:
+        cred = credentials.Certificate(json.loads(sa_json))
+        firebase_admin.initialize_app(cred)
+        logger.info("Firebase initialized successfully")
+    else:
+        logger.warning("Warning: Running in demo mode without Firebase")
+
+db = fb_firestore.client() if firebase_admin._apps else None
+FIREBASE_SECRET = os.environ.get("FIREBASE_SECRET")
+
+# Demo mode storage
+demo_announcements = []
+
+def sha256_hash(text):
+    """SHA-256 hash utility"""
+    return hashlib.sha256(text.encode()).hexdigest()
+
+def get_session_token_from_request(request):
+    """Extract session token from request headers or cookies"""
+    # Try Authorization header first
+    auth_header = request.headers.get('Authorization', '')
+    if auth_header.startswith('Bearer '):
+        return auth_header[7:]
+    
+    # Try cookie (for web browsers)
+    cookie_header = request.headers.get('Cookie', '')
+    if cookie_header:
+        cookies = {}
+        for cookie in cookie_header.split(';'):
+            if '=' in cookie:
+                key, value = cookie.strip().split('=', 1)
+                cookies[key] = value
+        
+        return cookies.get('kc_session')
+    
+    return None
+
+def hash_session_token(token):
+    """Hash session token for secure storage"""
+    return sha256_hash(token)
+
+def verify_session_token(token):
+    """Verify session token and return user info"""
+    if not token:
+        return None
+    
+    token_hash = hash_session_token(token)
+    
+    if not db:
+        # Demo mode - return demo user for testing
+        return {
+            "username": "demo",
+            "displayName": "Demo User"
+        }
+    
+    # Firestore mode
+    try:
+        doc = db.collection("Sessions").document(token_hash).get()
+        
+        if not doc.exists:
+            return None
+            
+        session_data = doc.to_dict()
+        expires_at = session_data.get('expiresAt')
+        
+        if expires_at and expires_at.timestamp() < datetime.now().timestamp():
+            # Lazy cleanup - delete expired session
+            doc.reference.delete()
+            return None
+            
+        return {
+            "username": session_data.get('username'),
+            "displayName": session_data.get('displayName')
         }
         
-        cred = credentials.Certificate(firebase_config)
-        firebase_admin.initialize_app(cred)
-        
-    db = firestore.client()
-    logger.info("Firebase initialized successfully")
-except Exception as e:
-    logger.error(f"Firebase initialization error: {e}")
-    db = None
-
-def get_session_user(headers):
-    """Extract user from session cookie"""
-    try:
-        cookie_header = headers.get('cookie', '')
-        if 'session=' in cookie_header:
-            session_id = None
-            for cookie in cookie_header.split(';'):
-                cookie = cookie.strip()
-                if cookie.startswith('session='):
-                    session_id = cookie.split('=')[1]
-                    break
-            
-            if session_id:
-                # Check session in database
-                sessions_ref = db.collection('sessions')
-                session_doc = sessions_ref.document(session_id).get()
-                
-                if session_doc.exists:
-                    session_data = session_doc.to_dict()
-                    if session_data.get('valid', False):
-                        return session_data.get('user')
-        
-        return None
     except Exception as e:
-        logger.error(f"Session validation error: {e}")
+        logger.error(f"Session verification error: {e}")
         return None
+
+def require_authentication(request):
+    """Require valid authentication, return user info or None"""
+    token = get_session_token_from_request(request)
+    return verify_session_token(token)
 
 def check_admin_permissions(user):
     """Check if user has admin permissions (only Daan25)"""
@@ -103,17 +138,19 @@ class handler(BaseHTTPRequestHandler):
     def do_GET(self):
         """Get announcements"""
         try:
-            if not db:
-                return self.send_error_response("Database connection failed", 503)
-            
             # Get user from session
-            current_user = get_session_user(dict(self.headers))
+            current_user = require_authentication(self)
             
             if not current_user:
                 return self.send_error_response("Authentication required", 401)
             
+            if not db:
+                # Demo mode
+                logger.info(f"Retrieved {len(demo_announcements)} announcements (demo mode)")
+                return self.send_json_response(demo_announcements)
+            
             # Get announcements from database
-            announcements_ref = db.collection('announcements').order_by('createdAt', direction=firestore.Query.DESCENDING)
+            announcements_ref = db.collection('announcements').order_by('createdAt', direction=fb_firestore.Query.DESCENDING)
             announcements = announcements_ref.get()
             
             result = []
@@ -136,11 +173,8 @@ class handler(BaseHTTPRequestHandler):
     def do_POST(self):
         """Create new announcement (admin only)"""
         try:
-            if not db:
-                return self.send_error_response("Database connection failed", 503)
-            
             # Get user from session
-            current_user = get_session_user(dict(self.headers))
+            current_user = require_authentication(self)
             
             if not current_user:
                 return self.send_error_response("Authentication required", 401)
@@ -182,6 +216,20 @@ class handler(BaseHTTPRequestHandler):
                 'active': True
             }
             
+            if not db:
+                # Demo mode
+                announcement_data['id'] = str(len(demo_announcements) + 1)
+                announcement_data['createdAt'] = announcement_data['createdAt'].isoformat()
+                demo_announcements.append(announcement_data)
+                
+                logger.info(f"Announcement created in demo mode by {current_user.get('username')}")
+                
+                return self.send_json_response({
+                    'success': True,
+                    'message': 'Announcement created successfully (demo mode)',
+                    'announcement': announcement_data
+                })
+            
             # Add to database
             doc_ref = db.collection('announcements').add(announcement_data)
             announcement_id = doc_ref[1].id
@@ -206,11 +254,8 @@ class handler(BaseHTTPRequestHandler):
     def do_PUT(self):
         """Update announcement (admin only)"""
         try:
-            if not db:
-                return self.send_error_response("Database connection failed", 503)
-            
             # Get user from session
-            current_user = get_session_user(dict(self.headers))
+            current_user = require_authentication(self)
             
             if not current_user:
                 return self.send_error_response("Authentication required", 401)
@@ -231,6 +276,13 @@ class handler(BaseHTTPRequestHandler):
             announcement_id = data.get('id')
             if not announcement_id:
                 return self.send_error_response("Announcement ID is required", 400)
+            
+            if not db:
+                # Demo mode
+                return self.send_json_response({
+                    'success': True,
+                    'message': 'Update functionality not available in demo mode'
+                })
             
             # Check if announcement exists
             doc_ref = db.collection('announcements').document(announcement_id)
@@ -293,11 +345,8 @@ class handler(BaseHTTPRequestHandler):
     def do_DELETE(self):
         """Delete announcement (admin only)"""
         try:
-            if not db:
-                return self.send_error_response("Database connection failed", 503)
-            
             # Get user from session
-            current_user = get_session_user(dict(self.headers))
+            current_user = require_authentication(self)
             
             if not current_user:
                 return self.send_error_response("Authentication required", 401)
@@ -327,6 +376,13 @@ class handler(BaseHTTPRequestHandler):
             
             if not announcement_id:
                 return self.send_error_response("Announcement ID is required", 400)
+            
+            if not db:
+                # Demo mode
+                return self.send_json_response({
+                    'success': True,
+                    'message': 'Delete functionality not available in demo mode'
+                })
             
             # Check if announcement exists
             doc_ref = db.collection('announcements').document(announcement_id)

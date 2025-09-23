@@ -32,6 +32,7 @@
             
             --accent-primary: #007cba;
             --accent-secondary: #005a87;
+            --dm-accent: #9c27b0;
         }
         
         /* Dark Theme Colors */
@@ -60,6 +61,7 @@
             
             --accent-primary: #4dabf7;
             --accent-secondary: #3498db;
+            --dm-accent: #e91e63;
         }
         
         /* Minimal CSS - only the essentials */
@@ -155,6 +157,15 @@
             background: var(--bg-message-own);
         }
         
+        .message.dm {
+            border-left-color: var(--dm-accent);
+            background: #f3e5f5;
+        }
+        
+        [data-theme="dark"] .message.dm {
+            background: #2d1b2e;
+        }
+        
         .message-avatar {
             width: 32px;
             height: 32px;
@@ -197,6 +208,73 @@
             color: var(--text-tertiary);
             line-height: 1.4;
             transition: color 0.3s ease;
+        }
+        
+        /* Sidebar Tabs */
+        .sidebar-tabs {
+            display: flex;
+            margin-bottom: 10px;
+        }
+        
+        .sidebar-tab {
+            flex: 1;
+            padding: 8px;
+            text-align: center;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-primary);
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s ease;
+        }
+        
+        .sidebar-tab.active {
+            background: var(--accent-primary);
+            color: var(--text-light);
+        }
+        
+        .sidebar-tab:hover {
+            background: var(--bg-hover);
+        }
+        
+        .sidebar-tab.active:hover {
+            background: var(--accent-secondary);
+        }
+        
+        /* DM specific styles */
+        .dm-item {
+            padding: 8px;
+            margin: 2px 0;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-tertiary);
+            border-left: 3px solid var(--dm-accent);
+            cursor: pointer;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+        
+        .dm-item:hover {
+            background: var(--bg-hover);
+        }
+        
+        .dm-item.active {
+            background: var(--dm-accent);
+            color: var(--text-light);
+        }
+        
+        .dm-user-name {
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
+        
+        .dm-last-message {
+            font-size: 12px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .dm-item.active .dm-last-message {
+            color: rgba(255, 255, 255, 0.8);
         }
         
         /* User Profile Styles */
@@ -345,6 +423,11 @@
             border: 1px solid var(--border-tertiary);
             font-size: 14px;
             transition: background-color 0.3s ease, border-color 0.3s ease;
+            position: relative;
+        }
+        
+        .user-item:hover {
+            background: var(--bg-hover);
         }
         
         .user-item-avatar {
@@ -378,6 +461,30 @@
             display: flex;
             align-items: center;
             transition: color 0.3s ease;
+        }
+        
+        .dm-button {
+            position: absolute;
+            right: 5px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: var(--dm-accent);
+            color: var(--text-light);
+            border: none;
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+        
+        .user-item:hover .dm-button {
+            opacity: 1;
+        }
+        
+        .dm-button:hover {
+            background: #7b1fa2;
         }
         
         /* Theme Toggle Button */
@@ -492,7 +599,7 @@
             color: var(--accent-primary);
         }
         
-        /* FIXED: Typing indicator styles - VERY VISIBLE */
+        /* Typing indicator styles */
         .typing-indicator {
             font-size: 14px;
             color: var(--text-primary);
@@ -665,6 +772,7 @@
         Online Users: <span id="debugOnlineUsers">0</span><br>
         API Status: <span id="debugAPI">checking...</span><br>
         Theme: <span id="debugTheme">light</span><br>
+        Mode: <span id="debugMode">groups</span><br>
     </div>
     
     <div class="container">
@@ -673,7 +781,7 @@
                 <h1 style="margin: 0;">Kitchen Chat</h1>
             </div>
             <div class="header-right">
-                <button onclick="openModal()" style="float: right;">New Conversation</button>
+                <button id="newConvBtn" onclick="openModal()">New Conversation</button>
                 <button id="themeToggle" class="theme-toggle" onclick="toggleTheme()">🌙</button>
                 <button id="profileBtn" class="profile-button" onclick="openProfileModal()">
                     <div id="headerAvatar" class="user-avatar">?</div>
@@ -684,10 +792,25 @@
         
         <div class="main">
             <div class="sidebar">
-                <h3>Conversations</h3>
-                <input type="text" id="search" placeholder="Search..." onkeyup="searchConversations()" style="width: 90%;">
-                <div id="conversations">
-                    <p>Loading conversations...</p>
+                <div class="sidebar-tabs">
+                    <div class="sidebar-tab active" onclick="switchToGroups()">Groups</div>
+                    <div class="sidebar-tab" onclick="switchToDMs()">DMs</div>
+                </div>
+                
+                <div id="groupsView">
+                    <h3>Conversations</h3>
+                    <input type="text" id="search" placeholder="Search..." onkeyup="searchConversations()" style="width: 90%;">
+                    <div id="conversations">
+                        <p>Loading conversations...</p>
+                    </div>
+                </div>
+                
+                <div id="dmsView" style="display: none;">
+                    <h3>Direct Messages</h3>
+                    <input type="text" id="dmSearch" placeholder="Search DMs..." onkeyup="searchDMs()" style="width: 90%;">
+                    <div id="dmConversations">
+                        <p>Loading DMs...</p>
+                    </div>
                 </div>
             </div>
             
@@ -698,6 +821,7 @@
                     <h3>Features:</h3>
                     <ul style="text-align: left; display: inline-block;">
                         <li>Real-time messaging</li>
+                        <li>Direct Messages (DMs)</li>
                         <li>File sharing</li>
                         <li>Typing indicators</li>
                         <li>User profiles & status</li>
@@ -707,22 +831,22 @@
                         <li>User-friendly</li>
                         <li>Works on all devices</li>
                     </ul>
-                    <p><strong>Get Started:</strong> Set up your profile and click "New Conversation" to create your first chat room!</p>
+                    <p><strong>Get Started:</strong> Set up your profile and click "New Conversation" or DM someone!</p>
                 </div>
                 
                 <div id="chatArea" style="display: none;">
                     <h2 id="chatTitle">Conversation</h2>
+                    <div id="chatSubtitle" style="font-size: 12px; color: var(--text-secondary); margin-top: -8px; margin-bottom: 10px;"></div>
                     <button onclick="refreshMessages()" style="float: right;">Refresh</button>
                     
                     <div id="messages" class="messages">
                         <p>Loading messages...</p>
                     </div>
                     
-                    <!-- Typing indicator - MADE VERY VISIBLE -->
+                    <!-- Typing indicator -->
                     <div id="typingIndicator" class="typing-indicator"></div>
                     
                     <div>
-                        <!-- FIXED: Removed inline oninput handler to prevent conflict -->
                         <input type="text" id="messageText" placeholder="Type your message..." style="width: 60%;" maxlength="500" onkeypress="checkEnter(event)">
                         <button id="sendBtn" onclick="sendMessage()" disabled>Send</button>
                         
@@ -824,15 +948,19 @@
     </div>
     
     <script>
-        // Basic JavaScript - as simple as possible
+        // Enhanced JavaScript with DM functionality
         let currentConversationId = null;
+        let currentDMUser = null; // For tracking DM conversations
+        let isInDMMode = false; // Track if we're in DM or group mode
         let conversations = [];
+        let dmConversations = [];
         let messages = [];
         let userName = localStorage.getItem('kitchenChatUser') || '';
         let userId = localStorage.getItem('kitchenChatUserId') || generateUserId();
         let userProfile = JSON.parse(localStorage.getItem('kitchenChatProfile') || '{}');
         let onlineUsers = [];
         let pollTimer = null;
+        let dmPollTimer = null;
         let selectedFile = null;
         let typingTimer = null;
         let typingUsers = new Map();
@@ -842,9 +970,285 @@
         let apiWorking = false;
         let currentTheme = 'light';
         
+        // Sidebar switching functions
+        function switchToGroups() {
+            isInDMMode = false;
+            document.querySelectorAll('.sidebar-tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.sidebar-tab')[0].classList.add('active');
+            
+            document.getElementById('groupsView').style.display = 'block';
+            document.getElementById('dmsView').style.display = 'none';
+            document.getElementById('newConvBtn').style.display = 'inline-block';
+            
+            // Clear current selection
+            currentConversationId = null;
+            currentDMUser = null;
+            showWelcome();
+            updateDebugInfo();
+        }
+        
+        function switchToDMs() {
+            isInDMMode = true;
+            document.querySelectorAll('.sidebar-tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.sidebar-tab')[1].classList.add('active');
+            
+            document.getElementById('groupsView').style.display = 'none';
+            document.getElementById('dmsView').style.display = 'block';
+            document.getElementById('newConvBtn').style.display = 'none';
+            
+            // Load DMs
+            loadDMConversations();
+            
+            // Clear current selection
+            currentConversationId = null;
+            currentDMUser = null;
+            showWelcome();
+            updateDebugInfo();
+        }
+        
+        function showWelcome() {
+            document.getElementById('welcome').style.display = 'block';
+            document.getElementById('chatArea').style.display = 'none';
+            if (pollTimer) clearInterval(pollTimer);
+            if (typingPollTimer) clearInterval(typingPollTimer);
+        }
+        
+        // DM Functions
+        async function loadDMConversations() {
+            if (!userProfile.displayName) return;
+            
+            console.log('Loading DM conversations...');
+            try {
+                const response = await apiCall(`/api/direct-messages?currentUser=${encodeURIComponent(userProfile.displayName)}`);
+                dmConversations = response || [];
+                console.log('DM conversations loaded:', dmConversations.length);
+                displayDMConversations();
+            } catch (error) {
+                console.error('Error loading DM conversations:', error);
+                document.getElementById('dmConversations').innerHTML = '<p style="color: red;">Error loading DMs</p>';
+            }
+        }
+        
+        function displayDMConversations() {
+            const container = document.getElementById('dmConversations');
+            
+            if (dmConversations.length === 0) {
+                container.innerHTML = '<p>No direct messages yet.<br><small>Click DM on any online user!</small></p>';
+                return;
+            }
+            
+            let html = '';
+            dmConversations.forEach(dm => {
+                const isActive = currentDMUser === dm.otherUser;
+                html += `<div class="dm-item ${isActive ? 'active' : ''}" data-user="${escapeHtml(dm.otherUser)}" onclick="selectDM('${escapeHtml(dm.otherUser)}', this)">`;
+                html += `<div class="dm-user-name">${escapeHtml(dm.otherUser)}</div>`;
+                html += `<div class="dm-last-message">${escapeHtml(dm.lastMessage || 'No messages yet')}</div>`;
+                html += `</div>`;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        function searchDMs() {
+            const searchTerm = document.getElementById('dmSearch').value.toLowerCase();
+            const items = document.querySelectorAll('.dm-item');
+            
+            items.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                item.style.display = text.includes(searchTerm) ? 'block' : 'none';
+            });
+        }
+        
+        function startDMWithUser(otherUser) {
+            if (!userProfile.displayName) {
+                openProfileModal();
+                showToast('Please set up your profile first', 'error');
+                return;
+            }
+            
+            if (otherUser === userProfile.displayName) {
+                showToast('Cannot start DM with yourself', 'error');
+                return;
+            }
+            
+            // Switch to DM mode
+            switchToDMs();
+            
+            // Wait a moment for the switch, then select the DM
+            setTimeout(() => {
+                selectDM(otherUser);
+            }, 100);
+        }
+        
+        function selectDM(otherUser, element = null) {
+            console.log(`Selecting DM with: ${otherUser}`);
+            
+            // Clear typing status from previous conversation
+            clearTypingStatus();
+            
+            // Stop polling
+            if (pollTimer) clearInterval(pollTimer);
+            if (typingPollTimer) clearInterval(typingPollTimer);
+            if (dmPollTimer) clearInterval(dmPollTimer);
+            
+            // Update UI
+            document.querySelectorAll('.dm-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            if (element) {
+                element.classList.add('active');
+            }
+            
+            // Show chat area
+            document.getElementById('welcome').style.display = 'none';
+            document.getElementById('chatArea').style.display = 'block';
+            document.getElementById('chatTitle').textContent = `Direct Message`;
+            document.getElementById('chatSubtitle').textContent = `Chatting with ${otherUser}`;
+            
+            // Set DM mode
+            isInDMMode = true;
+            currentDMUser = otherUser;
+            currentConversationId = null; // Clear group conversation ID
+            
+            updateDebugInfo();
+            loadDMMessages(otherUser);
+            
+            // Clear any selected file and reset typing indicator
+            clearSelectedFile();
+            document.getElementById('typingIndicator').innerHTML = '';
+            typingUsers.clear();
+            
+            console.log(`DM selected with: ${otherUser}`);
+        }
+        
+        async function loadDMMessages(otherUser) {
+            if (!userProfile.displayName || !otherUser) return;
+            
+            console.log(`Loading DM messages with: ${otherUser}`);
+            
+            try {
+                document.getElementById('messages').innerHTML = '<p>Loading messages...</p>';
+                const response = await apiCall(`/api/direct-messages?user1=${encodeURIComponent(userProfile.displayName)}&user2=${encodeURIComponent(otherUser)}&currentUser=${encodeURIComponent(userProfile.displayName)}`);
+                messages = response || [];
+                console.log(`Loaded ${messages.length} DM messages`);
+                displayDMMessages();
+                startDMPolling(otherUser);
+            } catch (error) {
+                console.error('Error loading DM messages:', error);
+                document.getElementById('messages').innerHTML = '<p style="color: red;">Error loading messages</p>';
+            }
+        }
+        
+        function displayDMMessages() {
+            const container = document.getElementById('messages');
+            
+            if (messages.length === 0) {
+                container.innerHTML = '<p>No messages yet. Start your private conversation!</p>';
+                return;
+            }
+            
+            let html = '';
+            messages.forEach(msg => {
+                const isOwn = msg.sender === userProfile.displayName;
+                const authorName = isOwn ? 'You' : msg.sender;
+                const initials = getInitials(msg.sender);
+                
+                html += `<div class="message dm ${isOwn ? 'own' : ''}">`;
+                html += `<div class="message-avatar">${initials}</div>`;
+                html += `<div class="message-content">`;
+                html += `<div class="message-header">`;
+                html += `<span class="message-author">${escapeHtml(authorName)}</span>`;
+                html += `<span class="message-time">${formatTime(msg.createdAt)}</span>`;
+                html += `</div>`;
+                html += `<div class="message-text">${escapeHtml(msg.content)}</div>`;
+                
+                // Display file attachment if present
+                if (msg.messageType === 'file' && msg.mediaData && msg.attachmentUrl) {
+                    const mediaData = msg.mediaData;
+                    const filename = mediaData.name || 'File';
+                    const fileIcon = getFileIcon(getFileExtension(filename));
+                    
+                    html += `<div class="file-attachment">`;
+                    html += `${fileIcon} ${escapeHtml(filename)} (${mediaData.size || 'Unknown size'})`;
+                    
+                    // Check if it's an image and show preview
+                    if (isImageFile(filename)) {
+                        const downloadUrl = createDownloadLink(msg.attachmentUrl, filename);
+                        html += `<br><img src="${msg.attachmentUrl}" class="file-preview-image" onclick="window.open('${downloadUrl}', '_blank')" title="Click to open full size">`;
+                    }
+                    
+                    // Add download button
+                    const downloadUrl = createDownloadLink(msg.attachmentUrl, filename);
+                    html += `<a href="${downloadUrl}" class="file-download-btn" download="${escapeHtml(filename)}">Download</a>`;
+                    html += `</div>`;
+                }
+                
+                html += `</div>`;
+                html += `</div>`;
+            });
+            
+            container.innerHTML = html;
+            container.scrollTop = container.scrollHeight;
+        }
+        
+        function startDMPolling(otherUser) {
+            if (dmPollTimer) clearInterval(dmPollTimer);
+            
+            dmPollTimer = setInterval(async () => {
+                if (currentDMUser && navigator.onLine && isInDMMode) {
+                    try {
+                        const response = await apiCall(`/api/direct-messages?user1=${encodeURIComponent(userProfile.displayName)}&user2=${encodeURIComponent(otherUser)}&currentUser=${encodeURIComponent(userProfile.displayName)}`);
+                        const newMessages = response || [];
+                        if (newMessages.length !== messages.length) {
+                            const oldCount = messages.length;
+                            messages = newMessages;
+                            displayDMMessages();
+                            
+                            if (newMessages.length > oldCount) {
+                                showToast('New DM received!', 'success');
+                            }
+                            
+                            // Refresh DM conversation list
+                            loadDMConversations();
+                        }
+                    } catch (error) {
+                        // Silently ignore
+                    }
+                }
+            }, 5000);
+        }
+        
+        async function sendDMMessage(otherUser, content, fileData = null) {
+            console.log('Sending DM to:', otherUser, 'Content:', content);
+            
+            try {
+                const messageData = {
+                    sender: userProfile.displayName,
+                    recipient: otherUser,
+                    content: content,
+                    messageType: fileData ? 'file' : 'text'
+                };
+                
+                // Handle file attachment
+                if (fileData) {
+                    messageData.mediaData = fileData.mediaData;
+                    messageData.attachmentUrl = fileData.attachmentUrl;
+                }
+                
+                await apiCall('/api/direct-messages', 'POST', messageData);
+                
+                showToast('DM sent!', 'success');
+                loadDMMessages(otherUser); // Reload DM messages
+                loadDMConversations(); // Refresh DM list
+                
+            } catch (error) {
+                console.error('Error sending DM:', error);
+                throw error;
+            }
+        }
+        
         // Theme Management Functions
         function initializeTheme() {
-            // Get theme from profile or localStorage
             const savedTheme = userProfile.theme || localStorage.getItem('kitchenChatTheme') || 'light';
             applyTheme(savedTheme);
         }
@@ -854,20 +1258,17 @@
             currentTheme = theme;
             document.documentElement.setAttribute('data-theme', theme);
             
-            // Update theme selector
             const themeSelect = document.getElementById('profileTheme');
             if (themeSelect) {
                 themeSelect.value = theme;
             }
             
-            // Update toggle button
             const toggleBtn = document.getElementById('themeToggle');
             if (toggleBtn) {
                 toggleBtn.textContent = theme === 'dark' ? '☀️' : '🌙';
                 toggleBtn.title = theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme';
             }
             
-            // Save to localStorage and profile
             localStorage.setItem('kitchenChatTheme', theme);
             if (userProfile) {
                 userProfile.theme = theme;
@@ -891,21 +1292,19 @@
             document.getElementById('debugOnlineUsers').textContent = onlineUsers.length;
             document.getElementById('debugAPI').textContent = apiWorking ? 'working' : 'offline';
             document.getElementById('debugTheme').textContent = currentTheme;
+            document.getElementById('debugMode').textContent = isInDMMode ? `dm:${currentDMUser}` : 'groups';
         }
         
-        // Generate unique user ID
         function generateUserId() {
             const id = 'user_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
             localStorage.setItem('kitchenChatUserId', id);
             return id;
         }
         
-        // Profile management functions
         function initializeProfile() {
             if (!userProfile.displayName && userName) {
                 userProfile.displayName = userName;
             }
-            // CHANGED: Always default new users to 'online' status
             if (!userProfile.status) {
                 userProfile.status = 'online';
             }
@@ -919,7 +1318,6 @@
                 userProfile.soundEnabled = true;
             }
             
-            // Automatically register new users as online
             if (userProfile.displayName && !apiWorking) {
                 console.log('Auto-registering user as online:', userProfile.displayName);
                 registerUserProfile();
@@ -933,11 +1331,9 @@
             const displayName = userProfile.displayName || userName || 'User';
             const avatar = getInitials(displayName);
             
-            // Update header
             document.getElementById('headerUserName').textContent = displayName;
             document.getElementById('headerAvatar').textContent = avatar;
             
-            // Update profile modal
             document.getElementById('profileDisplayName').value = displayName;
             document.getElementById('profileAvatar').textContent = avatar;
             document.getElementById('profileBio').value = userProfile.bio || '';
@@ -945,7 +1341,6 @@
             document.getElementById('profileNotifications').checked = userProfile.notifications !== false;
             document.getElementById('profileSound').checked = userProfile.soundEnabled !== false;
             
-            // Update status selection - ensure online is selected by default for new users
             document.querySelectorAll('.status-option').forEach(option => {
                 option.classList.remove('active');
                 if (option.dataset.status === (userProfile.status || 'online')) {
@@ -967,7 +1362,6 @@
         }
         
         function openProfileModal() {
-            // Ensure new users default to online
             if (!userProfile.status) {
                 userProfile.status = 'online';
             }
@@ -983,7 +1377,6 @@
             userProfile.status = status;
             updateProfileUI();
             
-            // Update status on server if we have a profile
             if (userName) {
                 updateUserStatus(status);
             }
@@ -1004,28 +1397,23 @@
             userProfile.notifications = document.getElementById('profileNotifications').checked;
             userProfile.soundEnabled = document.getElementById('profileSound').checked;
             
-            // Ensure status is set - default to online for new users
             if (!userProfile.status) {
                 userProfile.status = 'online';
-                selectStatus('online'); // Visually select online status
+                selectStatus('online');
             }
             
-            // Apply theme if it changed
             if (selectedTheme !== currentTheme) {
                 applyTheme(selectedTheme);
             }
             
             saveProfileToStorage();
             updateProfileUI();
-            
-            // Register/update user profile on server
             registerUserProfile();
             
             closeProfileModal();
             showToast('Profile saved! You are now online.', 'success');
         }
         
-        // API calls for profiles and status
         async function registerUserProfile() {
             try {
                 console.log('Registering user profile:', userProfile);
@@ -1034,7 +1422,7 @@
                     userId: userId,
                     displayName: userProfile.displayName,
                     bio: userProfile.bio || '',
-                    status: userProfile.status || 'online', // Always default to online
+                    status: userProfile.status || 'online',
                     theme: userProfile.theme || 'light',
                     notifications: userProfile.notifications !== false,
                     soundEnabled: userProfile.soundEnabled !== false
@@ -1042,7 +1430,6 @@
                 
                 console.log('Sending user data to /api/user-status:', userData);
                 
-                // Use the new Vercel API endpoint
                 const response = await fetch('/api/user-status', {
                     method: 'POST',
                     headers: {
@@ -1055,8 +1442,8 @@
                     const result = await response.json();
                     console.log('User profile registered successfully:', result);
                     apiWorking = true;
-                    loadOnlineUsers(); // Refresh user list
-                    startHeartbeat(); // Start keeping user online
+                    loadOnlineUsers();
+                    startHeartbeat();
                 } else {
                     const errorText = await response.text();
                     console.log('User registration failed:', response.status, errorText);
@@ -1079,7 +1466,6 @@
                     status: status
                 };
                 
-                // Use the Vercel API endpoint for status updates
                 const response = await fetch('/api/user-status', {
                     method: 'PUT',
                     headers: {
@@ -1095,12 +1481,11 @@
                     userProfile.status = status;
                     userProfile.lastSeen = new Date().toISOString();
                     saveProfileToStorage();
-                    loadOnlineUsers(); // Refresh user list
+                    loadOnlineUsers();
                 } else {
                     const errorText = await response.text();
                     console.log('Status update failed:', response.status, errorText);
                     apiWorking = false;
-                    // Fallback to local update
                     userProfile.status = status;
                     userProfile.lastSeen = new Date().toISOString();
                     saveProfileToStorage();
@@ -1109,7 +1494,6 @@
             } catch (error) {
                 console.error('Error updating user status:', error);
                 apiWorking = false;
-                // Fallback to local update
                 userProfile.status = status;
                 userProfile.lastSeen = new Date().toISOString();
                 saveProfileToStorage();
@@ -1121,7 +1505,6 @@
             try {
                 console.log('Loading online users from /api/user-status');
                 
-                // Get real users from the Vercel API
                 const response = await fetch('/api/user-status');
                 
                 if (response.ok) {
@@ -1136,27 +1519,23 @@
                             status: user.status,
                             lastSeen: user.lastSeen
                         }));
-                        console.log(`Loaded ${onlineUsers.length} online users from Vercel API`);
+                        console.log(`Loaded ${onlineUsers.length} online users from API`);
                     } else {
                         console.log('Unexpected API response format:', data);
-                        // Fallback to at least show current user as online
                         onlineUsers = [{
                             uid: userId,
                             displayName: userProfile.displayName || userName || 'You',
-                            status: 'online', // Always default to online
+                            status: 'online',
                             lastSeen: new Date().toISOString()
                         }];
                     }
                 } else {
                     console.log('User status API not available, status:', response.status);
-                    const errorText = await response.text();
-                    console.log('Error details:', errorText);
                     apiWorking = false;
-                    // Fallback to show just current user as online
                     onlineUsers = [{
                         uid: userId,
                         displayName: userProfile.displayName || userName || 'You',
-                        status: 'online', // Always default to online
+                        status: 'online',
                         lastSeen: new Date().toISOString()
                     }];
                 }
@@ -1166,11 +1545,10 @@
             } catch (error) {
                 console.error('Error loading online users:', error);
                 apiWorking = false;
-                // Fallback to show just current user as online
                 onlineUsers = [{
                     uid: userId,
                     displayName: userProfile.displayName || userName || 'You',
-                    status: 'online', // Always default to online
+                    status: 'online',
                     lastSeen: new Date().toISOString()
                 }];
                 displayOnlineUsers();
@@ -1188,6 +1566,9 @@
             
             let html = '';
             onlineUsers.forEach(user => {
+                // Don't show current user in the list
+                if (user.displayName === userProfile.displayName) return;
+                
                 const initials = getInitials(user.displayName);
                 const statusText = getStatusText(user.status, user.lastSeen);
                 
@@ -1200,10 +1581,15 @@
                 html += `${statusText}`;
                 html += `</div>`;
                 html += `</div>`;
+                html += `<button class="dm-button" onclick="startDMWithUser('${escapeHtml(user.displayName)}')">DM</button>`;
                 html += `</div>`;
             });
             
-            container.innerHTML = html;
+            if (html === '') {
+                container.innerHTML = '<p>No other users online</p>';
+            } else {
+                container.innerHTML = html;
+            }
         }
         
         function getStatusText(status, lastSeen) {
@@ -1231,7 +1617,6 @@
         }
         
         function startUsersPolling() {
-            // Poll for online users every 15 seconds
             usersPollTimer = setInterval(() => {
                 if (navigator.onLine) {
                     loadOnlineUsers();
@@ -1240,19 +1625,17 @@
         }
         
         function startHeartbeat() {
-            // Send heartbeat every 1 minute to keep user online
             heartbeatTimer = setInterval(() => {
                 if (navigator.onLine && userProfile.displayName && userProfile.status !== 'offline') {
                     console.log('Sending heartbeat...');
                     updateUserStatus(userProfile.status);
                 }
-            }, 60000); // 1 minute
+            }, 60000);
         }
         
-        // Start the application
         window.onload = function() {
             console.log('Kitchen Chat loading...');
-            initializeTheme(); // Initialize theme first
+            initializeTheme();
             initializeProfile();
             loadConversations();
             loadOnlineUsers();
@@ -1261,34 +1644,27 @@
             startUsersPolling();
             updateDebugInfo();
             
-            // CHANGED: Always try to register user profile if they have a display name
-            // This ensures users are automatically set to online when they load the page
             if (userProfile.displayName) {
                 console.log('Auto-setting user to online on page load');
-                userProfile.status = 'online'; // Force online on page load
+                userProfile.status = 'online';
                 saveProfileToStorage();
-                registerUserProfile(); // Register immediately as online
+                registerUserProfile();
             }
         };
         
         function setupEventListeners() {
-            // FIXED: Message input events - properly call both functions
             document.getElementById('messageText').oninput = function() {
                 const text = this.value;
                 document.getElementById('charCount').textContent = text.length + '/500 characters';
                 updateSendButton();
-                
-                // FIXED: Call handleTyping here!
                 handleTyping();
             };
             
-            // Title input events
             document.getElementById('newTitle').oninput = function() {
                 const text = this.value;
                 document.getElementById('titleCount').textContent = text.length + '/100 characters';
             };
             
-            // Close modals when clicking outside
             document.getElementById('modal').onclick = function(e) {
                 if (e.target === this) closeModal();
             };
@@ -1297,18 +1673,15 @@
                 if (e.target === this) closeProfileModal();
             };
             
-            // CHANGED: Only set to offline when explicitly leaving, not when page loads
             window.addEventListener('beforeunload', () => {
-                if (currentConversationId) {
+                if (currentConversationId || currentDMUser) {
                     clearTypingStatus();
                 }
-                // Set status to offline when leaving ONLY if user was previously online
                 if (userProfile.displayName && apiWorking && userProfile.status !== 'offline') {
                     updateUserStatus('offline');
                 }
             });
             
-            // ADDED: Set user to online when page becomes visible again
             document.addEventListener('visibilitychange', () => {
                 if (!document.hidden && userProfile.displayName) {
                     console.log('Page became visible - setting user to online');
@@ -1317,7 +1690,7 @@
                         saveProfileToStorage();
                         updateProfileUI();
                     }
-                    registerUserProfile(); // Re-register as online
+                    registerUserProfile();
                 }
             });
         }
@@ -1325,25 +1698,21 @@
         function updateSendButton() {
             const text = document.getElementById('messageText').value.trim();
             const hasContent = text || selectedFile;
-            document.getElementById('sendBtn').disabled = !hasContent || !currentConversationId;
+            const hasTarget = currentConversationId || currentDMUser;
+            document.getElementById('sendBtn').disabled = !hasContent || !hasTarget;
         }
         
-        // Improved typing indicator functions
         function handleTyping() {
             console.log('handleTyping called');
-            if (!currentConversationId || !userName) {
-                console.log('No conversation or user name - conversation:', currentConversationId, 'user:', userName);
+            if ((!currentConversationId && !currentDMUser) || !userName) {
                 return;
             }
             
             console.log('Sending typing status: true');
-            // Send typing status
             sendTypingStatus(true);
             
-            // Clear existing timer
             if (typingTimer) clearTimeout(typingTimer);
             
-            // Set new timer to stop typing after 2 seconds of inactivity
             typingTimer = setTimeout(() => {
                 console.log('Typing timeout - sending false');
                 sendTypingStatus(false);
@@ -1351,13 +1720,13 @@
         }
         
         function sendTypingStatus(isTyping) {
-            if (!currentConversationId) return;
+            if (!currentConversationId && !currentDMUser) return;
             
-            console.log(`Sending typing status: ${isTyping} for conversation: ${currentConversationId}`);
+            const targetId = currentConversationId || `dm_${currentDMUser}`;
+            console.log(`Sending typing status: ${isTyping} for target: ${targetId}`);
             
-            // Send typing status to backend
             apiCall('/api/typing', 'POST', {
-                SubjectId: currentConversationId,
+                SubjectId: targetId,
                 UserId: userId,
                 UserName: userName,
                 IsTyping: isTyping
@@ -1386,27 +1755,20 @@
             
             if (typingNames.length === 0) {
                 indicator.innerHTML = '';
-                console.log('No one typing - indicator hidden');
             } else if (typingNames.length === 1) {
                 indicator.innerHTML = `${typingNames[0]} is typing<span class="typing-dots"></span>`;
-                console.log(`${typingNames[0]} is typing - indicator shown`);
-            } else if (typingNames.length === 2) {
-                indicator.innerHTML = `${typingNames[0]} and ${typingNames[1]} are typing<span class="typing-dots"></span>`;
-                console.log(`${typingNames[0]} and ${typingNames[1]} are typing`);
             } else {
-                indicator.innerHTML = `${typingNames.slice(0, -1).join(', ')}, and ${typingNames[typingNames.length - 1]} are typing<span class="typing-dots"></span>`;
-                console.log(`Multiple users typing: ${typingNames}`);
+                indicator.innerHTML = `${typingNames.join(', ')} are typing<span class="typing-dots"></span>`;
             }
         }
         
         function startTypingStatusCleanup() {
-            // Clean up old typing statuses every 8 seconds
             setInterval(() => {
                 const now = Date.now();
                 let updated = false;
                 
                 for (let [key, user] of typingUsers) {
-                    if (now - user.timestamp > 8000) { // 8 second timeout
+                    if (now - user.timestamp > 8000) {
                         typingUsers.delete(key);
                         updated = true;
                         console.log(`Cleaned up old typing status for: ${user.userName}`);
@@ -1420,24 +1782,22 @@
         }
         
         function loadTypingStatus() {
-            if (!currentConversationId) return;
+            const targetId = currentConversationId || `dm_${currentDMUser}`;
+            if (!targetId) return;
             
-            console.log(`Starting typing status polling for conversation: ${currentConversationId}`);
+            console.log(`Starting typing status polling for: ${targetId}`);
             
-            // Clear any existing polling
             if (typingPollTimer) {
                 clearInterval(typingPollTimer);
             }
             
-            // Poll typing status every 1.5 seconds for better responsiveness
             const loadTyping = async () => {
-                if (!currentConversationId) return;
+                if (!targetId) return;
                 
                 try {
-                    const response = await apiCall(`/api/typing?SubjectId=${currentConversationId}`);
+                    const response = await apiCall(`/api/typing?SubjectId=${encodeURIComponent(targetId)}`);
                     console.log('Typing status response:', response);
                     
-                    // Update typing users
                     const now = Date.now();
                     typingUsers.clear();
                     
@@ -1447,7 +1807,7 @@
                                 userId: user.UserId,
                                 userName: user.UserName,
                                 isTyping: user.IsTyping,
-                                timestamp: now // Use current timestamp for freshness
+                                timestamp: now
                             });
                         });
                     }
@@ -1458,10 +1818,7 @@
                 }
             };
             
-            // Initial load
             loadTyping();
-            
-            // Poll every 1.5 seconds
             typingPollTimer = setInterval(loadTyping, 1500);
         }
         
@@ -1480,7 +1837,6 @@
                 preview.classList.add('selected');
                 clearBtn.style.display = 'inline';
                 
-                // Show file size
                 const sizeInMB = (file.size / (1024 * 1024)).toFixed(2);
                 fileInfo.textContent = `File size: ${sizeInMB} MB`;
                 
@@ -1504,7 +1860,6 @@
             updateSendButton();
         }
         
-        // Convert file to base64
         function fileToBase64(file) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -1514,7 +1869,6 @@
             });
         }
         
-        // Get file extension and icon
         function getFileExtension(filename) {
             return filename.split('.').pop().toLowerCase();
         }
@@ -1534,15 +1888,12 @@
             return icons[extension] || '📁';
         }
         
-        // Check if file is an image
         function isImageFile(filename) {
             const extension = getFileExtension(filename);
             return ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'].includes(extension);
         }
         
-        // Create download link for file
         function createDownloadLink(base64Data, filename) {
-            // Create blob URL for proper downloading
             try {
                 const byteCharacters = atob(base64Data.split(',')[1]);
                 const byteNumbers = new Array(byteCharacters.length);
@@ -1553,12 +1904,10 @@
                 const blob = new Blob([byteArray]);
                 return URL.createObjectURL(blob);
             } catch (e) {
-                // Fallback to base64 data URL
                 return base64Data;
             }
         }
         
-        // API calls
         async function apiCall(url, method = 'GET', data = null) {
             console.log(`API Call: ${method} ${url}`, data);
             
@@ -1587,7 +1936,6 @@
             }
         }
         
-        // Load conversations
         async function loadConversations() {
             console.log('Loading conversations...');
             try {
@@ -1600,7 +1948,6 @@
             }
         }
         
-        // Display conversations
         function displayConversations() {
             const container = document.getElementById('conversations');
             
@@ -1611,7 +1958,8 @@
             
             let html = '';
             conversations.forEach(conv => {
-                html += `<div class="subject-item" data-id="${conv.id}" data-title="${escapeHtml(conv.Title)}">`;
+                const isActive = currentConversationId === conv.id && !isInDMMode;
+                html += `<div class="subject-item ${isActive ? 'active' : ''}" data-id="${conv.id}" data-title="${escapeHtml(conv.Title)}">`;
                 html += `<strong>${escapeHtml(conv.Title)}</strong><br>`;
                 html += `<small>by ${escapeHtml(conv.CreatedBy)} • ${formatDate(conv.CreatedAt)}</small>`;
                 html += `</div>`;
@@ -1619,7 +1967,6 @@
             
             container.innerHTML = html;
             
-            // Add click handlers
             container.querySelectorAll('.subject-item').forEach(item => {
                 item.addEventListener('click', function() {
                     const id = this.getAttribute('data-id');
@@ -1630,7 +1977,6 @@
             });
         }
         
-        // Search conversations
         function searchConversations() {
             const searchTerm = document.getElementById('search').value.toLowerCase();
             const items = document.querySelectorAll('.subject-item');
@@ -1641,34 +1987,36 @@
             });
         }
         
-        // Select conversation - FIXED
         function selectConversation(id, title, element) {
             console.log(`Selecting conversation: ${id}`);
             
-            // Clear typing status from previous conversation
             clearTypingStatus();
             
-            // Stop polling
             if (pollTimer) clearInterval(pollTimer);
             if (typingPollTimer) clearInterval(typingPollTimer);
+            if (dmPollTimer) clearInterval(dmPollTimer);
             
-            // Update UI
             document.querySelectorAll('.subject-item').forEach(item => {
                 item.classList.remove('active');
             });
+            document.querySelectorAll('.dm-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
             if (element) {
                 element.classList.add('active');
             }
             
-            // Show chat area
             document.getElementById('welcome').style.display = 'none';
             document.getElementById('chatArea').style.display = 'block';
             document.getElementById('chatTitle').textContent = title;
+            document.getElementById('chatSubtitle').textContent = 'Group conversation';
             
-            // Load messages
+            // Set group mode
+            isInDMMode = false;
             currentConversationId = id;
+            currentDMUser = null;
             
-            // Get username if not set
             if (!userName && !userProfile.displayName) {
                 openProfileModal();
                 showToast('Please set up your profile first', 'error');
@@ -1679,7 +2027,6 @@
             loadMessages();
             loadTypingStatus();
             
-            // Clear any selected file and reset typing indicator
             clearSelectedFile();
             document.getElementById('typingIndicator').innerHTML = '';
             typingUsers.clear();
@@ -1687,7 +2034,6 @@
             console.log(`Conversation selected: ${id}`);
         }
         
-        // Load messages
         async function loadMessages() {
             if (!currentConversationId) return;
             
@@ -1705,49 +2051,83 @@
             }
         }
         
-        // Display messages
         function displayMessages() {
             const container = document.getElementById('messages');
             
             if (messages.length === 0) {
-                container.innerHTML = '<p>No messages yet. Start the conversation!</p>';
+                const messageText = isInDMMode ? 'No messages yet. Start your private conversation!' : 'No messages yet. Start the conversation!';
+                container.innerHTML = `<p>${messageText}</p>`;
                 return;
             }
             
             let html = '';
             messages.forEach(msg => {
-                const isOwn = msg.PostedBy === userName || msg.PostedBy === userProfile.displayName;
-                const authorName = msg.PostedBy || 'Anonymous';
-                const initials = getInitials(authorName);
-                
-                html += `<div class="message ${isOwn ? 'own' : ''}">`;
-                html += `<div class="message-avatar">${initials}</div>`;
-                html += `<div class="message-content">`;
-                html += `<div class="message-header">`;
-                html += `<span class="message-author">${escapeHtml(authorName)}</span>`;
-                html += `<span class="message-time">${formatTime(msg.CreatedAt)}</span>`;
-                html += `</div>`;
-                html += `<div class="message-text">${escapeHtml(msg.Content)}</div>`;
-                
-                // Display file attachment if present
-                if (msg.MessageType === 'file' && msg.MediaData && msg.AttachmentUrl) {
-                    const mediaData = msg.MediaData;
-                    const filename = mediaData.name || 'File';
-                    const fileIcon = getFileIcon(getFileExtension(filename));
+                if (isInDMMode) {
+                    // DM message display
+                    const isOwn = msg.sender === userProfile.displayName;
+                    const authorName = isOwn ? 'You' : msg.sender;
+                    const initials = getInitials(msg.sender);
                     
-                    html += `<div class="file-attachment">`;
-                    html += `${fileIcon} ${escapeHtml(filename)} (${mediaData.size || 'Unknown size'})`;
-                    
-                    // Check if it's an image and show preview
-                    if (isImageFile(filename)) {
-                        const downloadUrl = createDownloadLink(msg.AttachmentUrl, filename);
-                        html += `<br><img src="${msg.AttachmentUrl}" class="file-preview-image" onclick="window.open('${downloadUrl}', '_blank')" title="Click to open full size">`;
-                    }
-                    
-                    // Add download button
-                    const downloadUrl = createDownloadLink(msg.AttachmentUrl, filename);
-                    html += `<a href="${downloadUrl}" class="file-download-btn" download="${escapeHtml(filename)}">Download</a>`;
+                    html += `<div class="message dm ${isOwn ? 'own' : ''}">`;
+                    html += `<div class="message-avatar">${initials}</div>`;
+                    html += `<div class="message-content">`;
+                    html += `<div class="message-header">`;
+                    html += `<span class="message-author">${escapeHtml(authorName)}</span>`;
+                    html += `<span class="message-time">${formatTime(msg.createdAt)}</span>`;
                     html += `</div>`;
+                    html += `<div class="message-text">${escapeHtml(msg.content)}</div>`;
+                    
+                    // Handle file attachments for DMs
+                    if (msg.messageType === 'file' && msg.mediaData && msg.attachmentUrl) {
+                        const mediaData = msg.mediaData;
+                        const filename = mediaData.name || 'File';
+                        const fileIcon = getFileIcon(getFileExtension(filename));
+                        
+                        html += `<div class="file-attachment">`;
+                        html += `${fileIcon} ${escapeHtml(filename)} (${mediaData.size || 'Unknown size'})`;
+                        
+                        if (isImageFile(filename)) {
+                            const downloadUrl = createDownloadLink(msg.attachmentUrl, filename);
+                            html += `<br><img src="${msg.attachmentUrl}" class="file-preview-image" onclick="window.open('${downloadUrl}', '_blank')" title="Click to open full size">`;
+                        }
+                        
+                        const downloadUrl = createDownloadLink(msg.attachmentUrl, filename);
+                        html += `<a href="${downloadUrl}" class="file-download-btn" download="${escapeHtml(filename)}">Download</a>`;
+                        html += `</div>`;
+                    }
+                } else {
+                    // Group message display (original)
+                    const isOwn = msg.PostedBy === userName || msg.PostedBy === userProfile.displayName;
+                    const authorName = msg.PostedBy || 'Anonymous';
+                    const initials = getInitials(authorName);
+                    
+                    html += `<div class="message ${isOwn ? 'own' : ''}">`;
+                    html += `<div class="message-avatar">${initials}</div>`;
+                    html += `<div class="message-content">`;
+                    html += `<div class="message-header">`;
+                    html += `<span class="message-author">${escapeHtml(authorName)}</span>`;
+                    html += `<span class="message-time">${formatTime(msg.CreatedAt)}</span>`;
+                    html += `</div>`;
+                    html += `<div class="message-text">${escapeHtml(msg.Content)}</div>`;
+                    
+                    // Handle file attachments for group messages
+                    if (msg.MessageType === 'file' && msg.MediaData && msg.AttachmentUrl) {
+                        const mediaData = msg.MediaData;
+                        const filename = mediaData.name || 'File';
+                        const fileIcon = getFileIcon(getFileExtension(filename));
+                        
+                        html += `<div class="file-attachment">`;
+                        html += `${fileIcon} ${escapeHtml(filename)} (${mediaData.size || 'Unknown size'})`;
+                        
+                        if (isImageFile(filename)) {
+                            const downloadUrl = createDownloadLink(msg.AttachmentUrl, filename);
+                            html += `<br><img src="${msg.AttachmentUrl}" class="file-preview-image" onclick="window.open('${downloadUrl}', '_blank')" title="Click to open full size">`;
+                        }
+                        
+                        const downloadUrl = createDownloadLink(msg.AttachmentUrl, filename);
+                        html += `<a href="${downloadUrl}" class="file-download-btn" download="${escapeHtml(filename)}">Download</a>`;
+                        html += `</div>`;
+                    }
                 }
                 
                 html += `</div>`;
@@ -1758,12 +2138,11 @@
             container.scrollTop = container.scrollHeight;
         }
         
-        // Start polling for new messages
         function startPolling() {
             if (pollTimer) clearInterval(pollTimer);
             
             pollTimer = setInterval(async () => {
-                if (currentConversationId && navigator.onLine) {
+                if (currentConversationId && navigator.onLine && !isInDMMode) {
                     try {
                         const newMessages = await apiCall(`/api/posts?SubjectId=${currentConversationId}`);
                         if (newMessages.length !== messages.length) {
@@ -1782,12 +2161,10 @@
             }, 5000);
         }
         
-        // Send message
         async function sendMessage() {
             const text = document.getElementById('messageText').value.trim();
-            if ((!text && !selectedFile) || !currentConversationId) return;
+            if ((!text && !selectedFile)) return;
             
-            // Get user name if not set
             const authorName = userProfile.displayName || userName;
             if (!authorName) {
                 openProfileModal();
@@ -1795,19 +2172,12 @@
                 return;
             }
             
-            // Clear typing status
             clearTypingStatus();
             
             console.log('Sending message:', text);
             
             try {
-                // Prepare message data
-                const messageData = {
-                    Content: text || '',
-                    SubjectId: currentConversationId,
-                    PostedBy: authorName,
-                    MessageType: selectedFile ? 'file' : 'text'
-                };
+                let fileData = null;
                 
                 // Handle file attachment
                 if (selectedFile) {
@@ -1815,16 +2185,16 @@
                         const base64Data = await fileToBase64(selectedFile);
                         const extension = getFileExtension(selectedFile.name);
                         
-                        messageData.MediaData = {
-                            name: selectedFile.name,
-                            size: formatFileSize(selectedFile.size),
-                            extension: extension.toUpperCase(),
-                            icon: getFileIcon(extension),
-                            url: base64Data
+                        fileData = {
+                            mediaData: {
+                                name: selectedFile.name,
+                                size: formatFileSize(selectedFile.size),
+                                extension: extension.toUpperCase(),
+                                icon: getFileIcon(extension),
+                                url: base64Data
+                            },
+                            attachmentUrl: base64Data
                         };
-                        
-                        // Set attachment URL for direct access
-                        messageData.AttachmentUrl = base64Data;
                     } catch (error) {
                         showToast('Error processing file: ' + error.message, 'error');
                         return;
@@ -1837,37 +2207,81 @@
                 clearSelectedFile();
                 document.getElementById('sendBtn').disabled = true;
                 
-                await apiCall('/api/posts', 'POST', messageData);
-                
-                showToast('Message sent!', 'success');
-                loadMessages(); // Reload messages
+                if (isInDMMode && currentDMUser) {
+                    // Send DM
+                    await sendDMMessage(currentDMUser, text, fileData);
+                } else if (currentConversationId) {
+                    // Send group message
+                    const messageData = {
+                        Content: text || '',
+                        SubjectId: currentConversationId,
+                        PostedBy: authorName,
+                        MessageType: selectedFile ? 'file' : 'text'
+                    };
+                    
+                    if (fileData) {
+                        messageData.MediaData = fileData.mediaData;
+                        messageData.AttachmentUrl = fileData.attachmentUrl;
+                    }
+                    
+                    await apiCall('/api/posts', 'POST', messageData);
+                    showToast('Message sent!', 'success');
+                    loadMessages();
+                }
                 
             } catch (error) {
                 console.error('Error sending message:', error);
-                // Restore input on error
                 document.getElementById('messageText').value = text;
                 if (selectedFile) {
-                    handleFileSelect(); // Restore file selection UI
+                    handleFileSelect();
                 }
             }
         }
         
-        // Check Enter key
+        async function sendDMMessage(otherUser, content, fileData = null) {
+            console.log('Sending DM to:', otherUser, 'Content:', content);
+            
+            try {
+                const messageData = {
+                    sender: userProfile.displayName,
+                    recipient: otherUser,
+                    content: content,
+                    messageType: fileData ? 'file' : 'text'
+                };
+                
+                if (fileData) {
+                    messageData.mediaData = fileData.mediaData;
+                    messageData.attachmentUrl = fileData.attachmentUrl;
+                }
+                
+                await apiCall('/api/direct-messages', 'POST', messageData);
+                
+                showToast('DM sent!', 'success');
+                loadDMMessages(otherUser);
+                loadDMConversations();
+                
+            } catch (error) {
+                console.error('Error sending DM:', error);
+                throw error;
+            }
+        }
+        
         function checkEnter(event) {
             if (event.key === 'Enter') {
                 sendMessage();
             }
         }
         
-        // Refresh messages
         function refreshMessages() {
-            if (currentConversationId) {
+            if (isInDMMode && currentDMUser) {
+                loadDMMessages(currentDMUser);
+                showToast('DM messages refreshed', 'success');
+            } else if (currentConversationId) {
                 loadMessages();
                 showToast('Messages refreshed', 'success');
             }
         }
         
-        // Modal functions
         function openModal() {
             document.getElementById('modal').style.display = 'block';
             document.getElementById('newTitle').focus();
@@ -1879,7 +2293,6 @@
             document.getElementById('titleCount').textContent = '0/100 characters';
         }
         
-        // Create conversation
         async function createConversation() {
             const title = document.getElementById('newTitle').value.trim();
             if (!title) {
@@ -1887,7 +2300,6 @@
                 return;
             }
             
-            // Get user name if not set
             const authorName = userProfile.displayName || userName;
             if (!authorName) {
                 openProfileModal();
@@ -1906,16 +2318,13 @@
                 showToast('Conversation created!', 'success');
                 closeModal();
                 
-                // Reload conversations
                 setTimeout(() => loadConversations(), 1000);
                 
             } catch (error) {
                 console.error('Error creating conversation:', error);
-                // Error already shown by apiCall
             }
         }
         
-        // Toast notifications
         function showToast(message, type = 'info') {
             const toast = document.createElement('div');
             toast.className = 'toast ' + type;
@@ -1929,7 +2338,6 @@
             }, 3000);
         }
         
-        // Utility functions
         function escapeHtml(text) {
             const div = document.createElement('div');
             div.textContent = text;
@@ -1974,13 +2382,15 @@
             }
         }
         
-        // Connection monitoring
         window.addEventListener('online', () => {
             showToast('Connection restored', 'success');
-            if (currentConversationId) loadMessages();
+            if (isInDMMode && currentDMUser) {
+                loadDMMessages(currentDMUser);
+            } else if (currentConversationId) {
+                loadMessages();
+            }
             loadOnlineUsers();
             
-            // ADDED: Set user back to online when connection is restored
             if (userProfile.displayName && userProfile.status === 'offline') {
                 console.log('Connection restored - setting user back to online');
                 userProfile.status = 'online';
@@ -1992,8 +2402,6 @@
         
         window.addEventListener('offline', () => {
             showToast('No internet connection', 'error');
-            // Note: We don't automatically set to offline here, 
-            // let the server timeout handle it instead
         });
     </script>
 </body>

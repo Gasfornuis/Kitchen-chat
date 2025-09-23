@@ -9,6 +9,9 @@ import base64
 import uuid
 from datetime import datetime
 
+# Import authentication functions from auth.py
+from .auth import require_authentication, get_session_token_from_request, verify_session_token
+
 if not firebase_admin._apps:
     # Load service account from environment variable
     sa_json = os.environ.get("FIREBASE_SERVICE_ACCOUNT")
@@ -30,9 +33,32 @@ def get_dm_id(user1, user2):
     users = sorted([user1.lower(), user2.lower()])
     return f"dm_{users[0]}_{users[1]}"
 
+def send_auth_error(handler, message="Authentication required"):
+    """Send authentication error response"""
+    handler.send_response(401)
+    handler.send_header("Content-type", "application/json")
+    handler.send_header("Access-Control-Allow-Origin", "*")
+    handler.send_header("Access-Control-Allow-Credentials", "true")
+    handler.end_headers()
+    handler.wfile.write(json.dumps({"error": message}).encode())
+
+def send_access_denied(handler, message="Access denied"):
+    """Send access denied error response"""
+    handler.send_response(403)
+    handler.send_header("Content-type", "application/json")
+    handler.send_header("Access-Control-Allow-Origin", "*")
+    handler.send_header("Access-Control-Allow-Credentials", "true")
+    handler.end_headers()
+    handler.wfile.write(json.dumps({"error": message}).encode())
+
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
         try:
+            # Require authentication for all DM access
+            current_user_auth = require_authentication(self)
+            if not current_user_auth:
+                return send_auth_error(self)
+            
             parsed_url = urlparse(self.path)
             query = parse_qs(parsed_url.query)
             
@@ -41,25 +67,30 @@ class handler(BaseHTTPRequestHandler):
             user2 = query.get("user2", [None])[0]
             current_user = query.get("currentUser", [None])[0]
             
+            # Security check - authenticated user must match currentUser parameter
+            if current_user and current_user.lower() != current_user_auth["username"].lower():
+                return send_access_denied(self, "You can only access your own messages")
+            
+            # Use authenticated user as current user if not provided
+            if not current_user:
+                current_user = current_user_auth["displayName"]
+            
             # For getting conversation list
-            if current_user and not user1 and not user2:
+            if not user1 and not user2:
                 return self.get_dm_conversations(current_user)
             
             # For getting messages between two users
             if not user1 or not user2:
                 self.send_response(400)
                 self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Access-Control-Allow-Credentials", "true")
                 self.end_headers()
                 self.wfile.write(json.dumps({"error": "Missing user1 or user2"}).encode())
                 return
             
-            # Security check - user can only access their own DMs
-            if current_user and current_user not in [user1, user2]:
-                self.send_response(403)
-                self.send_header("Access-Control-Allow-Origin", "*")
-                self.end_headers()
-                self.wfile.write(json.dumps({"error": "Access denied"}).encode())
-                return
+            # Security check - authenticated user can only access their own DMs
+            if current_user.lower() not in [user1.lower(), user2.lower()]:
+                return send_access_denied(self, "You can only access your own messages")
             
             dm_id = get_dm_id(user1, user2)
             
@@ -69,6 +100,7 @@ class handler(BaseHTTPRequestHandler):
                 self.send_response(200)
                 self.send_header("Content-type", "application/json")
                 self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Access-Control-Allow-Credentials", "true")
                 self.end_headers()
                 self.wfile.write(json.dumps(messages).encode())
                 return
@@ -95,12 +127,15 @@ class handler(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-type", "application/json")
             self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Access-Control-Allow-Credentials", "true")
             self.end_headers()
             self.wfile.write(json.dumps(messages).encode())
             
         except Exception as e:
+            print(f"DM GET error: {str(e)}")
             self.send_response(500)
             self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Access-Control-Allow-Credentials", "true")
             self.end_headers()
             self.wfile.write(json.dumps({"error": str(e)}).encode())
     
@@ -131,6 +166,7 @@ class handler(BaseHTTPRequestHandler):
                 self.send_response(200)
                 self.send_header("Content-type", "application/json")
                 self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Access-Control-Allow-Credentials", "true")
                 self.end_headers()
                 self.wfile.write(json.dumps(conversations).encode())
                 return
@@ -164,9 +200,25 @@ class handler(BaseHTTPRequestHandler):
                     }
                 else:
                     # Update if this message is more recent
-                    if data.get("CreatedAt", datetime.min) > datetime.fromisoformat(conversations[conv_id]["lastMessageTime"]):
+                    current_time = data.get("CreatedAt")
+                    stored_time_str = conversations[conv_id]["lastMessageTime"]
+                    
+                    try:
+                        # Compare timestamps
+                        if hasattr(current_time, 'timestamp'):
+                            current_timestamp = current_time.timestamp()
+                        else:
+                            current_timestamp = datetime.fromisoformat(str(current_time)).timestamp()
+                        
+                        stored_timestamp = datetime.fromisoformat(stored_time_str).timestamp()
+                        
+                        if current_timestamp > stored_timestamp:
+                            conversations[conv_id]["lastMessage"] = data.get("content", "")
+                            conversations[conv_id]["lastMessageTime"] = str(current_time)
+                    except:
+                        # Fallback - just update with latest
                         conversations[conv_id]["lastMessage"] = data.get("content", "")
-                        conversations[conv_id]["lastMessageTime"] = str(data.get("CreatedAt", datetime.now()))
+                        conversations[conv_id]["lastMessageTime"] = str(current_time)
             
             conversation_list = list(conversations.values())
             # Sort by most recent message
@@ -175,17 +227,25 @@ class handler(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-type", "application/json")
             self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Access-Control-Allow-Credentials", "true")
             self.end_headers()
             self.wfile.write(json.dumps(conversation_list).encode())
             
         except Exception as e:
+            print(f"DM conversations error: {str(e)}")
             self.send_response(500)
             self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Access-Control-Allow-Credentials", "true")
             self.end_headers()
             self.wfile.write(json.dumps({"error": str(e)}).encode())
     
     def do_POST(self):
         try:
+            # Require authentication for sending DMs
+            current_user_auth = require_authentication(self)
+            if not current_user_auth:
+                return send_auth_error(self)
+            
             content_length = int(self.headers.get("Content-Length", 0))
             body = self.rfile.read(content_length)
             data = json.loads(body)
@@ -199,14 +259,20 @@ class handler(BaseHTTPRequestHandler):
             if not sender or not recipient or not content:
                 self.send_response(400)
                 self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Access-Control-Allow-Credentials", "true")
                 self.end_headers()
                 self.wfile.write(json.dumps({"error": "Missing sender, recipient, or content"}).encode())
                 return
             
+            # Security check - authenticated user can only send as themselves
+            if sender.lower() != current_user_auth["username"].lower() and sender != current_user_auth["displayName"]:
+                return send_access_denied(self, "You can only send messages as yourself")
+            
             # Can't send message to yourself
-            if sender == recipient:
+            if sender.lower() == recipient.lower():
                 self.send_response(400)
                 self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Access-Control-Allow-Credentials", "true")
                 self.end_headers()
                 self.wfile.write(json.dumps({"error": "Cannot send message to yourself"}).encode())
                 return
@@ -237,6 +303,7 @@ class handler(BaseHTTPRequestHandler):
                 self.send_response(201)
                 self.send_header("Content-type", "application/json")
                 self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Access-Control-Allow-Credentials", "true")
                 self.end_headers()
                 self.wfile.write(json.dumps({
                     "message": "DM sent successfully (demo mode)",
@@ -273,6 +340,7 @@ class handler(BaseHTTPRequestHandler):
             self.send_response(201)
             self.send_header("Content-type", "application/json")
             self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Access-Control-Allow-Credentials", "true")
             self.end_headers()
             self.wfile.write(json.dumps({
                 "message": "DM sent successfully",
@@ -284,6 +352,7 @@ class handler(BaseHTTPRequestHandler):
             print(f"Error sending DM: {str(e)}")  # Server-side logging
             self.send_response(500)
             self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Access-Control-Allow-Credentials", "true")
             self.end_headers()
             self.wfile.write(json.dumps({"error": str(e)}).encode())
     
@@ -291,6 +360,7 @@ class handler(BaseHTTPRequestHandler):
         self.send_response(204)
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization, Cookie")
+        self.send_header("Access-Control-Allow-Credentials", "true")
         self.send_header("Access-Control-Max-Age", "86400")
         self.end_headers()

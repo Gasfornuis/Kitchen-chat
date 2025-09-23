@@ -421,6 +421,127 @@
             color: var(--text-light);
         }
         
+        /* Online Users Styles */
+        .user-item {
+            padding: 6px;
+            margin: 2px 0;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-tertiary);
+            cursor: pointer;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .user-item:hover {
+            background: var(--bg-hover);
+        }
+        
+        .user-avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--accent-primary);
+            color: var(--text-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+        
+        .user-info {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .user-name {
+            font-weight: bold;
+            font-size: 13px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .user-status {
+            font-size: 11px;
+            color: var(--text-secondary);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4caf50;
+            flex-shrink: 0;
+        }
+        
+        .status-indicator.away {
+            background: #ff9800;
+        }
+        
+        .status-indicator.busy {
+            background: #f44336;
+        }
+        
+        .status-indicator.offline {
+            background: #9e9e9e;
+        }
+        
+        /* DM Window Styles */
+        .dm-window {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 300px;
+            height: 400px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-primary);
+            z-index: 1000;
+            display: none;
+            flex-direction: column;
+        }
+        
+        .dm-header {
+            background: var(--dm-accent);
+            color: var(--text-light);
+            padding: 8px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        .dm-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+            background: var(--bg-message);
+        }
+        
+        .dm-input {
+            padding: 8px;
+            border-top: 1px solid var(--border-primary);
+            display: flex;
+            gap: 5px;
+        }
+        
+        .dm-input input {
+            flex: 1;
+            margin: 0;
+        }
+        
+        .dm-input button {
+            margin: 0;
+            padding: 5px 10px;
+        }
+        
         .modal {
             display: none;
             position: fixed;
@@ -430,6 +551,7 @@
             height: 100%;
             background: var(--bg-modal);
             transition: background-color 0.3s ease;
+            z-index: 1500;
         }
         
         .modal-content {
@@ -462,7 +584,18 @@
                 overflow-y: auto;
             }
             .users-sidebar {
-                display: none;
+                width: 100%;
+                height: 120px;
+                overflow-y: auto;
+                border-left: none;
+                border-top: 1px solid var(--border-primary);
+            }
+            
+            .dm-window {
+                bottom: 10px;
+                right: 10px;
+                width: 280px;
+                height: 350px;
             }
         }
     </style>
@@ -530,7 +663,9 @@
                 </div>
                 <div class="header-right">
                     <button id="newConvBtn" onclick="openModal()">New Conversation</button>
+                    <button id="dmListBtn" onclick="openDMListModal()">DMs</button>
                     <button id="themeToggle" class="theme-toggle" onclick="toggleTheme()">🌙</button>
+                    <button id="profileBtn" onclick="openProfileModal()">Profile</button>
                     <button class="logout-button" onclick="logout()" style="background: var(--text-error);">Logout</button>
                 </div>
             </header>
@@ -552,13 +687,13 @@
                         <ul style="text-align: left; display: inline-block;">
                             <li>Secure authentication (SHA-256)</li>
                             <li>Real-time messaging</li>
-                            <li>Session-based security</li>
-                            <li>Conversation management</li>
-                            <li>Easy search</li>
+                            <li>Direct Messages (DMs)</li>
+                            <li>Online users list</li>
+                            <li>Profile management</li>
                             <li>Dark/Light theme</li>
                             <li>Works on all devices</li>
                         </ul>
-                        <p><strong>Get Started:</strong> Create a conversation to begin chatting!</p>
+                        <p><strong>Get Started:</strong> Create a conversation or send a DM!</p>
                     </div>
                     
                     <div id="chatArea" style="display: none;">
@@ -581,9 +716,10 @@
                 </div>
                 
                 <div class="users-sidebar">
-                    <h3>Users</h3>
+                    <h3>Online Users</h3>
+                    <button onclick="refreshUsers()" style="width: 100%; margin-bottom: 10px;">Refresh</button>
                     <div id="usersList">
-                        <p>Feature coming soon...</p>
+                        <p>Loading online users...</p>
                     </div>
                 </div>
             </div>
@@ -603,18 +739,91 @@
                 <button onclick="closeModal()">Cancel</button>
             </div>
         </div>
+        
+        <!-- Profile Modal -->
+        <div id="profileModal" class="modal">
+            <div class="modal-content">
+                <h3>Profile Settings</h3>
+                <div class="form-group">
+                    <label>Display Name:</label>
+                    <input type="text" id="profileDisplayName" style="width: 90%;" maxlength="50">
+                </div>
+                <div class="form-group">
+                    <label>Bio:</label>
+                    <textarea id="profileBio" style="width: 90%; height: 60px;" maxlength="200" placeholder="Tell others about yourself..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Status:</label>
+                    <select id="profileStatus" style="width: 94%;">
+                        <option value="online">Online</option>
+                        <option value="away">Away</option>
+                        <option value="busy">Busy</option>
+                        <option value="offline">Offline</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Theme:</label>
+                    <select id="profileTheme" style="width: 94%;">
+                        <option value="light">Light</option>
+                        <option value="dark">Dark</option>
+                    </select>
+                </div>
+                <h4>Change Password</h4>
+                <div class="form-group">
+                    <label>Current Password:</label>
+                    <input type="password" id="currentPassword" style="width: 90%;" autocomplete="current-password">
+                </div>
+                <div class="form-group">
+                    <label>New Password:</label>
+                    <input type="password" id="newPassword" style="width: 90%;" autocomplete="new-password">
+                </div>
+                <br>
+                <button onclick="updateProfile()">Save Changes</button>
+                <button onclick="closeProfileModal()">Cancel</button>
+            </div>
+        </div>
+        
+        <!-- DM List Modal -->
+        <div id="dmListModal" class="modal">
+            <div class="modal-content">
+                <h3>Direct Messages</h3>
+                <div id="dmConversations">
+                    <p>Loading DM conversations...</p>
+                </div>
+                <br>
+                <button onclick="closeDMListModal()">Close</button>
+            </div>
+        </div>
+        
+        <!-- DM Window -->
+        <div id="dmWindow" class="dm-window">
+            <div class="dm-header">
+                <span id="dmTitle">Direct Message</span>
+                <button onclick="closeDMWindow()" style="background: transparent; border: none; color: white; cursor: pointer;">&times;</button>
+            </div>
+            <div id="dmMessages" class="dm-messages">
+                <p>Loading messages...</p>
+            </div>
+            <div class="dm-input">
+                <input type="text" id="dmMessageText" placeholder="Type a message..." maxlength="500" onkeypress="checkDMEnter(event)">
+                <button id="dmSendBtn" onclick="sendDM()" disabled>Send</button>
+            </div>
+        </div>
     </div>
     
     <script>
-        // Secure authentication variables
+        // Enhanced JavaScript with DMs, online users, and profile management
         let currentUser = null;
         let isAuthenticated = false;
         let conversations = [];
         let currentConversationId = null;
         let messages = [];
+        let onlineUsers = [];
+        let currentDMUser = null;
+        let dmMessages = [];
         let currentTheme = localStorage.getItem('kitchenChatTheme') || 'light';
         
-        // Authentication Functions
+        // Authentication Functions (same as before)
         function switchAuthTab(tab) {
             document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
             document.querySelector(`[onclick="switchAuthTab('${tab}')"]`).classList.add('active');
@@ -747,6 +956,15 @@
             conversations = [];
             currentConversationId = null;
             messages = [];
+            onlineUsers = [];
+            currentDMUser = null;
+            dmMessages = [];
+            
+            // Close any open modals/windows
+            closeModal();
+            closeProfileModal();
+            closeDMListModal();
+            closeDMWindow();
             
             // Show auth screen
             showAuthScreen();
@@ -803,8 +1021,17 @@
             showMainApp();
             
             // Initialize app components
-            await loadConversations();
+            await Promise.all([
+                loadConversations(),
+                loadOnlineUsers(),
+                updateUserStatus('online')
+            ]);
+            
             setupEventListeners();
+            
+            // Start periodic updates
+            setInterval(loadOnlineUsers, 30000); // Update every 30 seconds
+            setInterval(() => updateUserStatus('online'), 60000); // Keep status alive every minute
             
             showToast(`Welcome back, ${currentUser.displayName}!`, 'success');
         }
@@ -843,6 +1070,7 @@
             }
         }
         
+        // Conversation Functions (same as before)
         async function loadConversations() {
             if (!isAuthenticated) return;
             
@@ -895,6 +1123,9 @@
         
         function selectConversation(id, title, element) {
             if (!isAuthenticated) return;
+            
+            // Close DM window if open
+            closeDMWindow();
             
             document.querySelectorAll('.subject-item').forEach(item => {
                 item.classList.remove('active');
@@ -1031,11 +1262,288 @@
             }
         }
         
+        // Online Users Functions
+        async function loadOnlineUsers() {
+            if (!isAuthenticated) return;
+            
+            try {
+                const result = await apiCall('/api/user-profile?action=online_users');
+                onlineUsers = result.users || [];
+                displayOnlineUsers();
+            } catch (error) {
+                console.error('Error loading online users:', error);
+                document.getElementById('usersList').innerHTML = '<p style="color: red;">Error loading users</p>';
+            }
+        }
+        
+        function displayOnlineUsers() {
+            const container = document.getElementById('usersList');
+            
+            if (onlineUsers.length === 0) {
+                container.innerHTML = '<p>No users online</p>';
+                return;
+            }
+            
+            let html = '';
+            onlineUsers.forEach(user => {
+                // Don't show current user in the list
+                if (user.username === currentUser?.username) return;
+                
+                const initials = getInitials(user.displayName);
+                const statusClass = user.status || 'online';
+                
+                html += `<div class="user-item" onclick="startDM('${escapeHtml(user.username)}', '${escapeHtml(user.displayName)}')">`;  
+                html += `<div class="user-avatar">${initials}</div>`;
+                html += `<div class="user-info">`;
+                html += `<div class="user-name">${escapeHtml(user.displayName)}</div>`;
+                html += `<div class="user-status">${user.bio || user.status || 'online'}</div>`;
+                html += `</div>`;
+                html += `<div class="status-indicator ${statusClass}"></div>`;
+                html += `</div>`;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        function refreshUsers() {
+            if (!isAuthenticated) return;
+            loadOnlineUsers();
+            showToast('User list refreshed', 'success');
+        }
+        
+        async function updateUserStatus(status) {
+            if (!isAuthenticated) return;
+            
+            try {
+                await apiCall('/api/user-profile', 'POST', {
+                    status: status
+                });
+            } catch (error) {
+                console.error('Error updating status:', error);
+            }
+        }
+        
+        // Direct Message Functions
+        function startDM(username, displayName) {
+            if (!isAuthenticated) return;
+            
+            currentDMUser = { username: username, displayName: displayName };
+            document.getElementById('dmTitle').textContent = `DM with ${displayName}`;
+            document.getElementById('dmWindow').style.display = 'flex';
+            
+            loadDMMessages();
+        }
+        
+        async function loadDMMessages() {
+            if (!currentDMUser || !isAuthenticated) return;
+            
+            try {
+                document.getElementById('dmMessages').innerHTML = '<p>Loading messages...</p>';
+                
+                const currentUserName = currentUser?.displayName || currentUser?.username || '';
+                const otherUserName = currentDMUser.displayName || currentDMUser.username;
+                
+                dmMessages = await apiCall(`/api/direct-messages?user1=${encodeURIComponent(currentUserName)}&user2=${encodeURIComponent(otherUserName)}&currentUser=${encodeURIComponent(currentUserName)}`);
+                displayDMMessages();
+            } catch (error) {
+                console.error('Error loading DM messages:', error);
+                document.getElementById('dmMessages').innerHTML = '<p style="color: red;">Error loading messages</p>';
+            }
+        }
+        
+        function displayDMMessages() {
+            const container = document.getElementById('dmMessages');
+            
+            if (!dmMessages || dmMessages.length === 0) {
+                container.innerHTML = '<p>No messages yet. Start the conversation!</p>';
+                return;
+            }
+            
+            let html = '';
+            dmMessages.forEach(msg => {
+                const isOwn = msg.sender === (currentUser?.displayName || currentUser?.username || '');
+                const authorName = msg.sender || 'Anonymous';
+                const initials = getInitials(authorName);
+                
+                html += `<div class="message dm ${isOwn ? 'own' : ''}" style="margin-bottom: 8px; padding: 4px; font-size: 13px;">`;
+                html += `<div class="message-avatar" style="width: 24px; height: 24px; font-size: 11px;">${initials}</div>`;
+                html += `<div class="message-content">`;
+                html += `<div class="message-header">`;
+                html += `<span class="message-author" style="font-size: 12px;">${escapeHtml(authorName)}</span>`;
+                html += `<span class="message-time" style="font-size: 10px;">${formatTime(msg.createdAt)}</span>`;
+                html += `</div>`;
+                html += `<div class="message-text" style="font-size: 13px;">${escapeHtml(msg.content)}</div>`;
+                html += `</div>`;
+                html += `</div>`;
+            });
+            
+            container.innerHTML = html;
+            container.scrollTop = container.scrollHeight;
+        }
+        
+        async function sendDM() {
+            const text = document.getElementById('dmMessageText').value.trim();
+            if (!isAuthenticated || !text || !currentDMUser) return;
+            
+            try {
+                const currentUserName = currentUser?.displayName || currentUser?.username || '';
+                const recipient = currentDMUser.displayName || currentDMUser.username;
+                
+                await apiCall('/api/direct-messages', 'POST', {
+                    sender: currentUserName,
+                    recipient: recipient,
+                    content: text,
+                    messageType: 'text'
+                });
+                
+                document.getElementById('dmMessageText').value = '';
+                document.getElementById('dmSendBtn').disabled = true;
+                
+                showToast('DM sent!', 'success');
+                
+                // Reload DM messages after a short delay
+                setTimeout(() => loadDMMessages(), 500);
+                
+            } catch (error) {
+                console.error('Error sending DM:', error);
+            }
+        }
+        
+        function checkDMEnter(event) {
+            if (event.key === 'Enter') {
+                sendDM();
+            }
+        }
+        
+        function closeDMWindow() {
+            document.getElementById('dmWindow').style.display = 'none';
+            currentDMUser = null;
+            dmMessages = [];
+        }
+        
+        async function openDMListModal() {
+            if (!isAuthenticated) return;
+            
+            try {
+                document.getElementById('dmListModal').style.display = 'block';
+                document.getElementById('dmConversations').innerHTML = '<p>Loading DM conversations...</p>';
+                
+                const currentUserName = currentUser?.displayName || currentUser?.username || '';
+                const result = await apiCall(`/api/direct-messages?currentUser=${encodeURIComponent(currentUserName)}`);
+                
+                if (result && result.length > 0) {
+                    let html = '';
+                    result.forEach(conv => {
+                        html += `<div class="subject-item" onclick="startDMFromList('${escapeHtml(conv.otherUser)}')">`;  
+                        html += `<strong>DM with ${escapeHtml(conv.otherUser)}</strong><br>`;
+                        html += `<small>${escapeHtml(conv.lastMessage || 'No messages yet')}</small>`;
+                        html += `</div>`;
+                    });
+                    document.getElementById('dmConversations').innerHTML = html;
+                } else {
+                    document.getElementById('dmConversations').innerHTML = '<p>No DM conversations found. Start one by clicking on a user!</p>';
+                }
+            } catch (error) {
+                console.error('Error loading DM conversations:', error);
+                document.getElementById('dmConversations').innerHTML = '<p style="color: red;">Error loading conversations</p>';
+            }
+        }
+        
+        function startDMFromList(username) {
+            closeDMListModal();
+            startDM(username, username);
+        }
+        
+        function closeDMListModal() {
+            document.getElementById('dmListModal').style.display = 'none';
+        }
+        
+        // Profile Management Functions
+        async function openProfileModal() {
+            if (!isAuthenticated) return;
+            
+            try {
+                // Load current profile data
+                const profile = await apiCall(`/api/user-profile?username=${encodeURIComponent(currentUser.username)}`);
+                
+                // Populate form fields
+                document.getElementById('profileDisplayName').value = profile.displayName || currentUser.displayName || '';
+                document.getElementById('profileBio').value = profile.bio || '';
+                document.getElementById('profileStatus').value = profile.status || 'online';
+                document.getElementById('profileTheme').value = profile.preferences?.theme || currentTheme;
+                
+                // Clear password fields
+                document.getElementById('currentPassword').value = '';
+                document.getElementById('newPassword').value = '';
+                
+                document.getElementById('profileModal').style.display = 'block';
+            } catch (error) {
+                console.error('Error loading profile:', error);
+                showToast('Error loading profile', 'error');
+            }
+        }
+        
+        function closeProfileModal() {
+            document.getElementById('profileModal').style.display = 'none';
+        }
+        
+        async function updateProfile() {
+            if (!isAuthenticated) return;
+            
+            try {
+                const updates = {
+                    displayName: document.getElementById('profileDisplayName').value.trim(),
+                    bio: document.getElementById('profileBio').value.trim(),
+                    status: document.getElementById('profileStatus').value,
+                    theme: document.getElementById('profileTheme').value
+                };
+                
+                // Check if password change is requested
+                const currentPassword = document.getElementById('currentPassword').value.trim();
+                const newPassword = document.getElementById('newPassword').value.trim();
+                
+                if (currentPassword && newPassword) {
+                    if (newPassword.length < 6) {
+                        showToast('New password must be at least 6 characters', 'error');
+                        return;
+                    }
+                    updates.currentPassword = currentPassword;
+                    updates.newPassword = newPassword;
+                }
+                
+                await apiCall('/api/user-profile', 'PUT', updates);
+                
+                // Update current user data
+                if (updates.displayName) {
+                    currentUser.displayName = updates.displayName;
+                }
+                
+                // Apply theme change if needed
+                if (updates.theme !== currentTheme) {
+                    applyTheme(updates.theme);
+                }
+                
+                showToast('Profile updated successfully!', 'success');
+                closeProfileModal();
+                
+                // Refresh online users to show updated info
+                loadOnlineUsers();
+                
+            } catch (error) {
+                console.error('Error updating profile:', error);
+            }
+        }
+        
         function setupEventListeners() {
             document.getElementById('messageText').oninput = function() {
                 const text = this.value;
                 document.getElementById('charCount').textContent = text.length + '/500 characters';
                 document.getElementById('sendBtn').disabled = !text.trim() || !currentConversationId;
+            };
+            
+            document.getElementById('dmMessageText').oninput = function() {
+                const text = this.value;
+                document.getElementById('dmSendBtn').disabled = !text.trim() || !currentDMUser;
             };
             
             document.getElementById('newTitle').oninput = function() {
@@ -1052,8 +1560,17 @@
                 if (e.key === 'Enter') register();
             });
             
+            // Modal click handlers
             document.getElementById('modal').onclick = function(e) {
                 if (e.target === this) closeModal();
+            };
+            
+            document.getElementById('profileModal').onclick = function(e) {
+                if (e.target === this) closeProfileModal();
+            };
+            
+            document.getElementById('dmListModal').onclick = function(e) {
+                if (e.target === this) closeDMListModal();
             };
         }
         
@@ -1163,6 +1680,15 @@
         
         window.addEventListener('offline', () => {
             showToast('No internet connection', 'error');
+        });
+        
+        // Update status to offline when page is closing
+        window.addEventListener('beforeunload', () => {
+            if (isAuthenticated) {
+                // Use sendBeacon for reliable delivery during page unload
+                const data = JSON.stringify({ status: 'offline' });
+                navigator.sendBeacon('/api/user-profile', data);
+            }
         });
     </script>
 </body>

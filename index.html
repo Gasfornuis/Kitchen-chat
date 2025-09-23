@@ -778,7 +778,7 @@
                 <div class="profile-info">
                     <input type="text" id="profileDisplayName" placeholder="Display Name" style="width: 100%; font-size: 16px; font-weight: bold; margin-bottom: 10px;">
                     <div class="status-selector">
-                        <div class="status-option" data-status="online" onclick="selectStatus('online')">
+                        <div class="status-option active" data-status="online" onclick="selectStatus('online')">
                             <span class="status-indicator status-online"></span> Online
                         </div>
                         <div class="status-option" data-status="away" onclick="selectStatus('away')">
@@ -905,6 +905,7 @@
             if (!userProfile.displayName && userName) {
                 userProfile.displayName = userName;
             }
+            // CHANGED: Always default new users to 'online' status
             if (!userProfile.status) {
                 userProfile.status = 'online';
             }
@@ -916,6 +917,12 @@
             }
             if (userProfile.soundEnabled === undefined) {
                 userProfile.soundEnabled = true;
+            }
+            
+            // Automatically register new users as online
+            if (userProfile.displayName && !apiWorking) {
+                console.log('Auto-registering user as online:', userProfile.displayName);
+                registerUserProfile();
             }
             
             updateProfileUI();
@@ -938,10 +945,10 @@
             document.getElementById('profileNotifications').checked = userProfile.notifications !== false;
             document.getElementById('profileSound').checked = userProfile.soundEnabled !== false;
             
-            // Update status selection
+            // Update status selection - ensure online is selected by default for new users
             document.querySelectorAll('.status-option').forEach(option => {
                 option.classList.remove('active');
-                if (option.dataset.status === userProfile.status) {
+                if (option.dataset.status === (userProfile.status || 'online')) {
                     option.classList.add('active');
                 }
             });
@@ -960,6 +967,10 @@
         }
         
         function openProfileModal() {
+            // Ensure new users default to online
+            if (!userProfile.status) {
+                userProfile.status = 'online';
+            }
             updateProfileUI();
             document.getElementById('profileModal').style.display = 'block';
         }
@@ -993,6 +1004,12 @@
             userProfile.notifications = document.getElementById('profileNotifications').checked;
             userProfile.soundEnabled = document.getElementById('profileSound').checked;
             
+            // Ensure status is set - default to online for new users
+            if (!userProfile.status) {
+                userProfile.status = 'online';
+                selectStatus('online'); // Visually select online status
+            }
+            
             // Apply theme if it changed
             if (selectedTheme !== currentTheme) {
                 applyTheme(selectedTheme);
@@ -1005,7 +1022,7 @@
             registerUserProfile();
             
             closeProfileModal();
-            showToast('Profile saved!', 'success');
+            showToast('Profile saved! You are now online.', 'success');
         }
         
         // API calls for profiles and status
@@ -1017,7 +1034,7 @@
                     userId: userId,
                     displayName: userProfile.displayName,
                     bio: userProfile.bio || '',
-                    status: userProfile.status || 'online',
+                    status: userProfile.status || 'online', // Always default to online
                     theme: userProfile.theme || 'light',
                     notifications: userProfile.notifications !== false,
                     soundEnabled: userProfile.soundEnabled !== false
@@ -1122,11 +1139,11 @@
                         console.log(`Loaded ${onlineUsers.length} online users from Vercel API`);
                     } else {
                         console.log('Unexpected API response format:', data);
-                        // Fallback to at least show current user
+                        // Fallback to at least show current user as online
                         onlineUsers = [{
                             uid: userId,
                             displayName: userProfile.displayName || userName || 'You',
-                            status: userProfile.status || 'online',
+                            status: 'online', // Always default to online
                             lastSeen: new Date().toISOString()
                         }];
                     }
@@ -1135,11 +1152,11 @@
                     const errorText = await response.text();
                     console.log('Error details:', errorText);
                     apiWorking = false;
-                    // Fallback to show just current user
+                    // Fallback to show just current user as online
                     onlineUsers = [{
                         uid: userId,
                         displayName: userProfile.displayName || userName || 'You',
-                        status: userProfile.status || 'online',
+                        status: 'online', // Always default to online
                         lastSeen: new Date().toISOString()
                     }];
                 }
@@ -1149,11 +1166,11 @@
             } catch (error) {
                 console.error('Error loading online users:', error);
                 apiWorking = false;
-                // Fallback to show just current user
+                // Fallback to show just current user as online
                 onlineUsers = [{
                     uid: userId,
                     displayName: userProfile.displayName || userName || 'You',
-                    status: userProfile.status || 'online',
+                    status: 'online', // Always default to online
                     lastSeen: new Date().toISOString()
                 }];
                 displayOnlineUsers();
@@ -1244,9 +1261,13 @@
             startUsersPolling();
             updateDebugInfo();
             
-            // Start heartbeat if user has a profile
+            // CHANGED: Always try to register user profile if they have a display name
+            // This ensures users are automatically set to online when they load the page
             if (userProfile.displayName) {
-                registerUserProfile(); // Register immediately
+                console.log('Auto-setting user to online on page load');
+                userProfile.status = 'online'; // Force online on page load
+                saveProfileToStorage();
+                registerUserProfile(); // Register immediately as online
             }
         };
         
@@ -1276,14 +1297,27 @@
                 if (e.target === this) closeProfileModal();
             };
             
-            // Clear typing status when user leaves
+            // CHANGED: Only set to offline when explicitly leaving, not when page loads
             window.addEventListener('beforeunload', () => {
                 if (currentConversationId) {
                     clearTypingStatus();
                 }
-                // Set status to offline when leaving
-                if (userProfile.displayName && apiWorking) {
+                // Set status to offline when leaving ONLY if user was previously online
+                if (userProfile.displayName && apiWorking && userProfile.status !== 'offline') {
                     updateUserStatus('offline');
+                }
+            });
+            
+            // ADDED: Set user to online when page becomes visible again
+            document.addEventListener('visibilitychange', () => {
+                if (!document.hidden && userProfile.displayName) {
+                    console.log('Page became visible - setting user to online');
+                    if (userProfile.status === 'offline') {
+                        userProfile.status = 'online';
+                        saveProfileToStorage();
+                        updateProfileUI();
+                    }
+                    registerUserProfile(); // Re-register as online
                 }
             });
         }
@@ -1945,10 +1979,21 @@
             showToast('Connection restored', 'success');
             if (currentConversationId) loadMessages();
             loadOnlineUsers();
+            
+            // ADDED: Set user back to online when connection is restored
+            if (userProfile.displayName && userProfile.status === 'offline') {
+                console.log('Connection restored - setting user back to online');
+                userProfile.status = 'online';
+                saveProfileToStorage();
+                updateProfileUI();
+                registerUserProfile();
+            }
         });
         
         window.addEventListener('offline', () => {
             showToast('No internet connection', 'error');
+            // Note: We don't automatically set to offline here, 
+            // let the server timeout handle it instead
         });
     </script>
 </body>

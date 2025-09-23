@@ -257,6 +257,7 @@
             padding: 10px;
             margin: 8px 0;
             transition: all 0.3s ease;
+            position: relative;
         }
         
         .announcement-item:hover {
@@ -288,6 +289,7 @@
             color: var(--text-primary);
             font-size: 14px;
             margin: 0;
+            flex: 1;
         }
         
         .announcement-meta {
@@ -295,6 +297,7 @@
             color: var(--text-secondary);
             display: flex;
             gap: 10px;
+            align-items: center;
         }
         
         .announcement-content {
@@ -320,6 +323,32 @@
             0% { opacity: 1; }
             50% { opacity: 0.7; }
             100% { opacity: 1; }
+        }
+        
+        /* Admin controls for announcements */
+        .announcement-admin-controls {
+            margin-left: 8px;
+            display: none;
+        }
+        
+        .announcement-admin-controls.show {
+            display: flex;
+            gap: 4px;
+        }
+        
+        .delete-announcement-btn {
+            background: var(--text-error) !important;
+            color: white;
+            border: none;
+            padding: 2px 6px;
+            font-size: 10px;
+            cursor: pointer;
+            border-radius: 2px;
+            transition: opacity 0.3s ease;
+        }
+        
+        .delete-announcement-btn:hover {
+            opacity: 0.8;
         }
         
         .main {
@@ -1298,6 +1327,14 @@
                 html += `<div class="announcement-meta">`;
                 html += `<span class="priority-badge ${priorityClass}">${announcement.priority || 'normal'}</span>`;
                 html += `<span>${formatTime(announcement.createdAt)}</span>`;
+                
+                // Add delete button for admin users
+                if (isAdmin) {
+                    html += `<div class="announcement-admin-controls show">`;
+                    html += `<button class="delete-announcement-btn" onclick="deleteAnnouncement('${announcement.id}')" title="Delete announcement">×</button>`;
+                    html += `</div>`;
+                }
+                
                 html += `</div>`;
                 html += `</div>`;
                 html += `<div class="announcement-content">${escapeHtml(announcement.content)}</div>`;
@@ -1305,6 +1342,33 @@
             });
             
             container.innerHTML = html;
+        }
+        
+        async function deleteAnnouncement(announcementId) {
+            if (!isAdmin || !isAuthenticated) {
+                showToast('Not authorized to delete announcements', 'error');
+                return;
+            }
+            
+            // Confirm deletion
+            if (!confirm('Are you sure you want to delete this announcement?')) {
+                return;
+            }
+            
+            try {
+                await apiCall('/api/announcements', 'DELETE', {
+                    id: announcementId
+                });
+                
+                showToast('Announcement deleted successfully!', 'success');
+                
+                // Reload announcements
+                setTimeout(() => loadAnnouncements(), 500);
+                
+            } catch (error) {
+                console.error('Error deleting announcement:', error);
+                showToast('Failed to delete announcement', 'error');
+            }
         }
         
         function openAnnouncementModal() {

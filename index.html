@@ -5,28 +5,89 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kitchen Chat - Simple Chat Website</title>
     <style>
+        /* CSS Custom Properties for Theme Support */
+        :root {
+            /* Light Theme Colors (default) */
+            --bg-primary: #f0f0f0;
+            --bg-secondary: white;
+            --bg-tertiary: #f5f5f5;
+            --bg-quaternary: #f8f8f8;
+            --bg-accent: #ddd;
+            --bg-message: #fafafa;
+            --bg-message-own: #e7f3ff;
+            --bg-hover: #f0f0f0;
+            --bg-active: #007cba;
+            --bg-modal: rgba(0,0,0,0.5);
+            
+            --text-primary: #333;
+            --text-secondary: #666;
+            --text-tertiary: #444;
+            --text-light: white;
+            --text-error: #d32f2f;
+            --text-success: #388e3c;
+            
+            --border-primary: #ccc;
+            --border-secondary: #bbb;
+            --border-tertiary: #ddd;
+            
+            --accent-primary: #007cba;
+            --accent-secondary: #005a87;
+        }
+        
+        /* Dark Theme Colors */
+        [data-theme="dark"] {
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #2d2d2d;
+            --bg-tertiary: #3d3d3d;
+            --bg-quaternary: #4d4d4d;
+            --bg-accent: #555;
+            --bg-message: #2a2a2a;
+            --bg-message-own: #1e3a52;
+            --bg-hover: #404040;
+            --bg-active: #007cba;
+            --bg-modal: rgba(0,0,0,0.8);
+            
+            --text-primary: #e0e0e0;
+            --text-secondary: #b0b0b0;
+            --text-tertiary: #c0c0c0;
+            --text-light: white;
+            --text-error: #f44336;
+            --text-success: #4caf50;
+            
+            --border-primary: #555;
+            --border-secondary: #666;
+            --border-tertiary: #444;
+            
+            --accent-primary: #4dabf7;
+            --accent-secondary: #3498db;
+        }
+        
         /* Minimal CSS - only the essentials */
         body {
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 20px;
-            background-color: #f0f0f0;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
         
         .container {
             max-width: 1200px;
             margin: 0 auto;
-            background: white;
-            border: 1px solid #ccc;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-primary);
+            transition: background-color 0.3s ease, border-color 0.3s ease;
         }
         
         header {
-            background: #ddd;
+            background: var(--bg-accent);
             padding: 10px 20px;
-            border-bottom: 1px solid #bbb;
+            border-bottom: 1px solid var(--border-secondary);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
         }
         
         .header-left {
@@ -47,18 +108,20 @@
         
         .sidebar {
             width: 250px;
-            background: #f5f5f5;
-            border-right: 1px solid #ccc;
+            background: var(--bg-tertiary);
+            border-right: 1px solid var(--border-primary);
             padding: 10px;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
         }
         
         .users-sidebar {
             width: 200px;
-            background: #f8f8f8;
-            border-left: 1px solid #ccc;
+            background: var(--bg-quaternary);
+            border-left: 1px solid var(--border-primary);
             padding: 10px;
             display: flex;
             flex-direction: column;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
         }
         
         .chat {
@@ -67,41 +130,44 @@
         }
         
         .messages {
-            border: 1px solid #ccc;
+            border: 1px solid var(--border-primary);
             height: 300px;
             overflow-y: auto;
             padding: 10px;
             margin-bottom: 10px;
-            background: #fafafa;
+            background: var(--bg-message);
+            transition: background-color 0.3s ease, border-color 0.3s ease;
         }
         
         .message {
             margin-bottom: 10px;
             padding: 5px;
-            border-left: 3px solid #ccc;
-            background: white;
+            border-left: 3px solid var(--border-primary);
+            background: var(--bg-secondary);
             display: flex;
             align-items: flex-start;
             gap: 8px;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
         }
         
         .message.own {
-            border-left-color: #007cba;
-            background: #e7f3ff;
+            border-left-color: var(--accent-primary);
+            background: var(--bg-message-own);
         }
         
         .message-avatar {
             width: 32px;
             height: 32px;
             border-radius: 50%;
-            background: #007cba;
-            color: white;
+            background: var(--accent-primary);
+            color: var(--text-light);
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 14px;
             font-weight: bold;
             flex-shrink: 0;
+            transition: background-color 0.3s ease;
         }
         
         .message-content {
@@ -117,17 +183,20 @@
         
         .message-author {
             font-weight: bold;
-            color: #333;
+            color: var(--text-primary);
+            transition: color 0.3s ease;
         }
         
         .message-time {
             font-size: 12px;
-            color: #666;
+            color: var(--text-secondary);
+            transition: color 0.3s ease;
         }
         
         .message-text {
-            color: #444;
+            color: var(--text-tertiary);
             line-height: 1.4;
+            transition: color 0.3s ease;
         }
         
         /* User Profile Styles */
@@ -135,30 +204,32 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            background: #007cba;
-            color: white;
+            background: var(--accent-primary);
+            color: var(--text-light);
             border: none;
             padding: 8px 12px;
             border-radius: 4px;
             cursor: pointer;
             font-size: 14px;
+            transition: background-color 0.3s ease;
         }
         
         .profile-button:hover {
-            background: #005a87;
+            background: var(--accent-secondary);
         }
         
         .user-avatar {
             width: 24px;
             height: 24px;
             border-radius: 50%;
-            background: #fff;
-            color: #007cba;
+            background: var(--bg-secondary);
+            color: var(--accent-primary);
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 12px;
             font-weight: bold;
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
         
         .profile-modal {
@@ -168,17 +239,19 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.5);
+            background: var(--bg-modal);
             z-index: 1001;
+            transition: background-color 0.3s ease;
         }
         
         .profile-modal-content {
-            background: white;
+            background: var(--bg-secondary);
             margin: 50px auto;
             padding: 20px;
             width: 400px;
-            border: 1px solid #ccc;
+            border: 1px solid var(--border-primary);
             border-radius: 8px;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
         }
         
         .profile-header {
@@ -192,14 +265,15 @@
             width: 60px;
             height: 60px;
             border-radius: 50%;
-            background: #007cba;
-            color: white;
+            background: var(--accent-primary);
+            color: var(--text-light);
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 24px;
             font-weight: bold;
             cursor: pointer;
+            transition: background-color 0.3s ease;
         }
         
         .profile-info {
@@ -210,6 +284,8 @@
             font-size: 18px;
             font-weight: bold;
             margin-bottom: 5px;
+            color: var(--text-primary);
+            transition: color 0.3s ease;
         }
         
         .status-selector {
@@ -240,15 +316,17 @@
             border-radius: 4px;
             font-size: 14px;
             border: 1px solid transparent;
+            color: var(--text-primary);
+            transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
         }
         
         .status-option:hover {
-            background: #f0f0f0;
+            background: var(--bg-hover);
         }
         
         .status-option.active {
-            background: #e7f3ff;
-            border: 1px solid #007cba;
+            background: var(--bg-message-own);
+            border: 1px solid var(--accent-primary);
         }
         
         /* Users List Styles */
@@ -262,23 +340,25 @@
             gap: 8px;
             padding: 8px;
             margin-bottom: 5px;
-            background: white;
+            background: var(--bg-secondary);
             border-radius: 4px;
-            border: 1px solid #ddd;
+            border: 1px solid var(--border-tertiary);
             font-size: 14px;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
         }
         
         .user-item-avatar {
             width: 28px;
             height: 28px;
             border-radius: 50%;
-            background: #007cba;
-            color: white;
+            background: var(--accent-primary);
+            color: var(--text-light);
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 12px;
             font-weight: bold;
+            transition: background-color 0.3s ease;
         }
         
         .user-item-info {
@@ -288,54 +368,77 @@
         .user-item-name {
             font-weight: bold;
             margin-bottom: 2px;
+            color: var(--text-primary);
+            transition: color 0.3s ease;
         }
         
         .user-item-status {
             font-size: 12px;
-            color: #666;
+            color: var(--text-secondary);
             display: flex;
             align-items: center;
+            transition: color 0.3s ease;
+        }
+        
+        /* Theme Toggle Button */
+        .theme-toggle {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-primary);
+            color: var(--text-primary);
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            margin-left: 10px;
+        }
+        
+        .theme-toggle:hover {
+            background: var(--bg-hover);
         }
         
         /* File upload styles */
         .file-attachment {
             margin-top: 5px;
             padding: 5px;
-            background: #f0f8ff;
-            border: 1px solid #cce7ff;
+            background: var(--bg-message-own);
+            border: 1px solid var(--accent-primary);
             border-radius: 3px;
             font-size: 12px;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
         }
         
         .file-link {
-            color: #007cba;
+            color: var(--accent-primary);
             text-decoration: none;
             display: inline-block;
             padding: 2px 5px;
             border-radius: 2px;
-            background: #e7f3ff;
+            background: var(--bg-message-own);
+            transition: color 0.3s ease, background-color 0.3s ease;
         }
         
         .file-link:hover {
             text-decoration: underline;
-            background: #d0e7ff;
+            background: var(--bg-hover);
         }
         
         .file-download-btn {
-            color: #007cba;
+            color: var(--accent-primary);
             text-decoration: none;
-            background: #e7f3ff;
+            background: var(--bg-message-own);
             padding: 3px 8px;
             border-radius: 3px;
             font-size: 12px;
-            border: 1px solid #007cba;
+            border: 1px solid var(--accent-primary);
             display: inline-block;
             margin-left: 5px;
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
         }
         
         .file-download-btn:hover {
-            background: #007cba;
-            color: white;
+            background: var(--accent-primary);
+            color: var(--text-light);
         }
         
         .file-preview-image {
@@ -365,32 +468,34 @@
         }
         
         .file-select-btn {
-            background: #666;
-            color: white;
+            background: var(--text-secondary);
+            color: var(--text-light);
             padding: 5px 10px;
             cursor: pointer;
-            border: 1px solid #555;
+            border: 1px solid var(--border-primary);
             font-size: 12px;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
         }
         
         .file-select-btn:hover {
-            background: #555;
+            background: var(--text-primary);
         }
         
         .file-preview {
             font-size: 12px;
-            color: #666;
+            color: var(--text-secondary);
             margin-left: 5px;
+            transition: color 0.3s ease;
         }
         
         .file-preview.selected {
-            color: #007cba;
+            color: var(--accent-primary);
         }
         
         /* FIXED: Typing indicator styles - VERY VISIBLE */
         .typing-indicator {
             font-size: 14px;
-            color: #333;
+            color: var(--text-primary);
             font-weight: bold;
             font-style: italic;
             margin: 10px 0;
@@ -400,6 +505,7 @@
             border-radius: 6px;
             border: 3px solid #ff9800;
             display: block;
+            transition: color 0.3s ease;
         }
         
         .typing-indicator:empty {
@@ -444,7 +550,10 @@
         input, button, select, textarea {
             padding: 5px;
             margin: 2px;
-            border: 1px solid #ccc;
+            border: 1px solid var(--border-primary);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
         }
         
         textarea {
@@ -453,35 +562,37 @@
         }
         
         button {
-            background: #007cba;
-            color: white;
+            background: var(--accent-primary);
+            color: var(--text-light);
             cursor: pointer;
+            transition: background-color 0.3s ease;
         }
         
         button:hover {
-            background: #005a87;
+            background: var(--accent-secondary);
         }
         
         button:disabled {
-            background: #ccc;
+            background: var(--text-secondary);
             cursor: not-allowed;
         }
         
         .subject-item {
             padding: 8px;
             margin: 2px 0;
-            background: white;
-            border: 1px solid #ddd;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-tertiary);
             cursor: pointer;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
         }
         
         .subject-item:hover {
-            background: #f0f0f0;
+            background: var(--bg-hover);
         }
         
         .subject-item.active {
-            background: #007cba;
-            color: white;
+            background: var(--accent-primary);
+            color: var(--text-light);
         }
         
         .modal {
@@ -491,34 +602,43 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.5);
+            background: var(--bg-modal);
+            transition: background-color 0.3s ease;
         }
         
         .modal-content {
-            background: white;
+            background: var(--bg-secondary);
             margin: 100px auto;
             padding: 20px;
             width: 400px;
-            border: 1px solid #ccc;
+            border: 1px solid var(--border-primary);
             border-radius: 8px;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
         }
         
         .toast {
             position: fixed;
             top: 20px;
             right: 20px;
-            background: #007cba;
-            color: white;
+            background: var(--accent-primary);
+            color: var(--text-light);
             padding: 10px 20px;
             border-radius: 3px;
+            transition: background-color 0.3s ease;
         }
         
         .error {
-            background: #d32f2f;
+            background: var(--text-error) !important;
         }
         
         .success {
-            background: #388e3c;
+            background: var(--text-success) !important;
+        }
+        
+        /* Ensure placeholders are visible in dark theme */
+        input::placeholder, textarea::placeholder {
+            color: var(--text-secondary);
+            opacity: 0.8;
         }
         
         @media (max-width: 800px) {
@@ -544,6 +664,7 @@
         User: <span id="debugUser">none</span><br>
         Online Users: <span id="debugOnlineUsers">0</span><br>
         API Status: <span id="debugAPI">checking...</span><br>
+        Theme: <span id="debugTheme">light</span><br>
     </div>
     
     <div class="container">
@@ -553,6 +674,7 @@
             </div>
             <div class="header-right">
                 <button onclick="openModal()" style="float: right;">New Conversation</button>
+                <button id="themeToggle" class="theme-toggle" onclick="toggleTheme()">🌙</button>
                 <button id="profileBtn" class="profile-button" onclick="openProfileModal()">
                     <div id="headerAvatar" class="user-avatar">?</div>
                     <span id="headerUserName">Profile</span>
@@ -581,6 +703,7 @@
                         <li>User profiles & status</li>
                         <li>Conversation management</li>
                         <li>Easy search</li>
+                        <li>Dark/Light theme</li>
                         <li>User-friendly</li>
                         <li>Works on all devices</li>
                     </ul>
@@ -613,7 +736,7 @@
                             <button id="clearFileBtn" onclick="clearSelectedFile()" style="display: none; font-size: 12px; padding: 2px 8px;">✕</button>
                         </div>
                         
-                        <div style="font-size: 12px; color: #666; margin: 5px 0;">
+                        <div style="font-size: 12px; color: var(--text-secondary); margin: 5px 0;">
                             <span id="charCount">0/500 characters</span>
                             <span id="fileInfo" style="margin-left: 10px;"></span>
                         </div>
@@ -636,7 +759,7 @@
             <h3>Create New Conversation</h3>
             <label>Title:</label><br>
             <input type="text" id="newTitle" style="width: 90%;" maxlength="100" placeholder="Conversation title...">
-            <div style="font-size: 12px; color: #666; margin: 5px 0;">
+            <div style="font-size: 12px; color: var(--text-secondary); margin: 5px 0;">
                 <span id="titleCount">0/100 characters</span>
             </div>
             <br><br>
@@ -678,7 +801,7 @@
             
             <div style="margin-bottom: 15px;">
                 <label>Theme:</label><br>
-                <select id="profileTheme" style="width: 95%;">
+                <select id="profileTheme" onchange="applyTheme(this.value)" style="width: 95%;">
                     <option value="light">Light</option>
                     <option value="dark">Dark</option>
                 </select>
@@ -717,6 +840,49 @@
         let usersPollTimer = null;
         let heartbeatTimer = null;
         let apiWorking = false;
+        let currentTheme = 'light';
+        
+        // Theme Management Functions
+        function initializeTheme() {
+            // Get theme from profile or localStorage
+            const savedTheme = userProfile.theme || localStorage.getItem('kitchenChatTheme') || 'light';
+            applyTheme(savedTheme);
+        }
+        
+        function applyTheme(theme) {
+            console.log('Applying theme:', theme);
+            currentTheme = theme;
+            document.documentElement.setAttribute('data-theme', theme);
+            
+            // Update theme selector
+            const themeSelect = document.getElementById('profileTheme');
+            if (themeSelect) {
+                themeSelect.value = theme;
+            }
+            
+            // Update toggle button
+            const toggleBtn = document.getElementById('themeToggle');
+            if (toggleBtn) {
+                toggleBtn.textContent = theme === 'dark' ? '☀️' : '🌙';
+                toggleBtn.title = theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme';
+            }
+            
+            // Save to localStorage and profile
+            localStorage.setItem('kitchenChatTheme', theme);
+            if (userProfile) {
+                userProfile.theme = theme;
+                saveProfileToStorage();
+            }
+            
+            updateDebugInfo();
+            console.log('Theme applied successfully:', theme);
+        }
+        
+        function toggleTheme() {
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            applyTheme(newTheme);
+            showToast(`Switched to ${newTheme} theme`, 'success');
+        }
         
         // Debug function
         function updateDebugInfo() {
@@ -724,6 +890,7 @@
             document.getElementById('debugUser').textContent = userName || 'none';
             document.getElementById('debugOnlineUsers').textContent = onlineUsers.length;
             document.getElementById('debugAPI').textContent = apiWorking ? 'working' : 'offline';
+            document.getElementById('debugTheme').textContent = currentTheme;
         }
         
         // Generate unique user ID
@@ -742,7 +909,7 @@
                 userProfile.status = 'online';
             }
             if (!userProfile.theme) {
-                userProfile.theme = 'light';
+                userProfile.theme = currentTheme;
             }
             if (userProfile.notifications === undefined) {
                 userProfile.notifications = true;
@@ -818,11 +985,18 @@
                 return;
             }
             
+            const selectedTheme = document.getElementById('profileTheme').value;
+            
             userProfile.displayName = displayName;
             userProfile.bio = document.getElementById('profileBio').value.trim();
-            userProfile.theme = document.getElementById('profileTheme').value;
+            userProfile.theme = selectedTheme;
             userProfile.notifications = document.getElementById('profileNotifications').checked;
             userProfile.soundEnabled = document.getElementById('profileSound').checked;
+            
+            // Apply theme if it changed
+            if (selectedTheme !== currentTheme) {
+                applyTheme(selectedTheme);
+            }
             
             saveProfileToStorage();
             updateProfileUI();
@@ -1061,6 +1235,7 @@
         // Start the application
         window.onload = function() {
             console.log('Kitchen Chat loading...');
+            initializeTheme(); // Initialize theme first
             initializeProfile();
             loadConversations();
             loadOnlineUsers();

@@ -82,6 +82,130 @@
             transition: background-color 0.3s ease, border-color 0.3s ease;
         }
         
+        /* Login/Auth Styles */
+        .auth-container {
+            max-width: 400px;
+            margin: 100px auto;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-primary);
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+        
+        .auth-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .auth-header h1 {
+            color: var(--accent-primary);
+            margin-bottom: 10px;
+        }
+        
+        .auth-tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border: 1px solid var(--border-primary);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .auth-tab {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            background: var(--bg-tertiary);
+            cursor: pointer;
+            border: none;
+            color: var(--text-primary);
+            transition: background-color 0.3s ease;
+        }
+        
+        .auth-tab.active {
+            background: var(--accent-primary);
+            color: var(--text-light);
+        }
+        
+        .auth-tab:hover:not(.active) {
+            background: var(--bg-hover);
+        }
+        
+        .auth-form {
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border-primary);
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+        }
+        
+        .auth-button {
+            width: 100%;
+            padding: 12px;
+            background: var(--accent-primary);
+            color: var(--text-light);
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        
+        .auth-button:hover {
+            background: var(--accent-secondary);
+        }
+        
+        .auth-button:disabled {
+            background: var(--text-secondary);
+            cursor: not-allowed;
+        }
+        
+        .password-requirements {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 5px;
+        }
+        
+        .theme-toggle-auth {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-primary);
+            color: var(--text-primary);
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .theme-toggle-auth:hover {
+            background: var(--bg-hover);
+        }
+        
+        /* Main app styles (when logged in) */
         header {
             background: var(--bg-accent);
             padding: 10px 20px;
@@ -294,6 +418,21 @@
         
         .profile-button:hover {
             background: var(--accent-secondary);
+        }
+        
+        .logout-button {
+            background: var(--text-error);
+            color: var(--text-light);
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s ease;
+        }
+        
+        .logout-button:hover {
+            background: #b71c1c;
         }
         
         .user-avatar {
@@ -732,6 +871,7 @@
             padding: 10px 20px;
             border-radius: 3px;
             transition: background-color 0.3s ease;
+            z-index: 2000;
         }
         
         .error {
@@ -742,6 +882,15 @@
             background: var(--text-success) !important;
         }
         
+        /* Hide main app when not authenticated */
+        .app-container {
+            display: none;
+        }
+        
+        .app-container.authenticated {
+            display: block;
+        }
+        
         /* Ensure placeholders are visible in dark theme */
         input::placeholder, textarea::placeholder {
             color: var(--text-secondary);
@@ -749,6 +898,11 @@
         }
         
         @media (max-width: 800px) {
+            .auth-container {
+                margin: 50px 20px;
+                padding: 20px;
+            }
+            
             .main {
                 flex-direction: column;
             }
@@ -767,197 +921,260 @@
     <!-- Debug info -->
     <div id="debugInfo" class="debug-info">
         Debug Info:<br>
-        Conversation: <span id="debugConv">none</span><br>
         User: <span id="debugUser">none</span><br>
+        Session: <span id="debugSession">none</span><br>
+        Conversation: <span id="debugConv">none</span><br>
         Online Users: <span id="debugOnlineUsers">0</span><br>
         API Status: <span id="debugAPI">checking...</span><br>
         Theme: <span id="debugTheme">light</span><br>
         Mode: <span id="debugMode">groups</span><br>
     </div>
     
-    <div class="container">
-        <header>
-            <div class="header-left">
-                <h1 style="margin: 0;">Kitchen Chat</h1>
-            </div>
-            <div class="header-right">
-                <button id="newConvBtn" onclick="openModal()">New Conversation</button>
-                <button id="themeToggle" class="theme-toggle" onclick="toggleTheme()">🌙</button>
-                <button id="profileBtn" class="profile-button" onclick="openProfileModal()">
-                    <div id="headerAvatar" class="user-avatar">?</div>
-                    <span id="headerUserName">Profile</span>
-                </button>
-            </div>
-        </header>
+    <!-- Theme toggle for auth screen -->
+    <button id="authThemeToggle" class="theme-toggle-auth" onclick="toggleTheme()" style="display: block;">🌙</button>
+    
+    <!-- Authentication Screen -->
+    <div id="authScreen" class="auth-container">
+        <div class="auth-header">
+            <h1>Kitchen Chat</h1>
+            <p>Simple, secure messaging</p>
+        </div>
         
-        <div class="main">
-            <div class="sidebar">
-                <div class="sidebar-tabs">
-                    <div class="sidebar-tab active" onclick="switchToGroups()">Groups</div>
-                    <div class="sidebar-tab" onclick="switchToDMs()">DMs</div>
-                </div>
-                
-                <div id="groupsView">
-                    <h3>Conversations</h3>
-                    <input type="text" id="search" placeholder="Search..." onkeyup="searchConversations()" style="width: 90%;">
-                    <div id="conversations">
-                        <p>Loading conversations...</p>
-                    </div>
-                </div>
-                
-                <div id="dmsView" style="display: none;">
-                    <h3>Direct Messages</h3>
-                    <input type="text" id="dmSearch" placeholder="Search DMs..." onkeyup="searchDMs()" style="width: 90%;">
-                    <div id="dmConversations">
-                        <p>Loading DMs...</p>
-                    </div>
+        <div class="auth-tabs">
+            <button class="auth-tab active" onclick="switchAuthTab('login')">Login</button>
+            <button class="auth-tab" onclick="switchAuthTab('register')">Register</button>
+        </div>
+        
+        <!-- Login Form -->
+        <div id="loginForm" class="auth-form">
+            <div class="form-group">
+                <label for="loginUsername">Username:</label>
+                <input type="text" id="loginUsername" placeholder="Enter your username" autocomplete="username">
+            </div>
+            <div class="form-group">
+                <label for="loginPassword">Password:</label>
+                <input type="password" id="loginPassword" placeholder="Enter your password" autocomplete="current-password">
+            </div>
+            <button class="auth-button" onclick="login()">Login</button>
+        </div>
+        
+        <!-- Register Form -->
+        <div id="registerForm" class="auth-form" style="display: none;">
+            <div class="form-group">
+                <label for="registerUsername">Username:</label>
+                <input type="text" id="registerUsername" placeholder="Choose a username (min 3 chars)" autocomplete="username">
+            </div>
+            <div class="form-group">
+                <label for="registerEmail">Email (optional):</label>
+                <input type="email" id="registerEmail" placeholder="your@email.com" autocomplete="email">
+            </div>
+            <div class="form-group">
+                <label for="registerPassword">Password:</label>
+                <input type="password" id="registerPassword" placeholder="Choose a secure password" autocomplete="new-password">
+                <div class="password-requirements">
+                    Minimum 6 characters. Passwords are securely hashed with SHA-256.
                 </div>
             </div>
-            
-            <div class="chat">
-                <div id="welcome" style="text-align: center; padding: 50px;">
-                    <h2>Welcome to Kitchen Chat</h2>
-                    <p>A simple chat website. Select a conversation to start or create a new conversation.</p>
-                    <h3>Features:</h3>
-                    <ul style="text-align: left; display: inline-block;">
-                        <li>Real-time messaging</li>
-                        <li>Direct Messages (DMs)</li>
-                        <li>File sharing</li>
-                        <li>Typing indicators</li>
-                        <li>User profiles & status</li>
-                        <li>Conversation management</li>
-                        <li>Easy search</li>
-                        <li>Dark/Light theme</li>
-                        <li>User-friendly</li>
-                        <li>Works on all devices</li>
-                    </ul>
-                    <p><strong>Get Started:</strong> Set up your profile and click "New Conversation" or DM someone!</p>
+            <div class="form-group">
+                <label for="registerPasswordConfirm">Confirm Password:</label>
+                <input type="password" id="registerPasswordConfirm" placeholder="Confirm your password" autocomplete="new-password">
+            </div>
+            <button class="auth-button" onclick="register()">Create Account</button>
+        </div>
+    </div>
+    
+    <!-- Main App (shown when authenticated) -->
+    <div id="mainApp" class="app-container">
+        <div class="container">
+            <header>
+                <div class="header-left">
+                    <h1 style="margin: 0;">Kitchen Chat</h1>
                 </div>
-                
-                <div id="chatArea" style="display: none;">
-                    <h2 id="chatTitle">Conversation</h2>
-                    <div id="chatSubtitle" style="font-size: 12px; color: var(--text-secondary); margin-top: -8px; margin-bottom: 10px;"></div>
-                    <button onclick="refreshMessages()" style="float: right;">Refresh</button>
-                    
-                    <div id="messages" class="messages">
-                        <p>Loading messages...</p>
+                <div class="header-right">
+                    <button id="newConvBtn" onclick="openModal()">New Conversation</button>
+                    <button id="themeToggle" class="theme-toggle" onclick="toggleTheme()">🌙</button>
+                    <button id="profileBtn" class="profile-button" onclick="openProfileModal()">
+                        <div id="headerAvatar" class="user-avatar">?</div>
+                        <span id="headerUserName">Profile</span>
+                    </button>
+                    <button class="logout-button" onclick="logout()">Logout</button>
+                </div>
+            </header>
+            
+            <div class="main">
+                <div class="sidebar">
+                    <div class="sidebar-tabs">
+                        <div class="sidebar-tab active" onclick="switchToGroups()">Groups</div>
+                        <div class="sidebar-tab" onclick="switchToDMs()">DMs</div>
                     </div>
                     
-                    <!-- Typing indicator -->
-                    <div id="typingIndicator" class="typing-indicator"></div>
+                    <div id="groupsView">
+                        <h3>Conversations</h3>
+                        <input type="text" id="search" placeholder="Search..." onkeyup="searchConversations()" style="width: 90%;">
+                        <div id="conversations">
+                            <p>Loading conversations...</p>
+                        </div>
+                    </div>
                     
-                    <div>
-                        <input type="text" id="messageText" placeholder="Type your message..." style="width: 60%;" maxlength="500" onkeypress="checkEnter(event)">
-                        <button id="sendBtn" onclick="sendMessage()" disabled>Send</button>
+                    <div id="dmsView" style="display: none;">
+                        <h3>Direct Messages</h3>
+                        <input type="text" id="dmSearch" placeholder="Search DMs..." onkeyup="searchDMs()" style="width: 90%;">
+                        <div id="dmConversations">
+                            <p>Loading DMs...</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="chat">
+                    <div id="welcome" style="text-align: center; padding: 50px;">
+                        <h2>Welcome to Kitchen Chat</h2>
+                        <p>A simple, secure chat website. Select a conversation to start or create a new conversation.</p>
+                        <h3>Features:</h3>
+                        <ul style="text-align: left; display: inline-block;">
+                            <li>Secure authentication</li>
+                            <li>Real-time messaging</li>
+                            <li>Direct Messages (DMs)</li>
+                            <li>File sharing</li>
+                            <li>Typing indicators</li>
+                            <li>User profiles & status</li>
+                            <li>Conversation management</li>
+                            <li>Easy search</li>
+                            <li>Dark/Light theme</li>
+                            <li>Works on all devices</li>
+                        </ul>
+                        <p><strong>Get Started:</strong> Create a conversation or DM someone!</p>
+                    </div>
+                    
+                    <div id="chatArea" style="display: none;">
+                        <h2 id="chatTitle">Conversation</h2>
+                        <div id="chatSubtitle" style="font-size: 12px; color: var(--text-secondary); margin-top: -8px; margin-bottom: 10px;"></div>
+                        <button onclick="refreshMessages()" style="float: right;">Refresh</button>
                         
-                        <!-- File upload area -->
-                        <div class="file-upload-area">
-                            <div class="file-input-wrapper">
-                                <input type="file" id="fileInput" onchange="handleFileSelect()" accept="*/*">
-                                <label for="fileInput" class="file-select-btn">📎 Attach File</label>
+                        <div id="messages" class="messages">
+                            <p>Loading messages...</p>
+                        </div>
+                        
+                        <!-- Typing indicator -->
+                        <div id="typingIndicator" class="typing-indicator"></div>
+                        
+                        <div>
+                            <input type="text" id="messageText" placeholder="Type your message..." style="width: 60%;" maxlength="500" onkeypress="checkEnter(event)">
+                            <button id="sendBtn" onclick="sendMessage()" disabled>Send</button>
+                            
+                            <!-- File upload area -->
+                            <div class="file-upload-area">
+                                <div class="file-input-wrapper">
+                                    <input type="file" id="fileInput" onchange="handleFileSelect()" accept="*/*">
+                                    <label for="fileInput" class="file-select-btn">📎 Attach File</label>
+                                </div>
+                                <span id="filePreview" class="file-preview">No file selected</span>
+                                <button id="clearFileBtn" onclick="clearSelectedFile()" style="display: none; font-size: 12px; padding: 2px 8px;">✕</button>
                             </div>
-                            <span id="filePreview" class="file-preview">No file selected</span>
-                            <button id="clearFileBtn" onclick="clearSelectedFile()" style="display: none; font-size: 12px; padding: 2px 8px;">✕</button>
-                        </div>
-                        
-                        <div style="font-size: 12px; color: var(--text-secondary); margin: 5px 0;">
-                            <span id="charCount">0/500 characters</span>
-                            <span id="fileInfo" style="margin-left: 10px;"></span>
+                            
+                            <div style="font-size: 12px; color: var(--text-secondary); margin: 5px 0;">
+                                <span id="charCount">0/500 characters</span>
+                                <span id="fileInfo" style="margin-left: 10px;"></span>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-            
-            <div class="users-sidebar">
-                <h3>Online Users</h3>
-                <div id="usersList" class="users-list">
-                    <p>Loading users...</p>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Modal for new conversation -->
-    <div id="modal" class="modal">
-        <div class="modal-content">
-            <h3>Create New Conversation</h3>
-            <label>Title:</label><br>
-            <input type="text" id="newTitle" style="width: 90%;" maxlength="100" placeholder="Conversation title...">
-            <div style="font-size: 12px; color: var(--text-secondary); margin: 5px 0;">
-                <span id="titleCount">0/100 characters</span>
-            </div>
-            <br><br>
-            <button onclick="createConversation()">Create</button>
-            <button onclick="closeModal()">Cancel</button>
-        </div>
-    </div>
-    
-    <!-- Profile Modal -->
-    <div id="profileModal" class="profile-modal">
-        <div class="profile-modal-content">
-            <h3>User Profile</h3>
-            
-            <div class="profile-header">
-                <div id="profileAvatar" class="profile-avatar-large" onclick="changeAvatar()">?</div>
-                <div class="profile-info">
-                    <input type="text" id="profileDisplayName" placeholder="Display Name" style="width: 100%; font-size: 16px; font-weight: bold; margin-bottom: 10px;">
-                    <div class="status-selector">
-                        <div class="status-option active" data-status="online" onclick="selectStatus('online')">
-                            <span class="status-indicator status-online"></span> Online
-                        </div>
-                        <div class="status-option" data-status="away" onclick="selectStatus('away')">
-                            <span class="status-indicator status-away"></span> Away
-                        </div>
-                        <div class="status-option" data-status="busy" onclick="selectStatus('busy')">
-                            <span class="status-indicator status-busy"></span> Busy
-                        </div>
-                        <div class="status-option" data-status="offline" onclick="selectStatus('offline')">
-                            <span class="status-indicator status-offline"></span> Offline
-                        </div>
+                
+                <div class="users-sidebar">
+                    <h3>Online Users</h3>
+                    <div id="usersList" class="users-list">
+                        <p>Loading users...</p>
                     </div>
                 </div>
             </div>
-            
-            <div style="margin-bottom: 15px;">
-                <label>Bio:</label><br>
-                <textarea id="profileBio" placeholder="Tell others about yourself..." style="width: 90%; height: 60px; resize: vertical;"></textarea>
+        </div>
+        
+        <!-- Modal for new conversation -->
+        <div id="modal" class="modal">
+            <div class="modal-content">
+                <h3>Create New Conversation</h3>
+                <label>Title:</label><br>
+                <input type="text" id="newTitle" style="width: 90%;" maxlength="100" placeholder="Conversation title...">
+                <div style="font-size: 12px; color: var(--text-secondary); margin: 5px 0;">
+                    <span id="titleCount">0/100 characters</span>
+                </div>
+                <br><br>
+                <button onclick="createConversation()">Create</button>
+                <button onclick="closeModal()">Cancel</button>
             </div>
-            
-            <div style="margin-bottom: 15px;">
-                <label>Theme:</label><br>
-                <select id="profileTheme" onchange="applyTheme(this.value)" style="width: 95%;">
-                    <option value="light">Light</option>
-                    <option value="dark">Dark</option>
-                </select>
-            </div>
-            
-            <div style="margin-bottom: 15px;">
-                <label>
-                    <input type="checkbox" id="profileNotifications"> Enable notifications
-                </label><br>
-                <label>
-                    <input type="checkbox" id="profileSound"> Enable sound
-                </label>
-            </div>
-            
-            <div>
-                <button onclick="saveProfile()">Save Profile</button>
-                <button onclick="closeProfileModal()">Cancel</button>
+        </div>
+        
+        <!-- Profile Modal -->
+        <div id="profileModal" class="profile-modal">
+            <div class="profile-modal-content">
+                <h3>User Profile</h3>
+                
+                <div class="profile-header">
+                    <div id="profileAvatar" class="profile-avatar-large">?</div>
+                    <div class="profile-info">
+                        <div class="profile-name" id="profileDisplayName"></div>
+                        <div class="status-selector">
+                            <div class="status-option active" data-status="online" onclick="selectStatus('online')">
+                                <span class="status-indicator status-online"></span> Online
+                            </div>
+                            <div class="status-option" data-status="away" onclick="selectStatus('away')">
+                                <span class="status-indicator status-away"></span> Away
+                            </div>
+                            <div class="status-option" data-status="busy" onclick="selectStatus('busy')">
+                                <span class="status-indicator status-busy"></span> Busy
+                            </div>
+                            <div class="status-option" data-status="offline" onclick="selectStatus('offline')">
+                                <span class="status-indicator status-offline"></span> Offline
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 15px;">
+                    <label>Bio:</label><br>
+                    <textarea id="profileBio" placeholder="Tell others about yourself..." style="width: 90%; height: 60px; resize: vertical;"></textarea>
+                </div>
+                
+                <div style="margin-bottom: 15px;">
+                    <label>Theme:</label><br>
+                    <select id="profileTheme" onchange="applyTheme(this.value)" style="width: 95%;">
+                        <option value="light">Light</option>
+                        <option value="dark">Dark</option>
+                    </select>
+                </div>
+                
+                <div style="margin-bottom: 15px;">
+                    <label>
+                        <input type="checkbox" id="profileNotifications"> Enable notifications
+                    </label><br>
+                    <label>
+                        <input type="checkbox" id="profileSound"> Enable sound
+                    </label>
+                </div>
+                
+                <div>
+                    <button onclick="saveProfile()">Save Profile</button>
+                    <button onclick="closeProfileModal()">Cancel</button>
+                </div>
             </div>
         </div>
     </div>
     
     <script>
-        // Enhanced JavaScript with DM functionality
+        // Authentication and app variables
+        let currentUser = null;
+        let sessionToken = localStorage.getItem('kitchenChatSession') || null;
+        let isAuthenticated = false;
+        
+        // Enhanced JavaScript with authentication and DM functionality
         let currentConversationId = null;
-        let currentDMUser = null; // For tracking DM conversations
-        let isInDMMode = false; // Track if we're in DM or group mode
+        let currentDMUser = null;
+        let isInDMMode = false;
         let conversations = [];
         let dmConversations = [];
         let messages = [];
-        let userName = localStorage.getItem('kitchenChatUser') || '';
+        let userName = '';
         let userId = localStorage.getItem('kitchenChatUserId') || generateUserId();
-        let userProfile = JSON.parse(localStorage.getItem('kitchenChatProfile') || '{}');
+        let userProfile = {};
         let onlineUsers = [];
         let pollTimer = null;
         let dmPollTimer = null;
@@ -968,7 +1185,265 @@
         let usersPollTimer = null;
         let heartbeatTimer = null;
         let apiWorking = false;
-        let currentTheme = 'light';
+        let currentTheme = localStorage.getItem('kitchenChatTheme') || 'light';
+        
+        // Authentication Functions
+        function switchAuthTab(tab) {
+            document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+            document.querySelector(`[onclick="switchAuthTab('${tab}')"]`).classList.add('active');
+            
+            if (tab === 'login') {
+                document.getElementById('loginForm').style.display = 'block';
+                document.getElementById('registerForm').style.display = 'none';
+            } else {
+                document.getElementById('loginForm').style.display = 'none';
+                document.getElementById('registerForm').style.display = 'block';
+            }
+        }
+        
+        async function login() {
+            const username = document.getElementById('loginUsername').value.trim();
+            const password = document.getElementById('loginPassword').value.trim();
+            
+            if (!username || !password) {
+                showToast('Please enter username and password', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/auth', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        action: 'login',
+                        username: username,
+                        password: password
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    // Login successful
+                    currentUser = {
+                        username: result.username,
+                        displayName: result.displayName
+                    };
+                    sessionToken = result.sessionToken;
+                    
+                    // Store session
+                    localStorage.setItem('kitchenChatSession', sessionToken);
+                    
+                    showToast('Login successful!', 'success');
+                    
+                    // Initialize app
+                    await initializeApp();
+                    
+                } else {
+                    showToast(result.error || 'Login failed', 'error');
+                }
+                
+            } catch (error) {
+                console.error('Login error:', error);
+                showToast('Login failed: ' + error.message, 'error');
+            }
+        }
+        
+        async function register() {
+            const username = document.getElementById('registerUsername').value.trim();
+            const email = document.getElementById('registerEmail').value.trim();
+            const password = document.getElementById('registerPassword').value.trim();
+            const confirmPassword = document.getElementById('registerPasswordConfirm').value.trim();
+            
+            // Validation
+            if (!username || !password) {
+                showToast('Username and password are required', 'error');
+                return;
+            }
+            
+            if (username.length < 3) {
+                showToast('Username must be at least 3 characters', 'error');
+                return;
+            }
+            
+            if (password.length < 6) {
+                showToast('Password must be at least 6 characters', 'error');
+                return;
+            }
+            
+            if (password !== confirmPassword) {
+                showToast('Passwords do not match', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/auth', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        action: 'register',
+                        username: username,
+                        email: email,
+                        password: password
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showToast('Registration successful! Please login.', 'success');
+                    
+                    // Switch to login tab and prefill username
+                    switchAuthTab('login');
+                    document.getElementById('loginUsername').value = username;
+                    document.getElementById('loginPassword').focus();
+                    
+                    // Clear register form
+                    document.getElementById('registerForm').reset();
+                    
+                } else {
+                    showToast(result.error || 'Registration failed', 'error');
+                }
+                
+            } catch (error) {
+                console.error('Registration error:', error);
+                showToast('Registration failed: ' + error.message, 'error');
+            }
+        }
+        
+        async function logout() {
+            if (sessionToken) {
+                try {
+                    await fetch('/api/auth', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            action: 'logout',
+                            sessionToken: sessionToken
+                        })
+                    });
+                } catch (error) {
+                    console.error('Logout API error:', error);
+                }
+            }
+            
+            // Clear local session data
+            localStorage.removeItem('kitchenChatSession');
+            localStorage.removeItem('kitchenChatUser');
+            localStorage.removeItem('kitchenChatProfile');
+            localStorage.removeItem('kitchenChatUserId');
+            
+            // Reset app state
+            currentUser = null;
+            sessionToken = null;
+            isAuthenticated = false;
+            userName = '';
+            userProfile = {};
+            
+            // Clear timers
+            if (pollTimer) clearInterval(pollTimer);
+            if (dmPollTimer) clearInterval(dmPollTimer);
+            if (usersPollTimer) clearInterval(usersPollTimer);
+            if (heartbeatTimer) clearInterval(heartbeatTimer);
+            if (typingPollTimer) clearInterval(typingPollTimer);
+            
+            // Show auth screen
+            showAuthScreen();
+            
+            showToast('Logged out successfully', 'success');
+        }
+        
+        async function verifySession() {
+            if (!sessionToken) {
+                return false;
+            }
+            
+            try {
+                const response = await fetch('/api/auth', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        action: 'verify',
+                        sessionToken: sessionToken
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.valid) {
+                    currentUser = {
+                        username: result.username,
+                        displayName: result.displayName
+                    };
+                    return true;
+                } else {
+                    // Session invalid or expired
+                    localStorage.removeItem('kitchenChatSession');
+                    sessionToken = null;
+                    return false;
+                }
+                
+            } catch (error) {
+                console.error('Session verification error:', error);
+                localStorage.removeItem('kitchenChatSession');
+                sessionToken = null;
+                return false;
+            }
+        }
+        
+        function showAuthScreen() {
+            document.getElementById('authScreen').style.display = 'block';
+            document.getElementById('mainApp').classList.remove('authenticated');
+            document.getElementById('authThemeToggle').style.display = 'block';
+            
+            // Clear auth forms
+            document.getElementById('loginUsername').value = '';
+            document.getElementById('loginPassword').value = '';
+            document.getElementById('registerUsername').value = '';
+            document.getElementById('registerEmail').value = '';
+            document.getElementById('registerPassword').value = '';
+            document.getElementById('registerPasswordConfirm').value = '';
+        }
+        
+        function showMainApp() {
+            document.getElementById('authScreen').style.display = 'none';
+            document.getElementById('mainApp').classList.add('authenticated');
+            document.getElementById('authThemeToggle').style.display = 'none';
+        }
+        
+        async function initializeApp() {
+            if (!currentUser) return;
+            
+            isAuthenticated = true;
+            userName = currentUser.displayName;
+            
+            // Initialize user profile with auth data
+            userProfile = {
+                displayName: currentUser.displayName,
+                username: currentUser.username,
+                status: 'online',
+                theme: currentTheme,
+                notifications: true,
+                soundEnabled: true,
+                bio: ''
+            };
+            
+            // Show main app
+            showMainApp();
+            
+            // Initialize app components
+            updateProfileUI();
+            loadConversations();
+            loadOnlineUsers();
+            setupEventListeners();
+            startTypingStatusCleanup();
+            startUsersPolling();
+            registerUserProfile();
+            
+            updateDebugInfo();
+            
+            showToast(`Welcome back, ${currentUser.displayName}!`, 'success');
+        }
         
         // Sidebar switching functions
         function switchToGroups() {
@@ -980,7 +1455,6 @@
             document.getElementById('dmsView').style.display = 'none';
             document.getElementById('newConvBtn').style.display = 'inline-block';
             
-            // Clear current selection
             currentConversationId = null;
             currentDMUser = null;
             showWelcome();
@@ -996,10 +1470,8 @@
             document.getElementById('dmsView').style.display = 'block';
             document.getElementById('newConvBtn').style.display = 'none';
             
-            // Load DMs
             loadDMConversations();
             
-            // Clear current selection
             currentConversationId = null;
             currentDMUser = null;
             showWelcome();
@@ -1011,6 +1483,7 @@
             document.getElementById('chatArea').style.display = 'none';
             if (pollTimer) clearInterval(pollTimer);
             if (typingPollTimer) clearInterval(typingPollTimer);
+            if (dmPollTimer) clearInterval(dmPollTimer);
         }
         
         // DM Functions
@@ -1060,9 +1533,8 @@
         }
         
         function startDMWithUser(otherUser) {
-            if (!userProfile.displayName) {
-                openProfileModal();
-                showToast('Please set up your profile first', 'error');
+            if (!isAuthenticated) {
+                showToast('Please login first', 'error');
                 return;
             }
             
@@ -1071,10 +1543,8 @@
                 return;
             }
             
-            // Switch to DM mode
             switchToDMs();
             
-            // Wait a moment for the switch, then select the DM
             setTimeout(() => {
                 selectDM(otherUser);
             }, 100);
@@ -1083,37 +1553,35 @@
         function selectDM(otherUser, element = null) {
             console.log(`Selecting DM with: ${otherUser}`);
             
-            // Clear typing status from previous conversation
             clearTypingStatus();
             
-            // Stop polling
             if (pollTimer) clearInterval(pollTimer);
             if (typingPollTimer) clearInterval(typingPollTimer);
             if (dmPollTimer) clearInterval(dmPollTimer);
             
-            // Update UI
+            document.querySelectorAll('.subject-item').forEach(item => {
+                item.classList.remove('active');
+            });
             document.querySelectorAll('.dm-item').forEach(item => {
                 item.classList.remove('active');
             });
+            
             if (element) {
                 element.classList.add('active');
             }
             
-            // Show chat area
             document.getElementById('welcome').style.display = 'none';
             document.getElementById('chatArea').style.display = 'block';
             document.getElementById('chatTitle').textContent = `Direct Message`;
             document.getElementById('chatSubtitle').textContent = `Chatting with ${otherUser}`;
             
-            // Set DM mode
             isInDMMode = true;
             currentDMUser = otherUser;
-            currentConversationId = null; // Clear group conversation ID
+            currentConversationId = null;
             
             updateDebugInfo();
             loadDMMessages(otherUser);
             
-            // Clear any selected file and reset typing indicator
             clearSelectedFile();
             document.getElementById('typingIndicator').innerHTML = '';
             typingUsers.clear();
@@ -1162,7 +1630,6 @@
                 html += `</div>`;
                 html += `<div class="message-text">${escapeHtml(msg.content)}</div>`;
                 
-                // Display file attachment if present
                 if (msg.messageType === 'file' && msg.mediaData && msg.attachmentUrl) {
                     const mediaData = msg.mediaData;
                     const filename = mediaData.name || 'File';
@@ -1171,13 +1638,11 @@
                     html += `<div class="file-attachment">`;
                     html += `${fileIcon} ${escapeHtml(filename)} (${mediaData.size || 'Unknown size'})`;
                     
-                    // Check if it's an image and show preview
                     if (isImageFile(filename)) {
                         const downloadUrl = createDownloadLink(msg.attachmentUrl, filename);
                         html += `<br><img src="${msg.attachmentUrl}" class="file-preview-image" onclick="window.open('${downloadUrl}', '_blank')" title="Click to open full size">`;
                     }
                     
-                    // Add download button
                     const downloadUrl = createDownloadLink(msg.attachmentUrl, filename);
                     html += `<a href="${downloadUrl}" class="file-download-btn" download="${escapeHtml(filename)}">Download</a>`;
                     html += `</div>`;
@@ -1208,7 +1673,6 @@
                                 showToast('New DM received!', 'success');
                             }
                             
-                            // Refresh DM conversation list
                             loadDMConversations();
                         }
                     } catch (error) {
@@ -1229,7 +1693,6 @@
                     messageType: fileData ? 'file' : 'text'
                 };
                 
-                // Handle file attachment
                 if (fileData) {
                     messageData.mediaData = fileData.mediaData;
                     messageData.attachmentUrl = fileData.attachmentUrl;
@@ -1238,8 +1701,8 @@
                 await apiCall('/api/direct-messages', 'POST', messageData);
                 
                 showToast('DM sent!', 'success');
-                loadDMMessages(otherUser); // Reload DM messages
-                loadDMConversations(); // Refresh DM list
+                loadDMMessages(otherUser);
+                loadDMConversations();
                 
             } catch (error) {
                 console.error('Error sending DM:', error);
@@ -1249,8 +1712,7 @@
         
         // Theme Management Functions
         function initializeTheme() {
-            const savedTheme = userProfile.theme || localStorage.getItem('kitchenChatTheme') || 'light';
-            applyTheme(savedTheme);
+            applyTheme(currentTheme);
         }
         
         function applyTheme(theme) {
@@ -1263,11 +1725,14 @@
                 themeSelect.value = theme;
             }
             
-            const toggleBtn = document.getElementById('themeToggle');
-            if (toggleBtn) {
-                toggleBtn.textContent = theme === 'dark' ? '☀️' : '🌙';
-                toggleBtn.title = theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme';
-            }
+            // Update both toggle buttons
+            const toggleBtns = [document.getElementById('themeToggle'), document.getElementById('authThemeToggle')];
+            toggleBtns.forEach(btn => {
+                if (btn) {
+                    btn.textContent = theme === 'dark' ? '☀️' : '🌙';
+                    btn.title = theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme';
+                }
+            });
             
             localStorage.setItem('kitchenChatTheme', theme);
             if (userProfile) {
@@ -1285,10 +1750,10 @@
             showToast(`Switched to ${newTheme} theme`, 'success');
         }
         
-        // Debug function
         function updateDebugInfo() {
             document.getElementById('debugConv').textContent = currentConversationId || 'none';
             document.getElementById('debugUser').textContent = userName || 'none';
+            document.getElementById('debugSession').textContent = sessionToken ? 'valid' : 'none';
             document.getElementById('debugOnlineUsers').textContent = onlineUsers.length;
             document.getElementById('debugAPI').textContent = apiWorking ? 'working' : 'offline';
             document.getElementById('debugTheme').textContent = currentTheme;
@@ -1301,40 +1766,16 @@
             return id;
         }
         
-        function initializeProfile() {
-            if (!userProfile.displayName && userName) {
-                userProfile.displayName = userName;
-            }
-            if (!userProfile.status) {
-                userProfile.status = 'online';
-            }
-            if (!userProfile.theme) {
-                userProfile.theme = currentTheme;
-            }
-            if (userProfile.notifications === undefined) {
-                userProfile.notifications = true;
-            }
-            if (userProfile.soundEnabled === undefined) {
-                userProfile.soundEnabled = true;
-            }
-            
-            if (userProfile.displayName && !apiWorking) {
-                console.log('Auto-registering user as online:', userProfile.displayName);
-                registerUserProfile();
-            }
-            
-            updateProfileUI();
-            saveProfileToStorage();
-        }
-        
         function updateProfileUI() {
-            const displayName = userProfile.displayName || userName || 'User';
+            if (!currentUser) return;
+            
+            const displayName = currentUser.displayName;
             const avatar = getInitials(displayName);
             
             document.getElementById('headerUserName').textContent = displayName;
             document.getElementById('headerAvatar').textContent = avatar;
             
-            document.getElementById('profileDisplayName').value = displayName;
+            document.getElementById('profileDisplayName').textContent = displayName;
             document.getElementById('profileAvatar').textContent = avatar;
             document.getElementById('profileBio').value = userProfile.bio || '';
             document.getElementById('profileTheme').value = userProfile.theme || 'light';
@@ -1350,21 +1791,25 @@
         }
         
         function getInitials(name) {
+            if (!name) return '?';
             return name.split(' ').map(word => word[0]).join('').toUpperCase().substring(0, 2);
         }
         
         function saveProfileToStorage() {
-            localStorage.setItem('kitchenChatProfile', JSON.stringify(userProfile));
-            if (userProfile.displayName) {
-                userName = userProfile.displayName;
-                localStorage.setItem('kitchenChatUser', userName);
+            if (isAuthenticated) {
+                // Only save profile data, not auth data
+                const profileData = {
+                    bio: userProfile.bio,
+                    theme: userProfile.theme,
+                    status: userProfile.status,
+                    notifications: userProfile.notifications,
+                    soundEnabled: userProfile.soundEnabled
+                };
+                localStorage.setItem('kitchenChatProfile', JSON.stringify(profileData));
             }
         }
         
         function openProfileModal() {
-            if (!userProfile.status) {
-                userProfile.status = 'online';
-            }
             updateProfileUI();
             document.getElementById('profileModal').style.display = 'block';
         }
@@ -1376,22 +1821,12 @@
         function selectStatus(status) {
             userProfile.status = status;
             updateProfileUI();
-            
-            if (userName) {
-                updateUserStatus(status);
-            }
+            updateUserStatus(status);
         }
         
         function saveProfile() {
-            const displayName = document.getElementById('profileDisplayName').value.trim();
-            if (!displayName) {
-                alert('Please enter a display name');
-                return;
-            }
-            
             const selectedTheme = document.getElementById('profileTheme').value;
             
-            userProfile.displayName = displayName;
             userProfile.bio = document.getElementById('profileBio').value.trim();
             userProfile.theme = selectedTheme;
             userProfile.notifications = document.getElementById('profileNotifications').checked;
@@ -1411,16 +1846,18 @@
             registerUserProfile();
             
             closeProfileModal();
-            showToast('Profile saved! You are now online.', 'success');
+            showToast('Profile updated!', 'success');
         }
         
         async function registerUserProfile() {
+            if (!isAuthenticated || !currentUser) return;
+            
             try {
                 console.log('Registering user profile:', userProfile);
                 
                 const userData = {
                     userId: userId,
-                    displayName: userProfile.displayName,
+                    displayName: currentUser.displayName,
                     bio: userProfile.bio || '',
                     status: userProfile.status || 'online',
                     theme: userProfile.theme || 'light',
@@ -1433,7 +1870,8 @@
                 const response = await fetch('/api/user-status', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${sessionToken}`
                     },
                     body: JSON.stringify(userData)
                 });
@@ -1458,6 +1896,8 @@
         }
         
         async function updateUserStatus(status) {
+            if (!isAuthenticated) return;
+            
             try {
                 console.log('Updating status to:', status);
                 
@@ -1469,7 +1909,8 @@
                 const response = await fetch('/api/user-status', {
                     method: 'PUT',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${sessionToken}`
                     },
                     body: JSON.stringify(userData)
                 });
@@ -1483,8 +1924,7 @@
                     saveProfileToStorage();
                     loadOnlineUsers();
                 } else {
-                    const errorText = await response.text();
-                    console.log('Status update failed:', response.status, errorText);
+                    console.log('Status update failed:', response.status);
                     apiWorking = false;
                     userProfile.status = status;
                     userProfile.lastSeen = new Date().toISOString();
@@ -1502,10 +1942,16 @@
         }
         
         async function loadOnlineUsers() {
+            if (!isAuthenticated) return;
+            
             try {
                 console.log('Loading online users from /api/user-status');
                 
-                const response = await fetch('/api/user-status');
+                const response = await fetch('/api/user-status', {
+                    headers: {
+                        'Authorization': `Bearer ${sessionToken}`
+                    }
+                });
                 
                 if (response.ok) {
                     const data = await response.json();
@@ -1521,23 +1967,12 @@
                         }));
                         console.log(`Loaded ${onlineUsers.length} online users from API`);
                     } else {
-                        console.log('Unexpected API response format:', data);
-                        onlineUsers = [{
-                            uid: userId,
-                            displayName: userProfile.displayName || userName || 'You',
-                            status: 'online',
-                            lastSeen: new Date().toISOString()
-                        }];
+                        onlineUsers = [];
                     }
                 } else {
                     console.log('User status API not available, status:', response.status);
                     apiWorking = false;
-                    onlineUsers = [{
-                        uid: userId,
-                        displayName: userProfile.displayName || userName || 'You',
-                        status: 'online',
-                        lastSeen: new Date().toISOString()
-                    }];
+                    onlineUsers = [];
                 }
                 
                 displayOnlineUsers();
@@ -1545,12 +1980,7 @@
             } catch (error) {
                 console.error('Error loading online users:', error);
                 apiWorking = false;
-                onlineUsers = [{
-                    uid: userId,
-                    displayName: userProfile.displayName || userName || 'You',
-                    status: 'online',
-                    lastSeen: new Date().toISOString()
-                }];
+                onlineUsers = [];
                 displayOnlineUsers();
             }
             updateDebugInfo();
@@ -1560,7 +1990,7 @@
             const container = document.getElementById('usersList');
             
             if (onlineUsers.length === 0) {
-                container.innerHTML = '<p>No users online</p>';
+                container.innerHTML = '<p>No other users online</p>';
                 return;
             }
             
@@ -1594,12 +2024,9 @@
         
         function getStatusText(status, lastSeen) {
             switch (status) {
-                case 'online':
-                    return 'Online';
-                case 'away':
-                    return 'Away';
-                case 'busy':
-                    return 'Busy';
+                case 'online': return 'Online';
+                case 'away': return 'Away';
+                case 'busy': return 'Busy';
                 case 'offline':
                     const lastSeenDate = new Date(lastSeen);
                     const now = new Date();
@@ -1611,14 +2038,13 @@
                     } else {
                         return 'Offline';
                     }
-                default:
-                    return 'Unknown';
+                default: return 'Unknown';
             }
         }
         
         function startUsersPolling() {
             usersPollTimer = setInterval(() => {
-                if (navigator.onLine) {
+                if (navigator.onLine && isAuthenticated) {
                     loadOnlineUsers();
                 }
             }, 15000);
@@ -1626,30 +2052,30 @@
         
         function startHeartbeat() {
             heartbeatTimer = setInterval(() => {
-                if (navigator.onLine && userProfile.displayName && userProfile.status !== 'offline') {
+                if (navigator.onLine && isAuthenticated && userProfile.status !== 'offline') {
                     console.log('Sending heartbeat...');
                     updateUserStatus(userProfile.status);
                 }
             }, 60000);
         }
         
-        window.onload = function() {
+        // App initialization
+        window.onload = async function() {
             console.log('Kitchen Chat loading...');
             initializeTheme();
-            initializeProfile();
-            loadConversations();
-            loadOnlineUsers();
-            setupEventListeners();
-            startTypingStatusCleanup();
-            startUsersPolling();
-            updateDebugInfo();
             
-            if (userProfile.displayName) {
-                console.log('Auto-setting user to online on page load');
-                userProfile.status = 'online';
-                saveProfileToStorage();
-                registerUserProfile();
+            // Check if user has valid session
+            const hasValidSession = await verifySession();
+            
+            if (hasValidSession) {
+                console.log('Valid session found, initializing app');
+                await initializeApp();
+            } else {
+                console.log('No valid session, showing auth screen');
+                showAuthScreen();
             }
+            
+            updateDebugInfo();
         };
         
         function setupEventListeners() {
@@ -1665,6 +2091,15 @@
                 document.getElementById('titleCount').textContent = text.length + '/100 characters';
             };
             
+            // Enter key listeners for auth forms
+            document.getElementById('loginPassword').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') login();
+            });
+            
+            document.getElementById('registerPasswordConfirm').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') register();
+            });
+            
             document.getElementById('modal').onclick = function(e) {
                 if (e.target === this) closeModal();
             };
@@ -1677,13 +2112,13 @@
                 if (currentConversationId || currentDMUser) {
                     clearTypingStatus();
                 }
-                if (userProfile.displayName && apiWorking && userProfile.status !== 'offline') {
+                if (isAuthenticated && userProfile.status !== 'offline') {
                     updateUserStatus('offline');
                 }
             });
             
             document.addEventListener('visibilitychange', () => {
-                if (!document.hidden && userProfile.displayName) {
+                if (!document.hidden && isAuthenticated) {
                     console.log('Page became visible - setting user to online');
                     if (userProfile.status === 'offline') {
                         userProfile.status = 'online';
@@ -1699,39 +2134,34 @@
             const text = document.getElementById('messageText').value.trim();
             const hasContent = text || selectedFile;
             const hasTarget = currentConversationId || currentDMUser;
-            document.getElementById('sendBtn').disabled = !hasContent || !hasTarget;
+            document.getElementById('sendBtn').disabled = !hasContent || !hasTarget || !isAuthenticated;
         }
         
+        // Rest of the messaging functions remain the same but with auth checks...
         function handleTyping() {
-            console.log('handleTyping called');
-            if ((!currentConversationId && !currentDMUser) || !userName) {
+            if (!isAuthenticated || (!currentConversationId && !currentDMUser) || !userName) {
                 return;
             }
             
-            console.log('Sending typing status: true');
             sendTypingStatus(true);
             
             if (typingTimer) clearTimeout(typingTimer);
             
             typingTimer = setTimeout(() => {
-                console.log('Typing timeout - sending false');
                 sendTypingStatus(false);
             }, 2000);
         }
         
         function sendTypingStatus(isTyping) {
-            if (!currentConversationId && !currentDMUser) return;
+            if (!isAuthenticated || (!currentConversationId && !currentDMUser)) return;
             
             const targetId = currentConversationId || `dm_${currentDMUser}`;
-            console.log(`Sending typing status: ${isTyping} for target: ${targetId}`);
             
             apiCall('/api/typing', 'POST', {
                 SubjectId: targetId,
                 UserId: userId,
                 UserName: userName,
                 IsTyping: isTyping
-            }).then(() => {
-                console.log('Typing status sent successfully');
             }).catch((error) => {
                 console.log('Typing status error:', error);
             });
@@ -1751,8 +2181,6 @@
                 .filter(user => user.userId !== userId && user.isTyping)
                 .map(user => user.userName);
             
-            console.log('Updating typing indicator. Typing users:', typingNames);
-            
             if (typingNames.length === 0) {
                 indicator.innerHTML = '';
             } else if (typingNames.length === 1) {
@@ -1771,7 +2199,6 @@
                     if (now - user.timestamp > 8000) {
                         typingUsers.delete(key);
                         updated = true;
-                        console.log(`Cleaned up old typing status for: ${user.userName}`);
                     }
                 }
                 
@@ -1783,9 +2210,7 @@
         
         function loadTypingStatus() {
             const targetId = currentConversationId || `dm_${currentDMUser}`;
-            if (!targetId) return;
-            
-            console.log(`Starting typing status polling for: ${targetId}`);
+            if (!targetId || !isAuthenticated) return;
             
             if (typingPollTimer) {
                 clearInterval(typingPollTimer);
@@ -1796,7 +2221,6 @@
                 
                 try {
                     const response = await apiCall(`/api/typing?SubjectId=${encodeURIComponent(targetId)}`);
-                    console.log('Typing status response:', response);
                     
                     const now = Date.now();
                     typingUsers.clear();
@@ -1822,7 +2246,7 @@
             typingPollTimer = setInterval(loadTyping, 1500);
         }
         
-        // File handling functions
+        // File handling functions (unchanged)
         function handleFileSelect() {
             const fileInput = document.getElementById('fileInput');
             const file = fileInput.files[0];
@@ -1875,15 +2299,9 @@
         
         function getFileIcon(extension) {
             const icons = {
-                'pdf': '📄',
-                'doc': '📝', 'docx': '📝',
-                'xls': '📊', 'xlsx': '📊',
-                'ppt': '📈', 'pptx': '📈',
-                'jpg': '🖼️', 'jpeg': '🖼️', 'png': '🖼️', 'gif': '🖼️',
-                'mp3': '🎵', 'wav': '🎵',
-                'mp4': '🎬', 'avi': '🎬',
-                'zip': '🗜️', 'rar': '🗜️',
-                'txt': '📝'
+                'pdf': '📄', 'doc': '📝', 'docx': '📝', 'xls': '📊', 'xlsx': '📊',
+                'ppt': '📈', 'pptx': '📈', 'jpg': '🖼️', 'jpeg': '🖼️', 'png': '🖼️', 'gif': '🖼️',
+                'mp3': '🎵', 'wav': '🎵', 'mp4': '🎬', 'avi': '🎬', 'zip': '🗜️', 'rar': '🗜️', 'txt': '📝'
             };
             return icons[extension] || '📁';
         }
@@ -1916,6 +2334,11 @@
                 headers: {'Content-Type': 'application/json'}
             };
             
+            // Add auth header if available
+            if (sessionToken && isAuthenticated) {
+                options.headers['Authorization'] = `Bearer ${sessionToken}`;
+            }
+            
             if (data) {
                 options.body = JSON.stringify(data);
             }
@@ -1923,9 +2346,18 @@
             try {
                 const response = await fetch(url, options);
                 console.log(`API Response: ${response.status}`);
+                
+                // Check if session expired
+                if (response.status === 401 && isAuthenticated) {
+                    showToast('Session expired. Please login again.', 'error');
+                    logout();
+                    return null;
+                }
+                
                 if (!response.ok) {
                     throw new Error('Network error: ' + response.status);
                 }
+                
                 const result = await response.json();
                 console.log('API Result:', result);
                 return result;
@@ -1937,6 +2369,8 @@
         }
         
         async function loadConversations() {
+            if (!isAuthenticated) return;
+            
             console.log('Loading conversations...');
             try {
                 conversations = await apiCall('/api/subjects');
@@ -1971,7 +2405,6 @@
                 item.addEventListener('click', function() {
                     const id = this.getAttribute('data-id');
                     const title = this.getAttribute('data-title');
-                    console.log(`Selecting conversation: ${id} - ${title}`);
                     selectConversation(id, title, this);
                 });
             });
@@ -1988,6 +2421,8 @@
         }
         
         function selectConversation(id, title, element) {
+            if (!isAuthenticated) return;
+            
             console.log(`Selecting conversation: ${id}`);
             
             clearTypingStatus();
@@ -2012,16 +2447,9 @@
             document.getElementById('chatTitle').textContent = title;
             document.getElementById('chatSubtitle').textContent = 'Group conversation';
             
-            // Set group mode
             isInDMMode = false;
             currentConversationId = id;
             currentDMUser = null;
-            
-            if (!userName && !userProfile.displayName) {
-                openProfileModal();
-                showToast('Please set up your profile first', 'error');
-                return;
-            }
             
             updateDebugInfo();
             loadMessages();
@@ -2030,19 +2458,14 @@
             clearSelectedFile();
             document.getElementById('typingIndicator').innerHTML = '';
             typingUsers.clear();
-            
-            console.log(`Conversation selected: ${id}`);
         }
         
         async function loadMessages() {
-            if (!currentConversationId) return;
-            
-            console.log(`Loading messages for conversation: ${currentConversationId}`);
+            if (!currentConversationId || !isAuthenticated) return;
             
             try {
                 document.getElementById('messages').innerHTML = '<p>Loading messages...</p>';
                 messages = await apiCall(`/api/posts?SubjectId=${currentConversationId}`);
-                console.log(`Loaded ${messages.length} messages`);
                 displayMessages();
                 startPolling();
             } catch (error) {
@@ -2063,7 +2486,6 @@
             let html = '';
             messages.forEach(msg => {
                 if (isInDMMode) {
-                    // DM message display
                     const isOwn = msg.sender === userProfile.displayName;
                     const authorName = isOwn ? 'You' : msg.sender;
                     const initials = getInitials(msg.sender);
@@ -2076,28 +2498,9 @@
                     html += `<span class="message-time">${formatTime(msg.createdAt)}</span>`;
                     html += `</div>`;
                     html += `<div class="message-text">${escapeHtml(msg.content)}</div>`;
-                    
-                    // Handle file attachments for DMs
-                    if (msg.messageType === 'file' && msg.mediaData && msg.attachmentUrl) {
-                        const mediaData = msg.mediaData;
-                        const filename = mediaData.name || 'File';
-                        const fileIcon = getFileIcon(getFileExtension(filename));
-                        
-                        html += `<div class="file-attachment">`;
-                        html += `${fileIcon} ${escapeHtml(filename)} (${mediaData.size || 'Unknown size'})`;
-                        
-                        if (isImageFile(filename)) {
-                            const downloadUrl = createDownloadLink(msg.attachmentUrl, filename);
-                            html += `<br><img src="${msg.attachmentUrl}" class="file-preview-image" onclick="window.open('${downloadUrl}', '_blank')" title="Click to open full size">`;
-                        }
-                        
-                        const downloadUrl = createDownloadLink(msg.attachmentUrl, filename);
-                        html += `<a href="${downloadUrl}" class="file-download-btn" download="${escapeHtml(filename)}">Download</a>`;
-                        html += `</div>`;
-                    }
+                    html += `</div></div>`;
                 } else {
-                    // Group message display (original)
-                    const isOwn = msg.PostedBy === userName || msg.PostedBy === userProfile.displayName;
+                    const isOwn = msg.PostedBy === userName;
                     const authorName = msg.PostedBy || 'Anonymous';
                     const initials = getInitials(authorName);
                     
@@ -2109,29 +2512,8 @@
                     html += `<span class="message-time">${formatTime(msg.CreatedAt)}</span>`;
                     html += `</div>`;
                     html += `<div class="message-text">${escapeHtml(msg.Content)}</div>`;
-                    
-                    // Handle file attachments for group messages
-                    if (msg.MessageType === 'file' && msg.MediaData && msg.AttachmentUrl) {
-                        const mediaData = msg.MediaData;
-                        const filename = mediaData.name || 'File';
-                        const fileIcon = getFileIcon(getFileExtension(filename));
-                        
-                        html += `<div class="file-attachment">`;
-                        html += `${fileIcon} ${escapeHtml(filename)} (${mediaData.size || 'Unknown size'})`;
-                        
-                        if (isImageFile(filename)) {
-                            const downloadUrl = createDownloadLink(msg.AttachmentUrl, filename);
-                            html += `<br><img src="${msg.AttachmentUrl}" class="file-preview-image" onclick="window.open('${downloadUrl}', '_blank')" title="Click to open full size">`;
-                        }
-                        
-                        const downloadUrl = createDownloadLink(msg.AttachmentUrl, filename);
-                        html += `<a href="${downloadUrl}" class="file-download-btn" download="${escapeHtml(filename)}">Download</a>`;
-                        html += `</div>`;
-                    }
+                    html += `</div></div>`;
                 }
-                
-                html += `</div>`;
-                html += `</div>`;
             });
             
             container.innerHTML = html;
@@ -2142,7 +2524,7 @@
             if (pollTimer) clearInterval(pollTimer);
             
             pollTimer = setInterval(async () => {
-                if (currentConversationId && navigator.onLine && !isInDMMode) {
+                if (currentConversationId && navigator.onLine && !isInDMMode && isAuthenticated) {
                     try {
                         const newMessages = await apiCall(`/api/posts?SubjectId=${currentConversationId}`);
                         if (newMessages.length !== messages.length) {
@@ -2163,23 +2545,13 @@
         
         async function sendMessage() {
             const text = document.getElementById('messageText').value.trim();
-            if ((!text && !selectedFile)) return;
-            
-            const authorName = userProfile.displayName || userName;
-            if (!authorName) {
-                openProfileModal();
-                showToast('Please set up your profile first', 'error');
-                return;
-            }
+            if (!isAuthenticated || (!text && !selectedFile)) return;
             
             clearTypingStatus();
-            
-            console.log('Sending message:', text);
             
             try {
                 let fileData = null;
                 
-                // Handle file attachment
                 if (selectedFile) {
                     try {
                         const base64Data = await fileToBase64(selectedFile);
@@ -2201,21 +2573,18 @@
                     }
                 }
                 
-                // Clear input immediately
                 document.getElementById('messageText').value = '';
                 document.getElementById('charCount').textContent = '0/500 characters';
                 clearSelectedFile();
                 document.getElementById('sendBtn').disabled = true;
                 
                 if (isInDMMode && currentDMUser) {
-                    // Send DM
                     await sendDMMessage(currentDMUser, text, fileData);
                 } else if (currentConversationId) {
-                    // Send group message
                     const messageData = {
                         Content: text || '',
                         SubjectId: currentConversationId,
-                        PostedBy: authorName,
+                        PostedBy: userName,
                         MessageType: selectedFile ? 'file' : 'text'
                     };
                     
@@ -2238,34 +2607,6 @@
             }
         }
         
-        async function sendDMMessage(otherUser, content, fileData = null) {
-            console.log('Sending DM to:', otherUser, 'Content:', content);
-            
-            try {
-                const messageData = {
-                    sender: userProfile.displayName,
-                    recipient: otherUser,
-                    content: content,
-                    messageType: fileData ? 'file' : 'text'
-                };
-                
-                if (fileData) {
-                    messageData.mediaData = fileData.mediaData;
-                    messageData.attachmentUrl = fileData.attachmentUrl;
-                }
-                
-                await apiCall('/api/direct-messages', 'POST', messageData);
-                
-                showToast('DM sent!', 'success');
-                loadDMMessages(otherUser);
-                loadDMConversations();
-                
-            } catch (error) {
-                console.error('Error sending DM:', error);
-                throw error;
-            }
-        }
-        
         function checkEnter(event) {
             if (event.key === 'Enter') {
                 sendMessage();
@@ -2273,6 +2614,8 @@
         }
         
         function refreshMessages() {
+            if (!isAuthenticated) return;
+            
             if (isInDMMode && currentDMUser) {
                 loadDMMessages(currentDMUser);
                 showToast('DM messages refreshed', 'success');
@@ -2283,6 +2626,7 @@
         }
         
         function openModal() {
+            if (!isAuthenticated) return;
             document.getElementById('modal').style.display = 'block';
             document.getElementById('newTitle').focus();
         }
@@ -2294,25 +2638,18 @@
         }
         
         async function createConversation() {
+            if (!isAuthenticated) return;
+            
             const title = document.getElementById('newTitle').value.trim();
             if (!title) {
                 alert('Please enter a title');
                 return;
             }
             
-            const authorName = userProfile.displayName || userName;
-            if (!authorName) {
-                openProfileModal();
-                showToast('Please set up your profile first', 'error');
-                return;
-            }
-            
-            console.log('Creating conversation:', title);
-            
             try {
                 await apiCall('/api/subjects', 'POST', {
                     Title: title,
-                    CreatedBy: authorName
+                    CreatedBy: userName
                 });
                 
                 showToast('Conversation created!', 'success');
@@ -2384,19 +2721,20 @@
         
         window.addEventListener('online', () => {
             showToast('Connection restored', 'success');
-            if (isInDMMode && currentDMUser) {
-                loadDMMessages(currentDMUser);
-            } else if (currentConversationId) {
-                loadMessages();
-            }
-            loadOnlineUsers();
-            
-            if (userProfile.displayName && userProfile.status === 'offline') {
-                console.log('Connection restored - setting user back to online');
-                userProfile.status = 'online';
-                saveProfileToStorage();
-                updateProfileUI();
-                registerUserProfile();
+            if (isAuthenticated) {
+                if (isInDMMode && currentDMUser) {
+                    loadDMMessages(currentDMUser);
+                } else if (currentConversationId) {
+                    loadMessages();
+                }
+                loadOnlineUsers();
+                
+                if (userProfile.status === 'offline') {
+                    userProfile.status = 'online';
+                    saveProfileToStorage();
+                    updateProfileUI();
+                    registerUserProfile();
+                }
             }
         });
         

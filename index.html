@@ -18,6 +18,7 @@
             --bg-hover: #f0f0f0;
             --bg-active: #007cba;
             --bg-modal: rgba(0,0,0,0.5);
+            --bg-announcement: #fff3cd;
             
             --text-primary: #333;
             --text-secondary: #666;
@@ -25,14 +26,17 @@
             --text-light: white;
             --text-error: #d32f2f;
             --text-success: #388e3c;
+            --text-announcement: #856404;
             
             --border-primary: #ccc;
             --border-secondary: #bbb;
             --border-tertiary: #ddd;
+            --border-announcement: #ffeaa7;
             
             --accent-primary: #007cba;
             --accent-secondary: #005a87;
             --dm-accent: #9c27b0;
+            --announcement-accent: #f39c12;
         }
         
         /* Dark Theme Colors */
@@ -47,6 +51,7 @@
             --bg-hover: #404040;
             --bg-active: #007cba;
             --bg-modal: rgba(0,0,0,0.8);
+            --bg-announcement: #2d2419;
             
             --text-primary: #e0e0e0;
             --text-secondary: #b0b0b0;
@@ -54,14 +59,17 @@
             --text-light: white;
             --text-error: #f44336;
             --text-success: #4caf50;
+            --text-announcement: #ffeaa7;
             
             --border-primary: #555;
             --border-secondary: #666;
             --border-tertiary: #444;
+            --border-announcement: #3d3020;
             
             --accent-primary: #4dabf7;
             --accent-secondary: #3498db;
             --dm-accent: #e91e63;
+            --announcement-accent: #f39c12;
         }
         
         /* Minimal CSS - only the essentials (OLD DESIGN) */
@@ -219,6 +227,99 @@
             display: flex;
             align-items: center;
             gap: 10px;
+        }
+        
+        /* Announcements Styles */
+        .announcements-section {
+            background: var(--bg-announcement);
+            border-bottom: 1px solid var(--border-announcement);
+            padding: 10px 20px;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+        
+        .announcements-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .announcements-header h3 {
+            margin: 0;
+            color: var(--text-announcement);
+            font-size: 16px;
+        }
+        
+        .announcement-item {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-announcement);
+            border-left: 4px solid var(--announcement-accent);
+            padding: 10px;
+            margin: 8px 0;
+            transition: all 0.3s ease;
+        }
+        
+        .announcement-item:hover {
+            background: var(--bg-hover);
+        }
+        
+        .announcement-item.priority-high {
+            border-left-color: #e74c3c;
+        }
+        
+        .announcement-item.priority-urgent {
+            border-left-color: #c0392b;
+            background: #fdf2f2;
+        }
+        
+        [data-theme="dark"] .announcement-item.priority-urgent {
+            background: #2d1b1f;
+        }
+        
+        .announcement-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 5px;
+        }
+        
+        .announcement-title {
+            font-weight: bold;
+            color: var(--text-primary);
+            font-size: 14px;
+            margin: 0;
+        }
+        
+        .announcement-meta {
+            font-size: 11px;
+            color: var(--text-secondary);
+            display: flex;
+            gap: 10px;
+        }
+        
+        .announcement-content {
+            color: var(--text-tertiary);
+            font-size: 13px;
+            line-height: 1.4;
+            margin-top: 5px;
+        }
+        
+        .priority-badge {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        
+        .priority-normal { background: #95a5a6; color: white; }
+        .priority-high { background: #e74c3c; color: white; }
+        .priority-urgent { background: #c0392b; color: white; animation: pulse 2s infinite; }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
         }
         
         .main {
@@ -563,10 +664,24 @@
             transition: background-color 0.3s ease, border-color 0.3s ease;
         }
         
+        .modal-content.announcement-modal {
+            width: 500px;
+        }
+        
         /* Ensure placeholders are visible in dark theme */
         input::placeholder, textarea::placeholder {
             color: var(--text-secondary);
             opacity: 0.8;
+        }
+        
+        /* Admin controls */
+        .admin-controls {
+            display: none;
+        }
+        
+        .admin-controls.show {
+            display: flex;
+            gap: 5px;
         }
         
         @media (max-width: 800px) {
@@ -596,6 +711,14 @@
                 right: 10px;
                 width: 280px;
                 height: 350px;
+            }
+            
+            .announcements-section {
+                padding: 8px 15px;
+            }
+            
+            .announcement-item {
+                padding: 8px;
             }
         }
     </style>
@@ -670,6 +793,20 @@
                 </div>
             </header>
             
+            <!-- Announcements Section -->
+            <div class="announcements-section">
+                <div class="announcements-header">
+                    <h3>📢 Announcements</h3>
+                    <div>
+                        <button onclick="refreshAnnouncements()" style="font-size: 12px; padding: 3px 8px;">Refresh</button>
+                        <button id="newAnnouncementBtn" onclick="openAnnouncementModal()" style="font-size: 12px; padding: 3px 8px; display: none;">New Announcement</button>
+                    </div>
+                </div>
+                <div id="announcementsContainer">
+                    <p>Loading announcements...</p>
+                </div>
+            </div>
+            
             <div class="main">
                 <div class="sidebar">
                     <h3>Conversations</h3>
@@ -690,6 +827,7 @@
                             <li>Direct Messages (DMs)</li>
                             <li>Online users list</li>
                             <li>Profile management</li>
+                            <li>Announcements system</li>
                             <li>Dark/Light theme</li>
                             <li>Works on all devices</li>
                         </ul>
@@ -737,6 +875,38 @@
                 <br><br>
                 <button onclick="createConversation()">Create</button>
                 <button onclick="closeModal()">Cancel</button>
+            </div>
+        </div>
+        
+        <!-- Announcement Modal -->
+        <div id="announcementModal" class="modal">
+            <div class="modal-content announcement-modal">
+                <h3>Create New Announcement</h3>
+                <div class="form-group">
+                    <label>Title:</label>
+                    <input type="text" id="announcementTitle" style="width: 90%;" maxlength="200" placeholder="Announcement title...">
+                    <div style="font-size: 12px; color: var(--text-secondary); margin: 5px 0;">
+                        <span id="announcementTitleCount">0/200 characters</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Content:</label>
+                    <textarea id="announcementContent" style="width: 90%; height: 120px;" maxlength="2000" placeholder="Announcement content..."></textarea>
+                    <div style="font-size: 12px; color: var(--text-secondary); margin: 5px 0;">
+                        <span id="announcementContentCount">0/2000 characters</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Priority:</label>
+                    <select id="announcementPriority" style="width: 94%;">
+                        <option value="normal">Normal</option>
+                        <option value="high">High</option>
+                        <option value="urgent">Urgent</option>
+                    </select>
+                </div>
+                <br>
+                <button onclick="createAnnouncement()">Create Announcement</button>
+                <button onclick="closeAnnouncementModal()">Cancel</button>
             </div>
         </div>
         
@@ -812,7 +982,7 @@
     </div>
     
     <script>
-        // Enhanced JavaScript with DMs, online users, and profile management
+        // Enhanced JavaScript with DMs, online users, profile management, and announcements
         let currentUser = null;
         let isAuthenticated = false;
         let conversations = [];
@@ -821,6 +991,8 @@
         let onlineUsers = [];
         let currentDMUser = null;
         let dmMessages = [];
+        let announcements = [];
+        let isAdmin = false;
         let currentTheme = localStorage.getItem('kitchenChatTheme') || 'light';
         
         // Authentication Functions (same as before)
@@ -864,6 +1036,9 @@
                     currentUser = result.user;
                     isAuthenticated = true;
                     
+                    // Check if user is admin (Daan25)
+                    isAdmin = checkAdminPermissions(currentUser);
+                    
                     showToast('Login successful!', 'success');
                     await initializeApp();
                 } else {
@@ -874,6 +1049,13 @@
                 console.error('Login error:', error);
                 showToast('Login failed: ' + error.message, 'error');
             }
+        }
+        
+        function checkAdminPermissions(user) {
+            if (!user) return false;
+            const username = user.username?.toLowerCase() || '';
+            const displayName = user.displayName?.toLowerCase() || '';
+            return username === 'daan25' || displayName === 'daan25';
         }
         
         async function register() {
@@ -953,18 +1135,21 @@
             // Clear app state
             currentUser = null;
             isAuthenticated = false;
+            isAdmin = false;
             conversations = [];
             currentConversationId = null;
             messages = [];
             onlineUsers = [];
             currentDMUser = null;
             dmMessages = [];
+            announcements = [];
             
             // Close any open modals/windows
             closeModal();
             closeProfileModal();
             closeDMListModal();
             closeDMWindow();
+            closeAnnouncementModal();
             
             // Show auth screen
             showAuthScreen();
@@ -985,6 +1170,7 @@
                 if (response.ok && result.success && result.valid) {
                     currentUser = result.user;
                     isAuthenticated = true;
+                    isAdmin = checkAdminPermissions(currentUser);
                     return true;
                 } else {
                     return false;
@@ -1010,6 +1196,14 @@
             document.getElementById('authScreen').style.display = 'none';
             document.getElementById('mainApp').classList.add('authenticated');
             document.getElementById('authThemeToggle').style.display = 'none';
+            
+            // Show/hide admin controls
+            const newAnnouncementBtn = document.getElementById('newAnnouncementBtn');
+            if (isAdmin) {
+                newAnnouncementBtn.style.display = 'inline-block';
+            } else {
+                newAnnouncementBtn.style.display = 'none';
+            }
         }
         
         async function initializeApp() {
@@ -1024,6 +1218,7 @@
             await Promise.all([
                 loadConversations(),
                 loadOnlineUsers(),
+                loadAnnouncements(),
                 updateUserStatus('online')
             ]);
             
@@ -1031,6 +1226,7 @@
             
             // Start periodic updates
             setInterval(loadOnlineUsers, 30000); // Update every 30 seconds
+            setInterval(loadAnnouncements, 60000); // Update announcements every minute
             setInterval(() => updateUserStatus('online'), 60000); // Keep status alive every minute
             
             showToast(`Welcome back, ${currentUser.displayName}!`, 'success');
@@ -1068,6 +1264,104 @@
                 showToast('Error: ' + error.message, 'error');
                 throw error;
             }
+        }
+        
+        // Announcements Functions
+        async function loadAnnouncements() {
+            if (!isAuthenticated) return;
+            
+            try {
+                announcements = await apiCall('/api/announcements');
+                displayAnnouncements();
+            } catch (error) {
+                console.error('Error loading announcements:', error);
+                document.getElementById('announcementsContainer').innerHTML = '<p style="color: red;">Error loading announcements</p>';
+            }
+        }
+        
+        function displayAnnouncements() {
+            const container = document.getElementById('announcementsContainer');
+            
+            if (!announcements || announcements.length === 0) {
+                container.innerHTML = '<p>No announcements</p>';
+                return;
+            }
+            
+            let html = '';
+            announcements.forEach(announcement => {
+                if (!announcement.active) return; // Skip inactive announcements
+                
+                const priorityClass = `priority-${announcement.priority || 'normal'}`;
+                html += `<div class="announcement-item ${priorityClass}">`;
+                html += `<div class="announcement-header">`;
+                html += `<h4 class="announcement-title">${escapeHtml(announcement.title)}</h4>`;
+                html += `<div class="announcement-meta">`;
+                html += `<span class="priority-badge ${priorityClass}">${announcement.priority || 'normal'}</span>`;
+                html += `<span>${formatTime(announcement.createdAt)}</span>`;
+                html += `</div>`;
+                html += `</div>`;
+                html += `<div class="announcement-content">${escapeHtml(announcement.content)}</div>`;
+                html += `</div>`;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        function openAnnouncementModal() {
+            if (!isAdmin) {
+                showToast('Only administrators can create announcements', 'error');
+                return;
+            }
+            document.getElementById('announcementModal').style.display = 'block';
+            document.getElementById('announcementTitle').focus();
+        }
+        
+        function closeAnnouncementModal() {
+            document.getElementById('announcementModal').style.display = 'none';
+            document.getElementById('announcementTitle').value = '';
+            document.getElementById('announcementContent').value = '';
+            document.getElementById('announcementPriority').value = 'normal';
+            document.getElementById('announcementTitleCount').textContent = '0/200 characters';
+            document.getElementById('announcementContentCount').textContent = '0/2000 characters';
+        }
+        
+        async function createAnnouncement() {
+            if (!isAdmin || !isAuthenticated) {
+                showToast('Not authorized to create announcements', 'error');
+                return;
+            }
+            
+            const title = document.getElementById('announcementTitle').value.trim();
+            const content = document.getElementById('announcementContent').value.trim();
+            const priority = document.getElementById('announcementPriority').value;
+            
+            if (!title || !content) {
+                showToast('Title and content are required', 'error');
+                return;
+            }
+            
+            try {
+                await apiCall('/api/announcements', 'POST', {
+                    title: title,
+                    content: content,
+                    priority: priority
+                });
+                
+                showToast('Announcement created successfully!', 'success');
+                closeAnnouncementModal();
+                
+                // Reload announcements
+                setTimeout(() => loadAnnouncements(), 500);
+                
+            } catch (error) {
+                console.error('Error creating announcement:', error);
+            }
+        }
+        
+        function refreshAnnouncements() {
+            if (!isAuthenticated) return;
+            loadAnnouncements();
+            showToast('Announcements refreshed', 'success');
         }
         
         // Conversation Functions (same as before)
@@ -1551,6 +1845,17 @@
                 document.getElementById('titleCount').textContent = text.length + '/100 characters';
             };
             
+            // Announcement form listeners
+            document.getElementById('announcementTitle').oninput = function() {
+                const text = this.value;
+                document.getElementById('announcementTitleCount').textContent = text.length + '/200 characters';
+            };
+            
+            document.getElementById('announcementContent').oninput = function() {
+                const text = this.value;
+                document.getElementById('announcementContentCount').textContent = text.length + '/2000 characters';
+            };
+            
             // Enter key listeners for auth forms
             document.getElementById('loginPassword').addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') login();
@@ -1571,6 +1876,10 @@
             
             document.getElementById('dmListModal').onclick = function(e) {
                 if (e.target === this) closeDMListModal();
+            };
+            
+            document.getElementById('announcementModal').onclick = function(e) {
+                if (e.target === this) closeAnnouncementModal();
             };
         }
         

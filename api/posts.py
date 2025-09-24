@@ -96,29 +96,91 @@ class handler(BaseHTTPRequestHandler):
         try:
             logger.info("=== GET REQUEST START ===")
             logger.info(f"Path: {self.path}")
-            logger.info(f"Headers: {dict(self.headers)}")
             
-            # Simple demo response for now
-            demo_data = [
-                {
-                    "id": "demo1",
-                    "Content": "Demo message 1",
-                    "CreatedAt": datetime.now().isoformat(),
-                    "PostedBy": "System",
-                    "MessageType": "text"
-                }
-            ]
+            # Parse query parameters
+            parsed_url = urlparse(self.path)
+            query = parse_qs(parsed_url.query or "")
+            subject_vals = query.get("SubjectId", [])
+            subject_id = subject_vals[0] if subject_vals else None
             
-            success = send_response_with_cors(self, demo_data, 200)
-            logger.info(f"GET completed successfully: {success}")
+            logger.info(f"SubjectId from query: {subject_id}")
+            
+            if not subject_id:
+                return send_response_with_cors(self, {"error": "Missing SubjectId parameter"}, 400)
+            
+            # Auth check
+            if require_authentication:
+                current_user = require_authentication(self)
+                if not current_user:
+                    return send_response_with_cors(self, {"error": "Authentication required"}, 401)
+                logger.info(f"User authenticated: {current_user.get('username', 'unknown')}")
+            
+            if not db:
+                logger.info("No database - returning demo messages")
+                demo_data = [
+                    {
+                        "id": "demo1",
+                        "Content": "Demo message - database not available",
+                        "CreatedAt": datetime.now().isoformat(),
+                        "PostedBy": "System",
+                        "SubjectId": f"/subjects/{subject_id}",
+                        "MessageType": "text"
+                    }
+                ]
+                return send_response_with_cors(self, demo_data, 200)
+            
+            # Real Firestore query
+            try:
+                logger.info(f"Querying Firestore for subject: {subject_id}")
+                posts_ref = (
+                    db.collection("Posts")
+                    .where("SubjectId", "==", f"/subjects/{subject_id}")
+                    .limit(100)  # Start with smaller limit
+                )
+                
+                docs = list(posts_ref.stream())
+                logger.info(f"Found {len(docs)} messages")
+                
+                posts = []
+                for doc in docs:
+                    try:
+                        data = doc.to_dict()
+                        
+                        # Handle CreatedAt safely
+                        created_at = data.get("CreatedAt")
+                        if hasattr(created_at, "isoformat"):
+                            created_at_str = created_at.isoformat()
+                        elif isinstance(created_at, datetime):
+                            created_at_str = created_at.isoformat()
+                        else:
+                            created_at_str = str(created_at) if created_at else datetime.now().isoformat()
+                        
+                        post = {
+                            "id": doc.id,
+                            "Content": data.get("Content", ""),
+                            "CreatedAt": created_at_str,
+                            "PostedBy": data.get("PostedBy", "Anonymous"),
+                            "SubjectId": data.get("SubjectId", ""),
+                            "MessageType": data.get("MessageType", "text")
+                        }
+                        posts.append(post)
+                        
+                    except Exception as doc_error:
+                        logger.error(f"Error processing doc {doc.id}: {doc_error}")
+                        continue
+                
+                logger.info(f"Returning {len(posts)} messages")
+                return send_response_with_cors(self, posts, 200)
+                
+            except Exception as firestore_error:
+                logger.error(f"Firestore query error: {firestore_error}")
+                logger.error(traceback.format_exc())
+                return send_response_with_cors(self, {"error": "Database query failed"}, 500)
             
         except Exception as e:
             logger.error(f"GET error: {e}")
             logger.error(traceback.format_exc())
-            try:
-                send_response_with_cors(self, {"error": f"GET failed: {str(e)}"}, 500)
-            except:
-                logger.error("Failed to send error response for GET")
+            return send_response_with_cors(self, {"error": f"GET failed: {str(e)}"}, 500)
 
     def do_POST(self):
         step = "unknown"
@@ -126,24 +188,18 @@ class handler(BaseHTTPRequestHandler):
             logger.info("=== POST REQUEST START ===")
             step = "headers"
             logger.info(f"Path: {self.path}")
-            logger.info(f"Headers: {dict(self.headers)}")
             logger.info(f"Content-Length: {self.headers.get('Content-Length', 'None')}")
             
             step = "read_body"
             content_length = int(self.headers.get('Content-Length', 0))
-            logger.info(f"Reading {content_length} bytes")
             
             if content_length <= 0:
-                logger.warning("No content provided")
                 return send_response_with_cors(self, {"error": "No data provided"}, 400)
             
             body = self.rfile.read(content_length)
-            logger.info(f"Body read: {len(body)} bytes")
+            body_str = body.decode('utf-8')
             
             step = "parse_json"
-            body_str = body.decode('utf-8')
-            logger.info(f"Body string: {body_str[:200]}...")  # First 200 chars
-            
             data = json.loads(body_str)
             logger.info(f"JSON parsed, keys: {list(data.keys())}")
             
@@ -171,18 +227,42 @@ class handler(BaseHTTPRequestHandler):
                 logger.warning("No auth function available - skipping auth")
                 posted_by = "TestUser"
             
-            step = "demo_response"
-            # For now, always return success without actually saving
+            step = "database_check"
+            if not db:
+                logger.warning("No database available - returning demo response")
+                response_data = {
+                    "ok": True,
+                    "id": str(uuid.uuid4()),
+                    "type": "text",
+                    "demo": True,
+                    "message": "Message would be saved if database was available"
+                }
+                return send_response_with_cors(self, response_data, 201)
+            
+            step = "firestore_write"
+            logger.info("Writing to Firestore...")
+            
+            # Prepare document
+            doc_data = {
+                "Content": content,
+                "CreatedAt": admin_firestore.SERVER_TIMESTAMP,
+                "PostedBy": posted_by,
+                "SubjectId": f"/subjects/{subject_id}",
+                "MessageType": "text"
+            }
+            
+            logger.info(f"Document data prepared: {doc_data}")
+            
+            # Write to Firestore
+            doc_ref, write_result = db.collection("Posts").add(doc_data)
+            logger.info(f"Document written successfully with ID: {doc_ref.id}")
+            
+            step = "success_response"
             response_data = {
                 "ok": True,
-                "id": str(uuid.uuid4()),
+                "id": doc_ref.id,
                 "type": "text",
-                "demo": True,
-                "received": {
-                    "content": content[:50],
-                    "subject_id": subject_id,
-                    "posted_by": posted_by
-                }
+                "message": "Message saved successfully"
             }
             
             logger.info(f"Sending success response: {response_data}")
@@ -203,4 +283,3 @@ class handler(BaseHTTPRequestHandler):
                 send_response_with_cors(self, error_response, 500)
             except Exception as send_error:
                 logger.error(f"Failed to send error response: {send_error}")
-                logger.error(traceback.format_exc())

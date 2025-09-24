@@ -36,7 +36,8 @@ ALLOWED_ORIGINS = [
     'http://127.0.0.1:3000', 
     'https://kitchen-chat.vercel.app',
     'https://gasfornuis.github.io'
-    # Voeg je productie domein toe
+    'https://kitchenchat.live'
+    'https://www.kitchenchat.live'
 ]
 
 # Rate limiting storage (in productie: gebruik Redis)

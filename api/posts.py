@@ -10,6 +10,7 @@ import base64
 import uuid
 from datetime import datetime
 import logging
+import traceback
 
 # Import security utilities
 try:
@@ -33,17 +34,27 @@ except ImportError:
 # Configure logging
 logger = logging.getLogger(__name__)
 security_logger = logging.getLogger('security')
+logging.basicConfig(level=logging.INFO)
 
-if not firebase_admin._apps:
-    # Load service account from environment variable
-    sa_json = os.environ.get("FIREBASE_SERVICE_ACCOUNT")
-    if sa_json:
-        cred = credentials.Certificate(json.loads(sa_json))
-        firebase_admin.initialize_app(cred)
+# Initialize Firebase with better error handling
+db = None
+try:
+    if not firebase_admin._apps:
+        # Load service account from environment variable
+        sa_json = os.environ.get("FIREBASE_SERVICE_ACCOUNT")
+        if sa_json:
+            cred = credentials.Certificate(json.loads(sa_json))
+            firebase_admin.initialize_app(cred)
+            db = firestore.client()
+            logger.info("Firebase initialized successfully")
+        else:
+            logger.warning("Warning: Running in demo mode without Firebase")
     else:
-        logger.warning("Warning: Running in demo mode without Firebase")
+        db = firestore.client()
+except Exception as e:
+    logger.error(f"Firebase initialization error: {str(e)}")
+    db = None
 
-db = firestore.client() if firebase_admin._apps else None
 FIREBASE_SECRET = os.environ.get("FIREBASE_SECRET")
 
 def validate_message_content(content, message_type='text'):
@@ -74,14 +85,14 @@ def validate_message_content(content, message_type='text'):
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
-        """Get messages with security and rate limiting"""
+        """Get messages with enhanced error handling"""
         client_ip = get_client_ip(self.headers)
         
-        # Rate limiting
-        if not SecureAPIHandler.check_rate_limit_or_block(self, 'posts_get', max_requests=100, time_window=60):
-            return
-        
         try:
+            # Rate limiting
+            if not SecureAPIHandler.check_rate_limit_or_block(self, 'posts_get', max_requests=100, time_window=60):
+                return
+            
             # Require authentication for reading posts
             current_user = require_authentication(self)
             if not current_user:
@@ -95,68 +106,135 @@ class handler(BaseHTTPRequestHandler):
             subject_id = subject_vals[0] if subject_vals else None
 
             if not subject_id:
+                logger.warning("Missing SubjectId parameter")
                 return SecureAPIHandler.send_error_securely(self, "Missing SubjectId parameter", 400)
+            
+            logger.info(f"Fetching messages for SubjectId: {subject_id}")
             
             # Validate subject ID format
             if not isinstance(subject_id, str) or len(subject_id) > 50:
+                logger.warning(f"Invalid SubjectId format: {subject_id}")
                 return SecureAPIHandler.send_error_securely(self, "Invalid SubjectId format", 400)
 
             if not db:
-                # Demo mode - return empty messages
+                # Demo mode - return sample messages
+                logger.info("Running in demo mode - returning sample messages")
+                sample_messages = [
+                    {
+                        "id": "demo1",
+                        "Content": "Welcome to Kitchen Chat! This is a demo message.",
+                        "CreatedAt": datetime.now().isoformat(),
+                        "PostedBy": "System",
+                        "SubjectId": f"/subjects/{subject_id}",
+                        "MessageType": "text"
+                    }
+                ]
+                return SecureAPIHandler.send_json_securely(self, sample_messages)
+
+            try:
+                # Try multiple query variations to handle different SubjectId formats
+                posts = []
+                
+                # First try: exact match with current format
+                try:
+                    posts_ref = db.collection("Posts").where(
+                        "SubjectId", "==", f"/subjects/{subject_id}"
+                    ).order_by("CreatedAt").limit(500)
+                    
+                    docs = list(posts_ref.stream())
+                    logger.info(f"Query 1: Found {len(docs)} messages with SubjectId '/subjects/{subject_id}'")
+                    
+                    if not docs:
+                        # Second try: without /subjects/ prefix
+                        posts_ref = db.collection("Posts").where(
+                            "SubjectId", "==", subject_id
+                        ).order_by("CreatedAt").limit(500)
+                        
+                        docs = list(posts_ref.stream())
+                        logger.info(f"Query 2: Found {len(docs)} messages with SubjectId '{subject_id}'")
+                    
+                    if not docs:
+                        # Third try: check if there are any posts at all
+                        all_posts_ref = db.collection("Posts").limit(10)
+                        all_docs = list(all_posts_ref.stream())
+                        logger.info(f"Total posts in collection: {len(all_docs)}")
+                        
+                        if all_docs:
+                            logger.info(f"Sample SubjectId from existing post: {all_docs[0].to_dict().get('SubjectId', 'N/A')}")
+                
+                except Exception as query_error:
+                    logger.error(f"Firestore query error: {str(query_error)}")
+                    logger.error(f"Query error traceback: {traceback.format_exc()}")
+                    
+                    # Try a simple query without ordering (in case CreatedAt index is missing)
+                    try:
+                        posts_ref = db.collection("Posts").where(
+                            "SubjectId", "==", f"/subjects/{subject_id}"
+                        ).limit(500)
+                        docs = list(posts_ref.stream())
+                        logger.info(f"Fallback query: Found {len(docs)} messages without ordering")
+                    except Exception as fallback_error:
+                        logger.error(f"Fallback query also failed: {str(fallback_error)}")
+                        docs = []
+
+                for doc in docs:
+                    try:
+                        data = doc.to_dict()
+                        
+                        # Sanitize output data
+                        clean_post = {
+                            "id": doc.id,
+                            "Content": sanitize_string_input(data.get("Content", ""), 2000),
+                            "CreatedAt": str(data.get("CreatedAt", datetime.now())),
+                            "PostedBy": sanitize_string_input(data.get("PostedBy", "Anonymous"), 50),
+                            "SubjectId": data.get("SubjectId", ""),
+                            "MessageType": data.get("MessageType", "text"),
+                            "MediaData": data.get("MediaData", None),
+                            "AttachmentUrl": data.get("AttachmentUrl", None),
+                            "AttachmentType": data.get("AttachmentType", None)
+                        }
+                        
+                        # Remove sensitive data
+                        if 'secret' in data:
+                            del clean_post['secret']
+                        
+                        posts.append(clean_post)
+                        
+                    except Exception as doc_error:
+                        logger.error(f"Error processing document {doc.id}: {str(doc_error)}")
+                        continue
+
+                log_security_event(
+                    'posts_retrieved',
+                    f'Retrieved {len(posts)} messages for subject {subject_id}',
+                    client_ip,
+                    current_user
+                )
+                
+                logger.info(f"Successfully returning {len(posts)} messages")
+                return SecureAPIHandler.send_json_securely(self, posts)
+                
+            except Exception as firestore_error:
+                logger.error(f"Firestore operation error: {str(firestore_error)}")
+                logger.error(f"Firestore traceback: {traceback.format_exc()}")
+                
+                # Return empty array instead of error to prevent frontend breakage
                 return SecureAPIHandler.send_json_securely(self, [])
-
-            # Query Firestore for messages
-            posts_ref = db.collection("Posts").where(
-                "SubjectId", "==", f"/subjects/{subject_id}"
-            ).order_by("CreatedAt").limit(500)  # Limit voor performance
-            
-            docs = posts_ref.stream()
-
-            posts = []
-            for doc in docs:
-                data = doc.to_dict()
-                
-                # Sanitize output data
-                clean_post = {
-                    "id": doc.id,
-                    "Content": sanitize_string_input(data.get("Content", ""), 2000),
-                    "CreatedAt": str(data.get("CreatedAt", datetime.now())),
-                    "PostedBy": sanitize_string_input(data.get("PostedBy", "Anonymous"), 50),
-                    "SubjectId": data.get("SubjectId", ""),
-                    "MessageType": data.get("MessageType", "text"),
-                    "MediaData": data.get("MediaData", None),
-                    "AttachmentUrl": data.get("AttachmentUrl", None),
-                    "AttachmentType": data.get("AttachmentType", None)
-                }
-                
-                # Remove sensitive data
-                if 'secret' in data:
-                    del clean_post['secret']
-                
-                posts.append(clean_post)
-
-            log_security_event(
-                'posts_retrieved',
-                f'Retrieved {len(posts)} messages for subject {subject_id}',
-                client_ip,
-                current_user
-            )
-            
-            return SecureAPIHandler.send_json_securely(self, posts)
 
         except Exception as e:
             logger.error(f"Posts GET error: {str(e)}")
-            return SecureAPIHandler.send_error_securely(self, "Failed to retrieve messages", 500, str(e))
+            logger.error(f"Full traceback: {traceback.format_exc()}")
+            return SecureAPIHandler.send_error_securely(self, "Internal server error. Please try again later.", 500)
 
     def do_POST(self):
         """Create message with comprehensive security"""
         client_ip = get_client_ip(self.headers)
         
-        # Stricter rate limiting voor POST
-        if not SecureAPIHandler.check_rate_limit_or_block(self, 'posts_create', max_requests=30, time_window=60):
-            return
-        
         try:
+            # Stricter rate limiting voor POST
+            if not SecureAPIHandler.check_rate_limit_or_block(self, 'posts_create', max_requests=30, time_window=60):
+                return
+            
             # Require authentication
             current_user = require_authentication(self)
             if not current_user:
@@ -173,6 +251,8 @@ class handler(BaseHTTPRequestHandler):
             posted_by = (data.get("PostedBy") or current_user["displayName"]).strip()
             message_type = data.get("MessageType", "text").strip()
             media_data = data.get("MediaData", None)
+            
+            logger.info(f"Creating message for subject: {subject_id}")
             
             # SECURITY CHECK - user can only post as themselves
             current_display = current_user.get("displayName", "").lower()
@@ -202,6 +282,7 @@ class handler(BaseHTTPRequestHandler):
             
             if not db:
                 # Demo mode - just return success
+                logger.info("Demo mode - message creation simulated")
                 log_security_event(
                     'message_created',
                     f'Demo message created in subject {subject_id}',
@@ -215,68 +296,77 @@ class handler(BaseHTTPRequestHandler):
                     "timestamp": datetime.now().isoformat()
                 }, 201)
 
-            # Prepare secure document data
-            doc_data = {
-                "Content": content,
-                "CreatedAt": firestore.SERVER_TIMESTAMP,
-                "PostedBy": posted_by,
-                "SubjectId": f"/subjects/{subject_id}",
-                "MessageType": message_type,
-                "ClientIP": client_ip,  # For abuse tracking
-                "secret": FIREBASE_SECRET
-            }
+            try:
+                # Prepare secure document data
+                doc_data = {
+                    "Content": content,
+                    "CreatedAt": firestore.SERVER_TIMESTAMP,
+                    "PostedBy": posted_by,
+                    "SubjectId": f"/subjects/{subject_id}",
+                    "MessageType": message_type,
+                    "ClientIP": client_ip,  # For abuse tracking
+                    "secret": FIREBASE_SECRET
+                }
 
-            # Handle media data securely
-            if media_data and isinstance(media_data, dict):
-                if message_type == "voice":
-                    # Validate voice data
-                    duration = sanitize_string_input(str(media_data.get("duration", "0:05")), 10)
-                    size = sanitize_string_input(str(media_data.get("size", "0 KB")), 20)
-                    
-                    doc_data["MediaData"] = {
-                        "duration": duration,
-                        "size": size,
-                        "waveform": media_data.get("waveform", [])[:100]  # Limit array size
-                    }
-                    doc_data["AttachmentType"] = "audio/webm"
-                    
-                elif message_type == "image":
-                    # Validate image data
-                    name = sanitize_string_input(str(media_data.get("name", "image.jpg")), 100)
-                    size = sanitize_string_input(str(media_data.get("size", "0 KB")), 20)
-                    
-                    doc_data["MediaData"] = {
-                        "name": name,
-                        "size": size
-                    }
-                    
-                    # Validate base64 image data
-                    if "src" in media_data and media_data["src"].startswith("data:image/"):
-                        # In productie: upload naar secure storage in plaats van base64
-                        src = str(media_data["src"])[:50000]  # Limit base64 size
-                        doc_data["AttachmentUrl"] = src
-                    
-                    doc_data["AttachmentType"] = "image/*"
+                # Handle media data securely
+                if media_data and isinstance(media_data, dict):
+                    if message_type == "voice":
+                        # Validate voice data
+                        duration = sanitize_string_input(str(media_data.get("duration", "0:05")), 10)
+                        size = sanitize_string_input(str(media_data.get("size", "0 KB")), 20)
+                        
+                        doc_data["MediaData"] = {
+                            "duration": duration,
+                            "size": size,
+                            "waveform": media_data.get("waveform", [])[:100]  # Limit array size
+                        }
+                        doc_data["AttachmentType"] = "audio/webm"
+                        
+                    elif message_type == "image":
+                        # Validate image data
+                        name = sanitize_string_input(str(media_data.get("name", "image.jpg")), 100)
+                        size = sanitize_string_input(str(media_data.get("size", "0 KB")), 20)
+                        
+                        doc_data["MediaData"] = {
+                            "name": name,
+                            "size": size
+                        }
+                        
+                        # Validate base64 image data
+                        if "src" in media_data and media_data["src"].startswith("data:image/"):
+                            # In productie: upload naar secure storage in plaats van base64
+                            src = str(media_data["src"])[:50000]  # Limit base64 size
+                            doc_data["AttachmentUrl"] = src
+                        
+                        doc_data["AttachmentType"] = "image/*"
 
-            # Add to Firestore - FIX: correct tuple unpacking
-            doc_ref, write_result = db.collection("Posts").add(doc_data)
-            
-            log_security_event(
-                'message_created',
-                f'Message created in subject {subject_id} (ID: {doc_ref.id})',
-                client_ip,
-                current_user
-            )
-            
-            return SecureAPIHandler.send_json_securely(self, {
-                "message": "Message created successfully",
-                "id": doc_ref.id,
-                "type": message_type
-            }, 201)
+                # Add to Firestore with better error handling
+                doc_ref, write_result = db.collection("Posts").add(doc_data)
+                
+                log_security_event(
+                    'message_created',
+                    f'Message created in subject {subject_id} (ID: {doc_ref.id})',
+                    client_ip,
+                    current_user
+                )
+                
+                logger.info(f"Message created successfully: {doc_ref.id}")
+                
+                return SecureAPIHandler.send_json_securely(self, {
+                    "message": "Message created successfully",
+                    "id": doc_ref.id,
+                    "type": message_type
+                }, 201)
+                
+            except Exception as firestore_error:
+                logger.error(f"Firestore write error: {str(firestore_error)}")
+                logger.error(f"Write traceback: {traceback.format_exc()}")
+                return SecureAPIHandler.send_error_securely(self, "Failed to save message", 500)
 
         except Exception as e:
             logger.error(f"Error creating post: {str(e)}")
-            return SecureAPIHandler.send_error_securely(self, "Failed to create message", 500, str(e))
+            logger.error(f"POST traceback: {traceback.format_exc()}")
+            return SecureAPIHandler.send_error_securely(self, "Failed to create message", 500)
 
     def do_OPTIONS(self):
         """Handle OPTIONS with secure CORS"""

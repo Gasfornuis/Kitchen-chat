@@ -28,6 +28,10 @@ FIREBASE_SECRET = os.environ.get("FIREBASE_SECRET")
 # Demo mode storage
 demo_announcements = []
 
+# VEILIGE SERVER-SIDE ADMIN CONFIGURATIE
+# Deze lijst wordt alleen op de server gecontroleerd en is niet zichtbaar voor clients
+ADMIN_USERS = ['daan25', 'gasfornuis']
+
 def sha256_hash(text):
     """SHA-256 hash utility"""
     return hashlib.sha256(text.encode()).hexdigest()
@@ -100,15 +104,22 @@ def require_authentication(request):
     return verify_session_token(token)
 
 def check_admin_permissions(user):
-    """Check if user has admin permissions (only Daan25)"""
+    """Check if user has admin permissions (server-side veilige controle)"""
     if not user:
         return False
     
-    # Check if user is Daan25 (case insensitive)
+    # Check if user is in de admin lijst (case insensitive)
     username = user.get('username', '').lower()
     display_name = user.get('displayName', '').lower()
     
-    return username == 'daan25' or display_name == 'daan25'
+    # Controleer beide username en displayName tegen de admin lijst
+    for admin_user in ADMIN_USERS:
+        if username == admin_user.lower() or display_name == admin_user.lower():
+            logger.info(f"Admin access granted for user: {username} (displayName: {display_name})")
+            return True
+    
+    logger.warning(f"Admin access denied for user: {username} (displayName: {display_name})")
+    return False
 
 class handler(BaseHTTPRequestHandler):
     def do_OPTIONS(self):
@@ -179,9 +190,10 @@ class handler(BaseHTTPRequestHandler):
             if not current_user:
                 return self.send_error_response("Authentication required", 401)
             
-            # Check if user has admin permissions
+            # VEILIGE SERVER-SIDE ADMIN CHECK
             if not check_admin_permissions(current_user):
-                return self.send_error_response("Only Daan25 can create announcements", 403)
+                username = current_user.get('username', 'unknown')
+                return self.send_error_response(f"Access denied. Only administrators (daan25, gasfornuis) can create announcements. Current user: {username}", 403)
             
             # Parse request body
             content_length = int(self.headers.get('Content-Length', 0))
@@ -234,7 +246,7 @@ class handler(BaseHTTPRequestHandler):
             doc_ref = db.collection('announcements').add(announcement_data)
             announcement_id = doc_ref[1].id
             
-            logger.info(f"Announcement created with ID: {announcement_id} by {current_user.get('username')}")
+            logger.info(f"Announcement created with ID: {announcement_id} by admin user: {current_user.get('username')}")
             
             # Return created announcement
             announcement_data['id'] = announcement_id
@@ -260,9 +272,10 @@ class handler(BaseHTTPRequestHandler):
             if not current_user:
                 return self.send_error_response("Authentication required", 401)
             
-            # Check if user has admin permissions
+            # VEILIGE SERVER-SIDE ADMIN CHECK
             if not check_admin_permissions(current_user):
-                return self.send_error_response("Only Daan25 can update announcements", 403)
+                username = current_user.get('username', 'unknown')
+                return self.send_error_response(f"Access denied. Only administrators (daan25, gasfornuis) can update announcements. Current user: {username}", 403)
             
             # Parse request body
             content_length = int(self.headers.get('Content-Length', 0))
@@ -329,7 +342,7 @@ class handler(BaseHTTPRequestHandler):
             # Update in database
             doc_ref.update(update_data)
             
-            logger.info(f"Announcement {announcement_id} updated by {current_user.get('username')}")
+            logger.info(f"Announcement {announcement_id} updated by admin user: {current_user.get('username')}")
             
             return self.send_json_response({
                 'success': True,
@@ -351,9 +364,10 @@ class handler(BaseHTTPRequestHandler):
             if not current_user:
                 return self.send_error_response("Authentication required", 401)
             
-            # Check if user has admin permissions
+            # VEILIGE SERVER-SIDE ADMIN CHECK
             if not check_admin_permissions(current_user):
-                return self.send_error_response("Only Daan25 can delete announcements", 403)
+                username = current_user.get('username', 'unknown')
+                return self.send_error_response(f"Access denied. Only administrators (daan25, gasfornuis) can delete announcements. Current user: {username}", 403)
             
             # Parse request body or query parameters
             announcement_id = None
@@ -394,7 +408,7 @@ class handler(BaseHTTPRequestHandler):
             # Delete from database
             doc_ref.delete()
             
-            logger.info(f"Announcement {announcement_id} deleted by {current_user.get('username')}")
+            logger.info(f"Announcement {announcement_id} deleted by admin user: {current_user.get('username')}")
             
             return self.send_json_response({
                 'success': True,

@@ -7,7 +7,7 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 import base64
 import uuid
-from datetime import datetime, timedelta  # FIXED: Added timedelta import
+from datetime import datetime, timedelta
 
 # Import authentication functions from auth.py
 from .auth import require_authentication, hash_password, verify_password
@@ -95,14 +95,15 @@ class handler(BaseHTTPRequestHandler):
         """Get list of online users"""
         try:
             if not db:
-                # Demo mode
+                # Demo mode - only show users with explicit 'online' status
                 online_users = []
                 for username, profile in demo_profiles.items():
-                    if profile.get('status') == 'online':
+                    status = profile.get('status', 'offline')
+                    if status == 'online':
                         online_users.append({
                             'username': username,
                             'displayName': profile.get('displayName', username),
-                            'status': profile.get('status', 'offline'),
+                            'status': status,
                             'lastSeen': profile.get('lastSeen', ''),
                             'bio': profile.get('bio', ''),
                             'photoURL': profile.get('photoURL', '')
@@ -111,9 +112,8 @@ class handler(BaseHTTPRequestHandler):
                 send_success_response(self, {'users': online_users})
                 return
             
-            # Get all users with recent activity (last 5 minutes)
-            # FIXED: Now using properly imported timedelta
-            cutoff_time = datetime.now() - timedelta(minutes=5)
+            # FIXED: Reduced timeout from 5 minutes to 90 seconds for more accurate online status
+            cutoff_time = datetime.now() - timedelta(seconds=90)
             
             users_ref = db.collection("UserProfiles")
             docs = users_ref.stream()
@@ -122,21 +122,25 @@ class handler(BaseHTTPRequestHandler):
             for doc in docs:
                 data = doc.to_dict()
                 last_seen = data.get('lastSeen')
+                status = data.get('status', 'offline')
                 
-                # Check if user is considered online
+                # User is considered online only if:
+                # 1. Their status is explicitly 'online' AND
+                # 2. Their lastSeen is within the last 90 seconds
                 is_online = False
-                if last_seen:
+                if status == 'online' and last_seen:
                     try:
                         last_seen_dt = datetime.fromisoformat(last_seen.replace('Z', '+00:00'))
-                        is_online = last_seen_dt > cutoff_time or data.get('status') == 'online'
-                    except:
-                        is_online = data.get('status') == 'online'
+                        is_online = last_seen_dt > cutoff_time
+                    except Exception as e:
+                        print(f"Error parsing lastSeen for user {data.get('username', doc.id)}: {e}")
+                        is_online = False
                 
                 if is_online:
                     online_users.append({
                         'username': data.get('username', doc.id),
                         'displayName': data.get('displayName', 'User'),
-                        'status': data.get('status', 'online'),
+                        'status': status,
                         'lastSeen': data.get('lastSeen', ''),
                         'bio': data.get('bio', ''),
                         'photoURL': data.get('photoURL', '')
@@ -193,7 +197,7 @@ class handler(BaseHTTPRequestHandler):
                         'displayName': user_data.get('displayName', username),
                         'email': user_data.get('email', ''),
                         'bio': '',
-                        'status': 'online',
+                        'status': 'offline',  # Start as offline instead of online
                         'joinedAt': str(user_data.get('createdAt', datetime.now())),
                         'lastSeen': str(user_data.get('lastLogin', datetime.now())),
                         'photoURL': '',

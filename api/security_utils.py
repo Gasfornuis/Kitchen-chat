@@ -19,8 +19,8 @@ ALLOWED_ORIGINS = [
     'http://127.0.0.1:3000', 
     'https://kitchen-chat.vercel.app',
     'https://gasfornuis.github.io',
-    'https://kitchen-chat-gasfornuis.vercel.app'
-    'https://kitchenchat.live'
+    'https://kitchen-chat-gasfornuis.vercel.app',
+    'https://kitchenchat.live',
     'https://www.kitchenchat.live'
 ]
 
@@ -444,23 +444,3 @@ class SecureAPIHandler:
             return False
         
         return True
-
-def sanitize_string_input(input_str, max_length=None):
-    """Sanitize string input for safe storage and display"""
-    if not input_str or not isinstance(input_str, str):
-        return ''
-    
-    # Remove dangerous characters
-    sanitized = ''.join(
-        char for char in input_str 
-        if ord(char) >= 32 or char in '\n\r\t'
-    )
-    
-    # Normalize whitespace
-    sanitized = re.sub(r'\s+', ' ', sanitized).strip()
-    
-    # Apply length limit
-    if max_length and len(sanitized) > max_length:
-        sanitized = sanitized[:max_length].rstrip()
-    
-    return sanitized

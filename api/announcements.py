@@ -6,10 +6,13 @@ from firebase_admin import credentials, firestore as fb_firestore
 import os
 import hashlib
 import logging
+import time
+from collections import defaultdict
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+security_logger = logging.getLogger('security')
 
 # Initialize Firebase (consistent with other files)
 if not firebase_admin._apps:
@@ -28,9 +31,49 @@ FIREBASE_SECRET = os.environ.get("FIREBASE_SECRET")
 # Demo mode storage
 demo_announcements = []
 
+# VEILIGE CORS CONFIGURATIE
+ALLOWED_ORIGINS = [
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'https://kitchen-chat.vercel.app',
+    'https://gasfornuis.github.io'
+    # Voeg je productie domein toe
+]
+
+# Rate limiting storage
+rate_limit_storage = defaultdict(list)
+
 # VEILIGE SERVER-SIDE ADMIN CONFIGURATIE
-# Deze lijst wordt alleen op de server gecontroleerd en is niet zichtbaar voor clients
 ADMIN_USERS = ['daan25', 'gasfornuis']
+
+def get_client_ip(headers):
+    """Get real client IP from headers"""
+    forwarded = headers.get('x-forwarded-for', '')
+    if forwarded:
+        return forwarded.split(',')[0].strip()
+    return headers.get('x-real-ip', headers.get('remote-addr', 'unknown'))
+
+def check_rate_limit(client_ip, endpoint, max_requests=30, time_window=60):
+    """Rate limiting voor API calls"""
+    now = time.time()
+    key = f"{client_ip}:{endpoint}"
+    
+    # Clean old entries
+    rate_limit_storage[key] = [req_time for req_time in rate_limit_storage[key] if now - req_time < time_window]
+    
+    if len(rate_limit_storage[key]) >= max_requests:
+        security_logger.warning(f"Rate limit exceeded for {client_ip} on {endpoint}")
+        return False
+    
+    rate_limit_storage[key].append(now)
+    return True
+
+def get_safe_origin(request_headers):
+    """Get safe CORS origin instead of wildcard"""
+    origin = request_headers.get('Origin', '')
+    if origin in ALLOWED_ORIGINS:
+        return origin
+    return ALLOWED_ORIGINS[0] if ALLOWED_ORIGINS else 'null'
 
 def sha256_hash(text):
     """SHA-256 hash utility"""
@@ -108,46 +151,99 @@ def check_admin_permissions(user):
     if not user:
         return False
     
-    # Check if user is in de admin lijst (case insensitive)
     username = user.get('username', '').lower()
     display_name = user.get('displayName', '').lower()
     
-    # Controleer beide username en displayName tegen de admin lijst
     for admin_user in ADMIN_USERS:
         if username == admin_user.lower() or display_name == admin_user.lower():
             logger.info(f"Admin access granted for user: {username} (displayName: {display_name})")
             return True
     
-    logger.warning(f"Admin access denied for user: {username} (displayName: {display_name})")
+    security_logger.warning(f"Admin access denied for user: {username} (displayName: {display_name})")
     return False
+
+def validate_announcement_input(data):
+    """Validate announcement input data"""
+    title = data.get('title', '').strip() if data.get('title') else ''
+    content = data.get('content', '').strip() if data.get('content') else ''
+    priority = data.get('priority', 'normal')
+    
+    if not title or not content:
+        return False, "Title and content are required"
+    
+    if len(title) > 200:
+        return False, "Title too long (max 200 characters)"
+    
+    if len(content) > 2000:
+        return False, "Content too long (max 2000 characters)"
+    
+    if priority not in ['normal', 'high', 'urgent']:
+        return False, "Invalid priority level"
+    
+    # Basic content filtering
+    forbidden_words = ['<script', 'javascript:', 'data:text/html']
+    title_lower = title.lower()
+    content_lower = content.lower()
+    
+    for word in forbidden_words:
+        if word in title_lower or word in content_lower:
+            return False, "Content contains forbidden elements"
+    
+    return True, None
 
 class handler(BaseHTTPRequestHandler):
     def do_OPTIONS(self):
-        """Handle preflight requests"""
+        """Handle preflight requests with secure CORS"""
+        safe_origin = get_safe_origin(self.headers)
+        
         self.send_response(200)
-        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Origin', safe_origin)
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
         self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie')
         self.send_header('Access-Control-Allow-Credentials', 'true')
         self.send_header('Access-Control-Max-Age', '86400')
+        # Security headers
+        self.send_header('X-Content-Type-Options', 'nosniff')
+        self.send_header('X-Frame-Options', 'DENY')
         self.end_headers()
     
     def send_json_response(self, data, status=200):
-        """Send JSON response with CORS headers"""
+        """Send JSON response with secure CORS headers"""
+        safe_origin = get_safe_origin(self.headers)
+        
         self.send_response(status)
         self.send_header('Content-Type', 'application/json')
-        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Origin', safe_origin)
         self.send_header('Access-Control-Allow-Credentials', 'true')
+        # Security headers
+        self.send_header('X-Content-Type-Options', 'nosniff')
+        self.send_header('X-Frame-Options', 'DENY')
+        self.send_header('X-XSS-Protection', '1; mode=block')
         self.end_headers()
         self.wfile.write(json.dumps(data).encode())
     
     def send_error_response(self, error, status=500):
-        """Send error response"""
-        logger.error(f"API Error: {error}")
-        self.send_json_response({'error': str(error)}, status)
+        """Send secure error response without exposing internals"""
+        # Log detailed error server-side
+        logger.error(f"API Error {status}: {error}")
+        
+        # Send generic error to client for security
+        public_error = error
+        if status == 500:
+            public_error = "Internal server error. Please try again."
+        elif "database" in str(error).lower() or "firestore" in str(error).lower():
+            public_error = "Service temporarily unavailable. Please try again."
+        
+        self.send_json_response({'error': public_error}, status)
     
     def do_GET(self):
-        """Get announcements"""
+        """Get announcements with rate limiting"""
+        client_ip = get_client_ip(self.headers)
+        
+        # Rate limiting
+        if not check_rate_limit(client_ip, 'announcements_get', max_requests=60, time_window=60):
+            return self.send_error_response("Too many requests. Please slow down.", 429)
+        
         try:
             # Get user from session
             current_user = require_authentication(self)
@@ -161,7 +257,7 @@ class handler(BaseHTTPRequestHandler):
                 return self.send_json_response(demo_announcements)
             
             # Get announcements from database
-            announcements_ref = db.collection('announcements').order_by('createdAt', direction=fb_firestore.Query.DESCENDING)
+            announcements_ref = db.collection('announcements').order_by('createdAt', direction=fb_firestore.Query.DESCENDING).limit(50)
             announcements = announcements_ref.get()
             
             result = []
@@ -173,16 +269,25 @@ class handler(BaseHTTPRequestHandler):
                 if 'createdAt' in data and data['createdAt']:
                     data['createdAt'] = data['createdAt'].isoformat()
                 
+                # Remove sensitive fields
+                data.pop('secret', None)
+                
                 result.append(data)
             
-            logger.info(f"Retrieved {len(result)} announcements")
+            logger.info(f"Retrieved {len(result)} announcements for user: {current_user.get('username')}")
             return self.send_json_response(result)
         
         except Exception as e:
             return self.send_error_response(f"Failed to retrieve announcements: {str(e)}")
     
     def do_POST(self):
-        """Create new announcement (admin only)"""
+        """Create new announcement (admin only) with rate limiting"""
+        client_ip = get_client_ip(self.headers)
+        
+        # Stricter rate limiting voor POST requests
+        if not check_rate_limit(client_ip, 'announcements_post', max_requests=5, time_window=60):
+            return self.send_error_response("Too many requests. Please slow down.", 429)
+        
         try:
             # Get user from session
             current_user = require_authentication(self)
@@ -193,28 +298,28 @@ class handler(BaseHTTPRequestHandler):
             # VEILIGE SERVER-SIDE ADMIN CHECK
             if not check_admin_permissions(current_user):
                 username = current_user.get('username', 'unknown')
-                return self.send_error_response(f"Access denied. Only administrators (daan25, gasfornuis) can create announcements. Current user: {username}", 403)
+                security_logger.warning(f"Non-admin user {username} from IP {client_ip} attempted to create announcement")
+                return self.send_error_response("Access denied. Administrator privileges required.", 403)
             
-            # Parse request body
+            # Parse and validate request body
             content_length = int(self.headers.get('Content-Length', 0))
+            if content_length > 10000:  # 10KB limit
+                return self.send_error_response("Request too large", 413)
+            
             if content_length > 0:
                 post_data = self.rfile.read(content_length).decode('utf-8')
                 data = json.loads(post_data)
             else:
                 return self.send_error_response("No data provided", 400)
             
-            # Validate required fields
-            title = data.get('title', '').strip()
-            content = data.get('content', '').strip()
+            # STRIKTE input validatie
+            is_valid, validation_error = validate_announcement_input(data)
+            if not is_valid:
+                return self.send_error_response(validation_error, 400)
             
-            if not title or not content:
-                return self.send_error_response("Title and content are required", 400)
-            
-            if len(title) > 200:
-                return self.send_error_response("Title too long (max 200 characters)", 400)
-            
-            if len(content) > 2000:
-                return self.send_error_response("Content too long (max 2000 characters)", 400)
+            title = data['title'].strip()
+            content = data['content'].strip()
+            priority = data.get('priority', 'normal')
             
             # Create announcement document
             announcement_data = {
@@ -224,8 +329,9 @@ class handler(BaseHTTPRequestHandler):
                 'authorUsername': current_user.get('username', ''),
                 'createdAt': datetime.now(timezone.utc),
                 'type': 'announcement',
-                'priority': data.get('priority', 'normal'),  # normal, high, urgent
-                'active': True
+                'priority': priority,
+                'active': True,
+                'createdFromIP': client_ip
             }
             
             if not db:
@@ -234,7 +340,7 @@ class handler(BaseHTTPRequestHandler):
                 announcement_data['createdAt'] = announcement_data['createdAt'].isoformat()
                 demo_announcements.append(announcement_data)
                 
-                logger.info(f"Announcement created in demo mode by {current_user.get('username')}")
+                security_logger.info(f"Announcement created in demo mode by admin: {current_user.get('username')}")
                 
                 return self.send_json_response({
                     'success': True,
@@ -246,11 +352,12 @@ class handler(BaseHTTPRequestHandler):
             doc_ref = db.collection('announcements').add(announcement_data)
             announcement_id = doc_ref[1].id
             
-            logger.info(f"Announcement created with ID: {announcement_id} by admin user: {current_user.get('username')}")
+            security_logger.info(f"Announcement created with ID: {announcement_id} by admin: {current_user.get('username')} from IP: {client_ip}")
             
-            # Return created announcement
+            # Return created announcement (without sensitive data)
             announcement_data['id'] = announcement_id
             announcement_data['createdAt'] = announcement_data['createdAt'].isoformat()
+            announcement_data.pop('createdFromIP', None)  # Don't send IP to client
             
             return self.send_json_response({
                 'success': True,
@@ -259,104 +366,18 @@ class handler(BaseHTTPRequestHandler):
             })
         
         except json.JSONDecodeError:
-            return self.send_error_response("Invalid JSON data", 400)
+            return self.send_error_response("Invalid JSON format", 400)
         except Exception as e:
             return self.send_error_response(f"Failed to create announcement: {str(e)}")
     
-    def do_PUT(self):
-        """Update announcement (admin only)"""
-        try:
-            # Get user from session
-            current_user = require_authentication(self)
-            
-            if not current_user:
-                return self.send_error_response("Authentication required", 401)
-            
-            # VEILIGE SERVER-SIDE ADMIN CHECK
-            if not check_admin_permissions(current_user):
-                username = current_user.get('username', 'unknown')
-                return self.send_error_response(f"Access denied. Only administrators (daan25, gasfornuis) can update announcements. Current user: {username}", 403)
-            
-            # Parse request body
-            content_length = int(self.headers.get('Content-Length', 0))
-            if content_length > 0:
-                post_data = self.rfile.read(content_length).decode('utf-8')
-                data = json.loads(post_data)
-            else:
-                return self.send_error_response("No data provided", 400)
-            
-            # Get announcement ID
-            announcement_id = data.get('id')
-            if not announcement_id:
-                return self.send_error_response("Announcement ID is required", 400)
-            
-            if not db:
-                # Demo mode
-                return self.send_json_response({
-                    'success': True,
-                    'message': 'Update functionality not available in demo mode'
-                })
-            
-            # Check if announcement exists
-            doc_ref = db.collection('announcements').document(announcement_id)
-            doc = doc_ref.get()
-            
-            if not doc.exists:
-                return self.send_error_response("Announcement not found", 404)
-            
-            # Prepare update data
-            update_data = {}
-            
-            if 'title' in data:
-                title = data['title'].strip()
-                if not title:
-                    return self.send_error_response("Title cannot be empty", 400)
-                if len(title) > 200:
-                    return self.send_error_response("Title too long (max 200 characters)", 400)
-                update_data['title'] = title
-            
-            if 'content' in data:
-                content = data['content'].strip()
-                if not content:
-                    return self.send_error_response("Content cannot be empty", 400)
-                if len(content) > 2000:
-                    return self.send_error_response("Content too long (max 2000 characters)", 400)
-                update_data['content'] = content
-            
-            if 'priority' in data:
-                priority = data['priority']
-                if priority not in ['normal', 'high', 'urgent']:
-                    return self.send_error_response("Invalid priority level", 400)
-                update_data['priority'] = priority
-            
-            if 'active' in data:
-                update_data['active'] = bool(data['active'])
-            
-            if not update_data:
-                return self.send_error_response("No valid fields to update", 400)
-            
-            # Add update timestamp
-            update_data['updatedAt'] = datetime.now(timezone.utc)
-            update_data['updatedBy'] = current_user.get('displayName', current_user.get('username', 'Unknown'))
-            
-            # Update in database
-            doc_ref.update(update_data)
-            
-            logger.info(f"Announcement {announcement_id} updated by admin user: {current_user.get('username')}")
-            
-            return self.send_json_response({
-                'success': True,
-                'message': 'Announcement updated successfully',
-                'updatedFields': list(update_data.keys())
-            })
-        
-        except json.JSONDecodeError:
-            return self.send_error_response("Invalid JSON data", 400)
-        except Exception as e:
-            return self.send_error_response(f"Failed to update announcement: {str(e)}")
-    
     def do_DELETE(self):
-        """Delete announcement (admin only)"""
+        """Delete announcement (admin only) with rate limiting"""
+        client_ip = get_client_ip(self.headers)
+        
+        # Rate limiting voor DELETE
+        if not check_rate_limit(client_ip, 'announcements_delete', max_requests=10, time_window=60):
+            return self.send_error_response("Too many requests. Please slow down.", 429)
+        
         try:
             # Get user from session
             current_user = require_authentication(self)
@@ -367,12 +388,13 @@ class handler(BaseHTTPRequestHandler):
             # VEILIGE SERVER-SIDE ADMIN CHECK
             if not check_admin_permissions(current_user):
                 username = current_user.get('username', 'unknown')
-                return self.send_error_response(f"Access denied. Only administrators (daan25, gasfornuis) can delete announcements. Current user: {username}", 403)
+                security_logger.warning(f"Non-admin user {username} from IP {client_ip} attempted to delete announcement")
+                return self.send_error_response("Access denied. Administrator privileges required.", 403)
             
-            # Parse request body or query parameters
+            # Get announcement ID from request
             announcement_id = None
             
-            # Try to get ID from URL path
+            # Try URL parameters first
             if '?' in self.path:
                 from urllib.parse import urlparse, parse_qs
                 parsed = urlparse(self.path)
@@ -380,16 +402,20 @@ class handler(BaseHTTPRequestHandler):
                 if 'id' in query_params:
                     announcement_id = query_params['id'][0]
             
-            # Try to get ID from body if not in URL
+            # Try request body if not in URL
             if not announcement_id:
                 content_length = int(self.headers.get('Content-Length', 0))
-                if content_length > 0:
+                if content_length > 0 and content_length < 1000:  # Reasonable limit
                     post_data = self.rfile.read(content_length).decode('utf-8')
                     data = json.loads(post_data)
                     announcement_id = data.get('id')
             
             if not announcement_id:
                 return self.send_error_response("Announcement ID is required", 400)
+            
+            # Validate ID format
+            if not isinstance(announcement_id, str) or len(announcement_id) > 100:
+                return self.send_error_response("Invalid announcement ID format", 400)
             
             if not db:
                 # Demo mode
@@ -405,10 +431,12 @@ class handler(BaseHTTPRequestHandler):
             if not doc.exists:
                 return self.send_error_response("Announcement not found", 404)
             
+            # Log before deletion
+            announcement_data = doc.to_dict()
+            security_logger.info(f"Announcement '{announcement_data.get('title', 'Unknown')}' (ID: {announcement_id}) deleted by admin: {current_user.get('username')} from IP: {client_ip}")
+            
             # Delete from database
             doc_ref.delete()
-            
-            logger.info(f"Announcement {announcement_id} deleted by admin user: {current_user.get('username')}")
             
             return self.send_json_response({
                 'success': True,
@@ -416,6 +444,49 @@ class handler(BaseHTTPRequestHandler):
             })
         
         except json.JSONDecodeError:
-            return self.send_error_response("Invalid JSON data", 400)
+            return self.send_error_response("Invalid JSON format", 400)
         except Exception as e:
-            return self.send_error_response(f"Failed to delete announcement: {str(e)}")
+            return self.send_error_response(f"Failed to delete announcement: {str(e)}", 500)
+
+# Helper function for input validation (moved outside class)
+def validate_announcement_input(data):
+    """Validate announcement input data"""
+    if not isinstance(data, dict):
+        return False, "Invalid data format"
+    
+    title = data.get('title', '').strip() if data.get('title') else ''
+    content = data.get('content', '').strip() if data.get('content') else ''
+    priority = data.get('priority', 'normal')
+    
+    if not title or not content:
+        return False, "Title and content are required"
+    
+    if len(title) > 200:
+        return False, "Title too long (max 200 characters)"
+    
+    if len(content) > 2000:
+        return False, "Content too long (max 2000 characters)"
+    
+    if priority not in ['normal', 'high', 'urgent']:
+        return False, "Invalid priority level"
+    
+    # Basic XSS/injection prevention
+    dangerous_patterns = [
+        r'<script[^>]*>.*?</script>',
+        r'javascript:',
+        r'data:text/html',
+        r'on\w+\s*=',  # onclick, onload, etc.
+        r'<iframe',
+        r'<object',
+        r'<embed'
+    ]
+    
+    import re
+    combined_text = (title + ' ' + content).lower()
+    
+    for pattern in dangerous_patterns:
+        if re.search(pattern, combined_text, re.IGNORECASE):
+            security_logger.warning(f"Potentially malicious content blocked: {pattern}")
+            return False, "Content contains potentially unsafe elements"
+    
+    return True, None

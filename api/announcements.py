@@ -38,6 +38,7 @@ ALLOWED_ORIGINS = [
     'https://kitchen-chat.vercel.app',
     'https://gasfornuis.github.io'
     'https://kitchenchat.live'
+    'https://www.kitchenchat.live'
 ]
 
 # Rate limiting storage

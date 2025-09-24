@@ -1037,7 +1037,8 @@
         let currentDMUser = null;
         let dmMessages = [];
         let announcements = [];
-        let isAdmin = false;
+        let isAdmin = false; // Server-side gecontroleerde waarde
+        let userPermissions = {}; // Gedetailleerde permissies van server
         let currentTheme = localStorage.getItem('kitchenChatTheme') || 'light';
         
         // Variabelen voor DM window slepen
@@ -1185,6 +1186,34 @@
             document.body.style.userSelect = '';
         }
         
+        // VEILIGE ADMIN STATUS CONTROLE VIA SERVER
+        async function checkAdminStatus() {
+            if (!isAuthenticated) {
+                isAdmin = false;
+                userPermissions = {};
+                return;
+            }
+            
+            try {
+                const result = await apiCall('/api/admin-status');
+                
+                if (result && result.success) {
+                    isAdmin = result.isAdmin || false;
+                    userPermissions = result.permissions || {};
+                    
+                    console.log(`Admin status loaded: ${isAdmin} for user: ${result.user?.username}`);
+                } else {
+                    console.warn('Failed to load admin status');
+                    isAdmin = false;
+                    userPermissions = {};
+                }
+            } catch (error) {
+                console.error('Error checking admin status:', error);
+                isAdmin = false;
+                userPermissions = {};
+            }
+        }
+        
         // Authentication Functions (same as before)
         function switchAuthTab(tab) {
             document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
@@ -1226,9 +1255,6 @@
                     currentUser = result.user;
                     isAuthenticated = true;
                     
-                    // Check if user is admin (Daan25 or Gasfornuis)
-                    isAdmin = checkAdminPermissions(currentUser);
-                    
                     showToast('Login successful!', 'success');
                     await initializeApp();
                 } else {
@@ -1239,17 +1265,6 @@
                 console.error('Login error:', error);
                 showToast('Login failed: ' + error.message, 'error');
             }
-        }
-        
-        function checkAdminPermissions(user) {
-            if (!user) return false;
-            const username = user.username?.toLowerCase() || '';
-            const displayName = user.displayName?.toLowerCase() || '';
-            
-            // Admin users: daan25 en gasfornuis
-            const adminUsernames = ['daan25', 'gasfornuis'];
-            
-            return adminUsernames.includes(username) || adminUsernames.includes(displayName);
         }
         
         async function register() {
@@ -1331,10 +1346,11 @@
                 console.error('Logout API error:', error);
             }
             
-            // Clear app state
+            // Clear app state including admin status
             currentUser = null;
             isAuthenticated = false;
             isAdmin = false;
+            userPermissions = {};
             conversations = [];
             currentConversationId = null;
             messages = [];
@@ -1369,7 +1385,6 @@
                 if (response.ok && result.success && result.valid) {
                     currentUser = result.user;
                     isAuthenticated = true;
-                    isAdmin = checkAdminPermissions(currentUser);
                     return true;
                 } else {
                     return false;
@@ -1396,12 +1411,14 @@
             document.getElementById('mainApp').classList.add('authenticated');
             document.getElementById('authThemeToggle').style.display = 'none';
             
-            // Show/hide admin controls
+            // Show/hide admin controls gebaseerd op server-side status
             const newAnnouncementBtn = document.getElementById('newAnnouncementBtn');
-            if (isAdmin) {
+            if (isAdmin && userPermissions.canCreateAnnouncements) {
                 newAnnouncementBtn.style.display = 'inline-block';
+                console.log('Admin controls enabled');
             } else {
                 newAnnouncementBtn.style.display = 'none';
+                console.log('Admin controls disabled');
             }
         }
         
@@ -1411,7 +1428,10 @@
             isAuthenticated = true;
             updateActivity();
             
-            // Show main app
+            // EERST admin status van server ophalen (veilig!)
+            await checkAdminStatus();
+            
+            // Show main app met correcte admin controls
             showMainApp();
             
             // Initialize app components
@@ -1444,7 +1464,10 @@
                 }
             }, 45000); // Send heartbeat every 45 seconds (more frequent)
             
-            showToast(`Welcome back, ${currentUser.displayName}!`, 'success');
+            const welcomeMessage = isAdmin ? 
+                `Welcome back, ${currentUser.displayName}! (Administrator)` : 
+                `Welcome back, ${currentUser.displayName}!`;
+            showToast(welcomeMessage, 'success');
         }
         
         async function apiCall(url, method = 'GET', data = null) {
@@ -1468,8 +1491,16 @@
                     return null;
                 }
                 
+                // Check for admin access denied (403)
+                if (response.status === 403) {
+                    const errorData = await response.json().catch(() => ({}));
+                    showToast(errorData.error || 'Access denied', 'error');
+                    return null;
+                }
+                
                 if (!response.ok) {
-                    throw new Error('Network error: ' + response.status);
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error || 'Network error: ' + response.status);
                 }
                 
                 const result = await response.json();
@@ -1514,8 +1545,8 @@
                 html += `<span class="priority-badge ${priorityClass}">${announcement.priority || 'normal'}</span>`;
                 html += `<span>${formatTime(announcement.createdAt)}</span>`;
                 
-                // Add delete button for admin users
-                if (isAdmin) {
+                // Add delete button alleen als server bevestigt dat user admin is
+                if (isAdmin && userPermissions.canDeleteAnnouncements) {
                     html += `<div class="announcement-admin-controls show">`;
                     html += `<button class="delete-announcement-btn" onclick="deleteAnnouncement('${announcement.id}')" title="Delete announcement">×</button>`;
                     html += `</div>`;
@@ -1531,7 +1562,8 @@
         }
         
         async function deleteAnnouncement(announcementId) {
-            if (!isAdmin || !isAuthenticated) {
+            // Dubbele controle: client-side EN server-side
+            if (!isAdmin || !userPermissions.canDeleteAnnouncements || !isAuthenticated) {
                 showToast('Not authorized to delete announcements', 'error');
                 return;
             }
@@ -1553,12 +1585,13 @@
                 
             } catch (error) {
                 console.error('Error deleting announcement:', error);
-                showToast('Failed to delete announcement', 'error');
+                // Server geeft waarschijnlijk al een foutmelding via apiCall
             }
         }
         
         function openAnnouncementModal() {
-            if (!isAdmin) {
+            // Dubbele controle: client-side EN server-side
+            if (!isAdmin || !userPermissions.canCreateAnnouncements) {
                 showToast('Only administrators can create announcements', 'error');
                 return;
             }
@@ -1576,7 +1609,8 @@
         }
         
         async function createAnnouncement() {
-            if (!isAdmin || !isAuthenticated) {
+            // Dubbele controle: client-side EN server-side
+            if (!isAdmin || !userPermissions.canCreateAnnouncements || !isAuthenticated) {
                 showToast('Not authorized to create announcements', 'error');
                 return;
             }
@@ -1605,6 +1639,7 @@
                 
             } catch (error) {
                 console.error('Error creating announcement:', error);
+                // Server geeft waarschijnlijk al een foutmelding via apiCall
             }
         }
         
@@ -2090,6 +2125,12 @@
                 
                 // Refresh online users to show updated info
                 loadOnlineUsers();
+                
+                // Als displayName is gewijzigd, hercontroleer admin status
+                if (updates.displayName) {
+                    await checkAdminStatus();
+                    showMainApp(); // Update admin controls
+                }
                 
             } catch (error) {
                 console.error('Error updating profile:', error);

@@ -20,7 +20,7 @@ ALLOWED_ORIGINS = [
     'https://kitchen-chat.vercel.app',
     'https://gasfornuis.github.io',
     'https://kitchen-chat-gasfornuis.vercel.app'
-    # Voeg hier je eigen domeinen toe
+    'https://kitchenchat.live'
 ]
 
 # In-memory rate limiting (voor productie: gebruik Redis of database)

@@ -1,0 +1,47 @@
+# Kitchen Chat - Secure Dependencies v2.0
+# Updated with latest security patches and versions
+
+# Firebase Admin SDK - Latest stable version with security fixes
+firebase-admin>=6.5.0,<7.0.0
+
+# Web framework dependencies
+flask>=3.0.0
+flask-cors>=4.0.0
+
+# CRITICAL: Secure password hashing - bcrypt instead of SHA-256
+bcrypt>=4.1.0
+
+# HTTP client with latest security patches
+requests>=2.31.0
+
+# Additional security dependencies
+# Rate limiting and caching (recommended for production)
+redis>=5.0.0
+flask-limiter>=3.5.0
+
+# Enhanced logging and monitoring
+structlog>=23.0.0
+python-json-logger>=2.0.0
+
+# Input validation and sanitization
+bleach>=6.0.0
+markupsafe>=2.1.0
+
+# Environment and configuration management
+python-dotenv>=1.0.0
+marshmallow>=3.20.0
+
+# Security headers and middleware
+flask-talisman>=1.1.0
+
+# Development and testing (optional)
+pytest>=7.4.0
+pytest-cov>=4.1.0
+bandit>=1.7.0  # Security linting
+safety>=3.0.0  # Dependency vulnerability scanning
+
+# Production server (recommended)
+gunicorn>=21.0.0
+
+# Monitoring and health checks
+psutil>=5.9.0

@@ -1024,6 +1024,37 @@
         let isAdmin = false;
         let currentTheme = localStorage.getItem('kitchenChatTheme') || 'light';
         
+        // FIXED: Activity tracking for more accurate online status
+        let lastActivity = Date.now();
+        let isPageVisible = true;
+        
+        // Track user activity
+        function updateActivity() {
+            lastActivity = Date.now();
+        }
+        
+        // Track page visibility
+        document.addEventListener('visibilitychange', function() {
+            isPageVisible = !document.hidden;
+            if (isPageVisible) {
+                updateActivity();
+                // Send online status when page becomes visible
+                if (isAuthenticated) {
+                    updateUserStatus('online');
+                }
+            } else {
+                // Send offline status when page is hidden
+                if (isAuthenticated) {
+                    updateUserStatus('offline');
+                }
+            }
+        });
+        
+        // Track mouse/keyboard activity
+        ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'].forEach(function(event) {
+            document.addEventListener(event, updateActivity, true);
+        });
+        
         // Authentication Functions (same as before)
         function switchAuthTab(tab) {
             document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
@@ -1151,6 +1182,11 @@
         
         async function logout() {
             try {
+                // Set status to offline before logging out
+                if (isAuthenticated) {
+                    await updateUserStatus('offline');
+                }
+                
                 await fetch('/api/auth', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
@@ -1239,6 +1275,7 @@
             if (!currentUser) return;
             
             isAuthenticated = true;
+            updateActivity();
             
             // Show main app
             showMainApp();
@@ -1253,10 +1290,22 @@
             
             setupEventListeners();
             
-            // Start periodic updates
-            setInterval(loadOnlineUsers, 30000); // Update every 30 seconds
+            // FIXED: More frequent updates for better online status accuracy
+            setInterval(loadOnlineUsers, 20000); // Update every 20 seconds (reduced from 30)
             setInterval(loadAnnouncements, 60000); // Update announcements every minute
-            setInterval(() => updateUserStatus('online'), 60000); // Keep status alive every minute
+            
+            // FIXED: Heartbeat - send online status more frequently but only if active
+            setInterval(() => {
+                if (isAuthenticated && isPageVisible) {
+                    // Only send heartbeat if user was active in the last 2 minutes
+                    if (Date.now() - lastActivity < 120000) {
+                        updateUserStatus('online');
+                    } else {
+                        // User is idle, set to away
+                        updateUserStatus('away');
+                    }
+                }
+            }, 45000); // Send heartbeat every 45 seconds (more frequent)
             
             showToast(`Welcome back, ${currentUser.displayName}!`, 'success');
         }
@@ -1548,6 +1597,8 @@
             const text = document.getElementById('messageText').value.trim();
             if (!isAuthenticated || !text || !currentConversationId) return;
             
+            updateActivity(); // Update activity when sending message
+            
             try {
                 await apiCall('/api/posts', 'POST', {
                     Content: text,
@@ -1650,7 +1701,7 @@
                 const initials = getInitials(user.displayName);
                 const statusClass = user.status || 'online';
                 
-                html += `<div class="user-item" onclick="startDM('${escapeHtml(user.username)}', '${escapeHtml(user.displayName)}')">`;  
+                html += `<div class="user-item" onclick="startDM('${escapeHtml(user.username)}', '${escapeHtml(user.displayName)}')">`;
                 html += `<div class="user-avatar">${initials}</div>`;
                 html += `<div class="user-info">`;
                 html += `<div class="user-name">${escapeHtml(user.displayName)}</div>`;
@@ -1742,6 +1793,8 @@
         async function sendDM() {
             const text = document.getElementById('dmMessageText').value.trim();
             if (!isAuthenticated || !text || !currentDMUser) return;
+            
+            updateActivity(); // Update activity when sending DM
             
             try {
                 const currentUserName = currentUser?.displayName || currentUser?.username || '';
@@ -2049,18 +2102,35 @@
         // Handle online/offline status
         window.addEventListener('online', () => {
             showToast('Connection restored', 'success');
+            if (isAuthenticated) {
+                updateUserStatus('online');
+            }
         });
         
         window.addEventListener('offline', () => {
             showToast('No internet connection', 'error');
         });
         
-        // Update status to offline when page is closing
+        // FIXED: Improved beforeunload handler - set status to offline when leaving
         window.addEventListener('beforeunload', () => {
             if (isAuthenticated) {
                 // Use sendBeacon for reliable delivery during page unload
                 const data = JSON.stringify({ status: 'offline' });
-                navigator.sendBeacon('/api/user-profile', data);
+                const blob = new Blob([data], {type: 'application/json'});
+                
+                // Try sendBeacon first (more reliable), fallback to fetch
+                if (navigator.sendBeacon) {
+                    navigator.sendBeacon('/api/user-profile', blob);
+                } else {
+                    // Fallback for browsers that don't support sendBeacon
+                    fetch('/api/user-profile', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        credentials: 'include',
+                        body: data,
+                        keepalive: true
+                    }).catch(() => {});
+                }
             }
         });
     </script>

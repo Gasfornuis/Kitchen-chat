@@ -1,6 +1,7 @@
 from http.server import BaseHTTPRequestHandler
 import json
 import os
+import re
 from google.cloud import firestore
 from urllib.parse import urlparse, parse_qs
 import firebase_admin
@@ -88,7 +89,10 @@ class handler(BaseHTTPRequestHandler):
             
             parsed_url = urlparse(self.path)
             query = parse_qs(parsed_url.query)
-            subject_id = query.get("SubjectId", [None])[0]
+            
+            # Fix SubjectId parsing from query
+            subject_vals = query.get("SubjectId", [])
+            subject_id = subject_vals[0] if subject_vals else None
 
             if not subject_id:
                 return SecureAPIHandler.send_error_securely(self, "Missing SubjectId parameter", 400)
@@ -163,10 +167,10 @@ class handler(BaseHTTPRequestHandler):
             if data is None:
                 return  # Error already sent
             
-            # Extract and validate fields
-            content = data.get("Content", "").strip()
-            subject_id = data.get("SubjectId", "").strip()
-            posted_by = data.get("PostedBy", current_user["displayName"]).strip()
+            # Extract and validate fields with case-insensitive fallbacks
+            content = (data.get("Content") or data.get("content") or "").strip()
+            subject_id = (data.get("SubjectId") or data.get("subjectId") or "").strip()
+            posted_by = (data.get("PostedBy") or current_user["displayName"]).strip()
             message_type = data.get("MessageType", "text").strip()
             media_data = data.get("MediaData", None)
             
@@ -254,19 +258,19 @@ class handler(BaseHTTPRequestHandler):
                     
                     doc_data["AttachmentType"] = "image/*"
 
-            # Add to Firestore
-            doc_ref = db.collection("Posts").add(doc_data)
+            # Add to Firestore - FIX: correct tuple unpacking
+            doc_ref, write_result = db.collection("Posts").add(doc_data)
             
             log_security_event(
                 'message_created',
-                f'Message created in subject {subject_id} (ID: {doc_ref[1].id})',
+                f'Message created in subject {subject_id} (ID: {doc_ref.id})',
                 client_ip,
                 current_user
             )
             
             return SecureAPIHandler.send_json_securely(self, {
                 "message": "Message created successfully",
-                "id": doc_ref[1].id,
+                "id": doc_ref.id,
                 "type": message_type
             }, 201)
 

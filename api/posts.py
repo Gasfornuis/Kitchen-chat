@@ -1,297 +1,206 @@
 from http.server import BaseHTTPRequestHandler
 import json
 import os
+import sys
 from urllib.parse import urlparse, parse_qs
 import firebase_admin
 from firebase_admin import credentials, firestore as admin_firestore
-from google.cloud import firestore as gcf  # for SERVER_TIMESTAMP sentinel
 import uuid
 from datetime import datetime
 import logging
 import traceback
 
-# Import authentication functions from auth.py
+# Setup logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+# Import auth
 try:
     from .auth import require_authentication
+    logger.info("Auth imported successfully (relative)")
 except ImportError:
-    from auth import require_authentication
-
-# Logging
-logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
-
-# Debug controls
-def is_debug(handler=None):
     try:
-        if os.environ.get("DEBUG", "0") == "1":
-            return True
-        # Optional per-request triggers:
-        if handler:
-            # Header
-            if handler.headers.get("X-Debug") == "1":
-                return True
-            # Query param
-            parsed = urlparse(handler.path)
-            q = parse_qs(parsed.query or "")
-            if q.get("debug", ["0"])[0] == "1":
-                return True
-    except Exception:
-        pass
-    return False
+        from auth import require_authentication
+        logger.info("Auth imported successfully (absolute)")
+    except ImportError as e:
+        logger.error(f"Failed to import auth: {e}")
+        require_authentication = None
 
-# Firebase init (avoid name shadowing)
+# Firebase setup
 db = None
 try:
+    logger.info("Initializing Firebase...")
     if not firebase_admin._apps:
         sa_json = os.environ.get("FIREBASE_SERVICE_ACCOUNT")
         if sa_json:
+            logger.info("Firebase service account found, initializing...")
             cred = credentials.Certificate(json.loads(sa_json))
             firebase_admin.initialize_app(cred)
+            logger.info("Firebase app initialized")
         else:
-            logger.warning("Warning: Running in demo mode without Firebase (no FIREBASE_SERVICE_ACCOUNT found)")
+            logger.warning("No FIREBASE_SERVICE_ACCOUNT found - running in demo mode")
+    
     if firebase_admin._apps:
         db = admin_firestore.client()
-        logger.info("Firebase initialized successfully")
+        logger.info("Firestore client created successfully")
+    else:
+        logger.warning("No Firebase app - db will be None")
+        
 except Exception as e:
-    logger.error(f"Firebase initialization error: {e}")
+    logger.error(f"Firebase initialization failed: {e}")
+    logger.error(traceback.format_exc())
     db = None
 
-# CORS
-ALLOWED_ORIGINS = {
-    "https://www.kitchenchat.live",
-    "https://kitchenchat.live",
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "https://kitchen-chat.vercel.app",
-    "https://kitchen-chat-gasfornuis.vercel.app",
-    "https://gasfornuis.github.io",
-}
-
-def send_cors_headers(handler):
-    origin = handler.headers.get('Origin')
-    if origin in ALLOWED_ORIGINS:
-        handler.send_header('Access-Control-Allow-Origin', origin)
-        handler.send_header('Vary', 'Origin')
-        handler.send_header('Access-Control-Allow-Credentials', 'true')
-    else:
+# Simple CORS
+def send_response_with_cors(handler, data, status=200):
+    try:
+        logger.info(f"Sending response with status {status}")
+        body = json.dumps(data, ensure_ascii=False, indent=2).encode('utf-8')
+        
+        handler.send_response(status)
+        handler.send_header('Content-Type', 'application/json; charset=utf-8')
+        handler.send_header('Content-Length', str(len(body)))
         handler.send_header('Access-Control-Allow-Origin', '*')
-    handler.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-    handler.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie')
-
-def send_json_response(handler, data, status=200):
-    body = json.dumps(data, ensure_ascii=False).encode('utf-8')
-    handler.send_response(status)
-    handler.send_header('Content-Type', 'application/json; charset=utf-8')
-    handler.send_header('Content-Length', str(len(body)))
-    send_cors_headers(handler)
-    handler.end_headers()
-    handler.wfile.write(body)
-
-def send_error_response(handler, message, status=400, details=None):
-    # Do not leak sensitive details unless debug is enabled
-    payload = {'error': message}
-    if details and is_debug(handler):
-        payload['details'] = details
-    logger.error(f"Error {status}: {message}{' | ' + str(details) if details else ''}")
-    send_json_response(handler, payload, status)
-
-def validate_message_content(content, message_type='text'):
-    if not content or not isinstance(content, str):
-        return False, "Message content is required"
-    content = content.strip()
-    if len(content) == 0:
-        return False, "Message cannot be empty"
-    if len(content) > 2000:
-        return False, "Message too long (max 2000 characters)"
-    return True, None
-
-def sanitize_string_input(input_str, max_length=None):
-    if not input_str or not isinstance(input_str, str):
-        return ''
-    sanitized = ''.join(ch for ch in input_str if ord(ch) >= 32 or ch in '\n\r\t')
-    sanitized = sanitized.strip()
-    if max_length and len(sanitized) > max_length:
-        sanitized = sanitized[:max_length]
-    return sanitized
+        handler.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        handler.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie')
+        handler.end_headers()
+        
+        handler.wfile.write(body)
+        logger.info("Response sent successfully")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to send response: {e}")
+        logger.error(traceback.format_exc())
+        return False
 
 class handler(BaseHTTPRequestHandler):
+    def log_message(self, format, *args):
+        # Override to use our logger
+        logger.info(f"HTTP: {format % args}")
+    
+    def do_OPTIONS(self):
+        try:
+            logger.info("Handling OPTIONS request")
+            self.send_response(204)
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+            self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie')
+            self.send_header('Access-Control-Max-Age', '86400')
+            self.end_headers()
+            logger.info("OPTIONS response sent")
+        except Exception as e:
+            logger.error(f"OPTIONS error: {e}")
+            logger.error(traceback.format_exc())
+
     def do_GET(self):
         try:
-            logger.info("GET /api/posts")
-            current_user = require_authentication(self)
-            if not current_user:
-                return send_error_response(self, "Authentication required", 401)
-
-            parsed_url = urlparse(self.path)
-            query = parse_qs(parsed_url.query or "")
-            subject_vals = query.get("SubjectId", [])
-            subject_id = subject_vals[0] if subject_vals else None
-
-            if not subject_id:
-                return send_error_response(self, "Missing SubjectId parameter", 400)
-
-            if not isinstance(subject_id, str) or len(subject_id) > 50:
-                return send_error_response(self, "Invalid SubjectId format", 400)
-
-            if not db:
-                sample = [{
+            logger.info("=== GET REQUEST START ===")
+            logger.info(f"Path: {self.path}")
+            logger.info(f"Headers: {dict(self.headers)}")
+            
+            # Simple demo response for now
+            demo_data = [
+                {
                     "id": "demo1",
-                    "Content": "Welcome to Kitchen Chat! This is a demo message.",
+                    "Content": "Demo message 1",
                     "CreatedAt": datetime.now().isoformat(),
                     "PostedBy": "System",
-                    "SubjectId": f"/subjects/{subject_id}",
                     "MessageType": "text"
-                }]
-                return send_json_response(self, sample)
-
-            try:
-                posts = []
-                try:
-                    posts_ref = (
-                        db.collection("Posts")
-                        .where("SubjectId", "==", f"/subjects/{subject_id}")
-                        .order_by("CreatedAt")
-                        .limit(500)
-                    )
-                    docs = list(posts_ref.stream())
-                    if not docs:
-                        posts_ref = (
-                            db.collection("Posts")
-                            .where("SubjectId", "==", subject_id)
-                            .order_by("CreatedAt")
-                            .limit(500)
-                        )
-                        docs = list(posts_ref.stream())
-                except Exception as qerr:
-                    logger.warning(f"Query with order_by failed, retry w/o ordering: {qerr}")
-                    try:
-                        posts_ref = (
-                            db.collection("Posts")
-                            .where("SubjectId", "==", f"/subjects/{subject_id}")
-                            .limit(500)
-                        )
-                        docs = list(posts_ref.stream())
-                    except Exception as q2err:
-                        logger.error(f"Fallback query failed: {q2err}")
-                        docs = []
-
-                for doc in docs:
-                    try:
-                        data = doc.to_dict()
-                        ts = data.get("CreatedAt")
-                        if hasattr(ts, "isoformat"):
-                            created_at = ts.isoformat()
-                        elif isinstance(ts, datetime):
-                            created_at = ts.isoformat()
-                        else:
-                            created_at = str(ts) if ts is not None else datetime.now().isoformat()
-
-                        posts.append({
-                            "id": doc.id,
-                            "Content": sanitize_string_input(data.get("Content", ""), 2000),
-                            "CreatedAt": created_at,
-                            "PostedBy": sanitize_string_input(data.get("PostedBy", "Anonymous"), 50),
-                            "SubjectId": data.get("SubjectId", ""),
-                            "MessageType": data.get("MessageType", "text"),
-                        })
-                    except Exception as doc_err:
-                        logger.error(f"Doc {doc.id} processing error: {doc_err}")
-                        continue
-
-                return send_json_response(self, posts)
-
-            except Exception as fs_err:
-                logger.error(f"Firestore read error: {fs_err}\n{traceback.format_exc()}")
-                # Return empty list to keep UI responsive
-                return send_json_response(self, [])
-
+                }
+            ]
+            
+            success = send_response_with_cors(self, demo_data, 200)
+            logger.info(f"GET completed successfully: {success}")
+            
         except Exception as e:
-            logger.error(f"GET handler error: {e}\n{traceback.format_exc()}")
-            return send_error_response(self, "Internal server error. Please try again later.", 500, details=str(e))
+            logger.error(f"GET error: {e}")
+            logger.error(traceback.format_exc())
+            try:
+                send_response_with_cors(self, {"error": f"GET failed: {str(e)}"}, 500)
+            except:
+                logger.error("Failed to send error response for GET")
 
     def do_POST(self):
+        step = "unknown"
         try:
-            logger.info("POST /api/posts")
-            # Parse body
-            try:
-                content_length = int(self.headers.get('Content-Length', 0))
-                if content_length <= 0:
-                    return send_error_response(self, "No data provided", 400)
-                body = self.rfile.read(content_length)
-                data = json.loads(body.decode('utf-8'))
-            except json.JSONDecodeError as e:
-                return send_error_response(self, "Invalid JSON format", 400, details=str(e))
-            except Exception as e:
-                return send_error_response(self, "Invalid request format", 400, details=str(e))
-
-            # Auth
-            current_user = require_authentication(self)
-            if not current_user:
-                return send_error_response(self, "Authentication required", 401)
-
-            # Validate
-            required = ['Content', 'SubjectId']
-            missing = [k for k in required if k not in data or not data[k]]
-            if missing:
-                return send_error_response(self, f"Missing required fields: {', '.join(missing)}", 400)
-
-            content = str(data.get("Content", "")).strip()
-            subject_id = str(data.get("SubjectId", "")).strip()
-            posted_by = current_user.get("displayName", "Anonymous")
-            message_type = data.get("MessageType", "text")
-
-            ok, err = validate_message_content(content, message_type)
-            if not ok:
-                return send_error_response(self, err, 400)
-
-            # Sanitize
-            content = sanitize_string_input(content, 2000)
-            subject_id = sanitize_string_input(subject_id, 50)
-            posted_by = sanitize_string_input(posted_by, 50)
-            message_type = sanitize_string_input(message_type, 20)
-
-            if not db:
-                return send_json_response(self, {
-                    "ok": True,
-                    "id": str(uuid.uuid4()),
-                    "demo": True,
-                    "timestamp": datetime.now().isoformat()
-                }, 201)
-
-            # Build doc
-            doc_data = {
-                "Content": content,
-                "CreatedAt": gcf.SERVER_TIMESTAMP,  # correct sentinel
-                "PostedBy": posted_by,
-                "SubjectId": f"/subjects/{subject_id}",
-                "MessageType": message_type,
-            }
-
-            # Only wrap the Firestore write itself so we don't mask response errors
-            try:
-                doc_ref, write_result = db.collection("Posts").add(doc_data)
-            except Exception as write_err:
-                logger.error(f"Firestore write error: {write_err}\n{traceback.format_exc()}")
-                return send_error_response(self, "Failed to save message", 500, details=str(write_err))
-
-            # If we got here, the write succeeded. Now respond simply.
-            return send_json_response(self, {
+            logger.info("=== POST REQUEST START ===")
+            step = "headers"
+            logger.info(f"Path: {self.path}")
+            logger.info(f"Headers: {dict(self.headers)}")
+            logger.info(f"Content-Length: {self.headers.get('Content-Length', 'None')}")
+            
+            step = "read_body"
+            content_length = int(self.headers.get('Content-Length', 0))
+            logger.info(f"Reading {content_length} bytes")
+            
+            if content_length <= 0:
+                logger.warning("No content provided")
+                return send_response_with_cors(self, {"error": "No data provided"}, 400)
+            
+            body = self.rfile.read(content_length)
+            logger.info(f"Body read: {len(body)} bytes")
+            
+            step = "parse_json"
+            body_str = body.decode('utf-8')
+            logger.info(f"Body string: {body_str[:200]}...")  # First 200 chars
+            
+            data = json.loads(body_str)
+            logger.info(f"JSON parsed, keys: {list(data.keys())}")
+            
+            step = "validate_data"
+            content = data.get("Content", "").strip()
+            subject_id = data.get("SubjectId", "").strip()
+            
+            logger.info(f"Content: '{content[:50]}...' SubjectId: '{subject_id}'")
+            
+            if not content:
+                return send_response_with_cors(self, {"error": "Content is required"}, 400)
+            if not subject_id:
+                return send_response_with_cors(self, {"error": "SubjectId is required"}, 400)
+            
+            step = "auth_check"
+            if require_authentication:
+                logger.info("Checking authentication...")
+                current_user = require_authentication(self)
+                if not current_user:
+                    logger.warning("Authentication failed")
+                    return send_response_with_cors(self, {"error": "Authentication required"}, 401)
+                logger.info(f"User authenticated: {current_user.get('username', 'unknown')}")
+                posted_by = current_user.get("displayName", "Anonymous")
+            else:
+                logger.warning("No auth function available - skipping auth")
+                posted_by = "TestUser"
+            
+            step = "demo_response"
+            # For now, always return success without actually saving
+            response_data = {
                 "ok": True,
-                "id": doc_ref.id,
-                "type": message_type
-            }, 201)
-
+                "id": str(uuid.uuid4()),
+                "type": "text",
+                "demo": True,
+                "received": {
+                    "content": content[:50],
+                    "subject_id": subject_id,
+                    "posted_by": posted_by
+                }
+            }
+            
+            logger.info(f"Sending success response: {response_data}")
+            success = send_response_with_cors(self, response_data, 201)
+            logger.info(f"POST completed successfully: {success}")
+            
         except Exception as e:
-            # Any error after a successful write will be correctly labeled here, not as save failure
-            logger.error(f"POST handler error: {e}\n{traceback.format_exc()}")
-            status = 500
-            msg = "Failed to create message"
-            det = str(e) if is_debug(self) else None
-            return send_error_response(self, msg, status, details=det)
-
-    def do_OPTIONS(self):
-        self.send_response(204)
-        send_cors_headers(self)
-        self.send_header('Access-Control-Max-Age', '86400')
-        self.send_header('Vary', 'Origin')
-        self.end_headers()
+            logger.error(f"POST error at step '{step}': {e}")
+            logger.error(f"Exception type: {type(e).__name__}")
+            logger.error(traceback.format_exc())
+            
+            try:
+                error_response = {
+                    "error": f"POST failed at step '{step}'",
+                    "details": str(e),
+                    "type": type(e).__name__
+                }
+                send_response_with_cors(self, error_response, 500)
+            except Exception as send_error:
+                logger.error(f"Failed to send error response: {send_error}")
+                logger.error(traceback.format_exc())

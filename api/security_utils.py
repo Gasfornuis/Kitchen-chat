@@ -21,6 +21,7 @@ ALLOWED_ORIGINS = [
     'https://gasfornuis.github.io',
     'https://kitchen-chat-gasfornuis.vercel.app'
     'https://kitchenchat.live'
+    'https://www.kitchenchat.live'
 ]
 
 # In-memory rate limiting (voor productie: gebruik Redis of database)

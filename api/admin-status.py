@@ -6,10 +6,13 @@ from firebase_admin import credentials, firestore as fb_firestore
 import os
 import hashlib
 import logging
+import time
+from collections import defaultdict
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+security_logger = logging.getLogger('security')
 
 # Initialize Firebase (consistent with other files)
 if not firebase_admin._apps:
@@ -24,9 +27,49 @@ if not firebase_admin._apps:
 
 db = fb_firestore.client() if firebase_admin._apps else None
 
+# VEILIGE CORS CONFIGURATIE
+ALLOWED_ORIGINS = [
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'https://kitchen-chat.vercel.app',
+    'https://gasfornuis.github.io'
+    # Voeg je productie domein toe
+]
+
+# Rate limiting storage
+rate_limit_storage = defaultdict(list)
+
 # VEILIGE SERVER-SIDE ADMIN CONFIGURATIE
-# Deze lijst wordt alleen op de server gecontroleerd en is niet zichtbaar voor clients
 ADMIN_USERS = ['daan25', 'gasfornuis']
+
+def get_client_ip(headers):
+    """Get real client IP from headers"""
+    forwarded = headers.get('x-forwarded-for', '')
+    if forwarded:
+        return forwarded.split(',')[0].strip()
+    return headers.get('x-real-ip', headers.get('remote-addr', 'unknown'))
+
+def check_rate_limit(client_ip, endpoint, max_requests=30, time_window=60):
+    """Rate limiting voor API calls"""
+    now = time.time()
+    key = f"{client_ip}:{endpoint}"
+    
+    # Clean old entries
+    rate_limit_storage[key] = [req_time for req_time in rate_limit_storage[key] if now - req_time < time_window]
+    
+    if len(rate_limit_storage[key]) >= max_requests:
+        security_logger.warning(f"Rate limit exceeded for {client_ip} on {endpoint}")
+        return False
+    
+    rate_limit_storage[key].append(now)
+    return True
+
+def get_safe_origin(request_headers):
+    """Get safe CORS origin instead of wildcard"""
+    origin = request_headers.get('Origin', '')
+    if origin in ALLOWED_ORIGINS:
+        return origin
+    return ALLOWED_ORIGINS[0] if ALLOWED_ORIGINS else 'null'
 
 def sha256_hash(text):
     """SHA-256 hash utility"""
@@ -111,39 +154,60 @@ def check_admin_permissions(user):
     # Controleer beide username en displayName tegen de admin lijst
     for admin_user in ADMIN_USERS:
         if username == admin_user.lower() or display_name == admin_user.lower():
-            logger.info(f"Admin status check: GRANTED for user {username} (displayName: {display_name})")
             return True
     
-    logger.info(f"Admin status check: DENIED for user {username} (displayName: {display_name})")
     return False
 
 class handler(BaseHTTPRequestHandler):
     def do_OPTIONS(self):
-        """Handle preflight requests"""
+        """Handle preflight requests with secure CORS"""
+        safe_origin = get_safe_origin(self.headers)
+        
         self.send_response(200)
-        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Origin', safe_origin)
         self.send_header('Access-Control-Allow-Methods', 'GET, OPTIONS')
         self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie')
         self.send_header('Access-Control-Allow-Credentials', 'true')
         self.send_header('Access-Control-Max-Age', '86400')
+        # Security headers
+        self.send_header('X-Content-Type-Options', 'nosniff')
+        self.send_header('X-Frame-Options', 'DENY')
         self.end_headers()
     
     def send_json_response(self, data, status=200):
-        """Send JSON response with CORS headers"""
+        """Send JSON response with secure CORS headers"""
+        safe_origin = get_safe_origin(self.headers)
+        
         self.send_response(status)
         self.send_header('Content-Type', 'application/json')
-        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Origin', safe_origin)
         self.send_header('Access-Control-Allow-Credentials', 'true')
+        # Security headers
+        self.send_header('X-Content-Type-Options', 'nosniff')
+        self.send_header('X-Frame-Options', 'DENY')
+        self.send_header('X-XSS-Protection', '1; mode=block')
         self.end_headers()
         self.wfile.write(json.dumps(data).encode())
     
     def send_error_response(self, error, status=500):
-        """Send error response"""
-        logger.error(f"Admin Status API Error: {error}")
-        self.send_json_response({'error': str(error)}, status)
+        """Send secure error response"""
+        logger.error(f"Admin Status API Error {status}: {error}")
+        
+        # Generic error for client security
+        public_error = error
+        if status == 500:
+            public_error = "Internal server error. Please try again."
+        
+        self.send_json_response({'error': public_error}, status)
     
     def do_GET(self):
-        """Check admin status for authenticated user"""
+        """Check admin status for authenticated user with rate limiting"""
+        client_ip = get_client_ip(self.headers)
+        
+        # Rate limiting - admin status checks
+        if not check_rate_limit(client_ip, 'admin_status', max_requests=20, time_window=60):
+            return self.send_error_response("Too many requests. Please slow down.", 429)
+        
         try:
             # Get user from session
             current_user = require_authentication(self)
@@ -154,7 +218,7 @@ class handler(BaseHTTPRequestHandler):
             # Check admin permissions
             is_admin = check_admin_permissions(current_user)
             
-            # Return admin status with user info
+            # Return admin status with user info (no sensitive data)
             response_data = {
                 'success': True,
                 'user': {
@@ -169,10 +233,11 @@ class handler(BaseHTTPRequestHandler):
                 }
             }
             
-            # Don't log sensitive info, but log the request
-            logger.info(f"Admin status requested by user: {current_user.get('username')} - Admin: {is_admin}")
+            # Log admin status check (but not too verbose)
+            if is_admin:
+                logger.info(f"Admin status confirmed for user: {current_user.get('username')}")
             
             return self.send_json_response(response_data)
         
         except Exception as e:
-            return self.send_error_response(f"Failed to check admin status: {str(e)}", 500)
+            return self.send_error_response(f"Failed to check admin status", 500)

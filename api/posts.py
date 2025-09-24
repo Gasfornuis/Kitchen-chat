@@ -1,12 +1,9 @@
 from http.server import BaseHTTPRequestHandler
 import json
 import os
-import re
 from urllib.parse import urlparse, parse_qs
 import firebase_admin
 from firebase_admin import credentials, firestore as admin_firestore
-from google.cloud.firestore_v1 import SERVER_TIMESTAMP
-import base64
 import uuid
 from datetime import datetime
 import logging
@@ -21,6 +18,8 @@ except ImportError:
 # Configure logging
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
+
+DEBUG_MODE = os.environ.get("DEBUG", "0") == "1"
 
 # Initialize Firebase with better error handling (avoid import name shadowing)
 db = None
@@ -40,8 +39,6 @@ try:
 except Exception as e:
     logger.error(f"Firebase initialization error: {str(e)}")
     db = None
-
-FIREBASE_SECRET = os.environ.get("FIREBASE_SECRET")
 
 # CORS setup
 ALLOWED_ORIGINS = {
@@ -306,14 +303,13 @@ class handler(BaseHTTPRequestHandler):
                 # Prepare document data
                 doc_data = {
                     "Content": content,
-                    "CreatedAt": SERVER_TIMESTAMP,
+                    "CreatedAt": admin_firestore.SERVER_TIMESTAMP,  # match admin client
                     "PostedBy": posted_by,
                     "SubjectId": f"/subjects/{subject_id}",
                     "MessageType": message_type,
                 }
 
-                if FIREBASE_SECRET:
-                    doc_data["secret"] = FIREBASE_SECRET
+                # IMPORTANT: do not store secrets in documents
 
                 # Add to Firestore; return only primitive JSON
                 doc_ref, write_result = db.collection("Posts").add(doc_data)
@@ -326,8 +322,16 @@ class handler(BaseHTTPRequestHandler):
                 }, 201)
 
             except Exception as firestore_error:
+                tb = traceback.format_exc()
                 logger.error(f"Firestore write error: {str(firestore_error)}")
-                logger.error(f"Write traceback: {traceback.format_exc()}")
+                logger.error(f"Write traceback: {tb}")
+                if DEBUG_MODE:
+                    # Expose details only when DEBUG=1
+                    return send_json_response(self, {
+                        "error": "Failed to save message",
+                        "details": str(firestore_error),
+                        "traceback": tb
+                    }, 500)
                 return send_error_response(self, "Failed to save message", 500)
 
         except Exception as e:

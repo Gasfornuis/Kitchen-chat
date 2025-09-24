@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Kitchen Chat - Secure, simple messaging platform">
+    <meta name="robots" content="noindex, nofollow">
+    
+    <!-- Enhanced Security Headers -->
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-Frame-Options" content="DENY">
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block">
+    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+    
+    <!-- Content Security Policy -->
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'self';
+        script-src 'self' 'unsafe-inline';
+        style-src 'self' 'unsafe-inline';
+        img-src 'self' data: https:;
+        connect-src 'self' https:;
+        font-src 'self';
+        object-src 'none';
+        frame-ancestors 'none';
+        base-uri 'self';
+        form-action 'self';
+    ">
+    
+    <!-- Prevent DNS prefetching to external domains -->
+    <meta http-equiv="x-dns-prefetch-control" content="off">
+    
+    <title>Kitchen Chat - Secure Messaging</title>
+    
+    <!-- Inline CSS voor security (prevent external CSS loading) -->
+    <style>
+        /* Enhanced CSS with security considerations */
+        :root {
+            /* Light Theme Colors */
+            --bg-primary: #f0f0f0;
+            --bg-secondary: white;
+            --bg-tertiary: #f5f5f5;
+            --bg-quaternary: #f8f8f8;
+            --bg-accent: #ddd;
+            --bg-message: #fafafa;
+            --bg-message-own: #e7f3ff;
+            --bg-hover: #f0f0f0;
+            --bg-active: #007cba;
+            --bg-modal: rgba(0,0,0,0.5);
+            --bg-announcement: #fff3cd;
+            
+            --text-primary: #333;
+            --text-secondary: #666;
+            --text-tertiary: #444;
+            --text-light: white;
+            --text-error: #d32f2f;
+            --text-success: #388e3c;
+            --text-announcement: #856404;
+            
+            --border-primary: #ccc;
+            --border-secondary: #bbb;
+            --border-tertiary: #ddd;
+            --border-announcement: #ffeaa7;
+            
+            --accent-primary: #007cba;
+            --accent-secondary: #005a87;
+            --dm-accent: #9c27b0;
+            --announcement-accent: #f39c12;
+        }
+        
+        /* Dark Theme Colors */
+        [data-theme="dark"] {
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #2d2d2d;
+            --bg-tertiary: #3d3d3d;
+            --bg-quaternary: #4d4d4d;
+            --bg-accent: #555;
+            --bg-message: #2a2a2a;
+            --bg-message-own: #1e3a52;
+            --bg-hover: #404040;
+            --bg-active: #007cba;
+            --bg-modal: rgba(0,0,0,0.8);
+            --bg-announcement: #2d2419;
+            
+            --text-primary: #e0e0e0;
+            --text-secondary: #b0b0b0;
+            --text-tertiary: #c0c0c0;
+            --text-light: white;
+            --text-error: #f44336;
+            --text-success: #4caf50;
+            --text-announcement: #ffeaa7;
+            
+            --border-primary: #555;
+            --border-secondary: #666;
+            --border-tertiary: #444;
+            --border-announcement: #3d3020;
+            
+            --accent-primary: #4dabf7;
+            --accent-secondary: #3498db;
+            --dm-accent: #e91e63;
+            --announcement-accent: #f39c12;
+        }
+        
+        /* Reset and base styles with security focus */
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            transition: background-color 0.3s ease, color 0.3s ease;
+            /* Prevent text selection on UI elements */
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+        
+        /* Allow text selection in content areas */
+        .message-text, .announcement-content, input, textarea {
+            -webkit-user-select: text;
+            -moz-user-select: text;
+            -ms-user-select: text;
+            user-select: text;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-primary);
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+        
+        /* Authentication styles with enhanced security focus */
+        .auth-container {
+            max-width: 400px;
+            margin: 100px auto;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-primary);
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+        
+        .auth-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .auth-header h1 {
+            color: var(--accent-primary);
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        .security-badge {
+            display: inline-block;
+            background: var(--text-success);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        
+        .auth-tabs {
+            display: flex;
+            margin-bottom: 25px;
+            border: 1px solid var(--border-primary);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .auth-tab {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            background: var(--bg-tertiary);
+            cursor: pointer;
+            border: none;
+            color: var(--text-primary);
+            font-weight: 500;
+            transition: background-color 0.3s ease;
+        }
+        
+        .auth-tab.active {
+            background: var(--accent-primary);
+            color: var(--text-light);
+        }
+        
+        .auth-tab:hover:not(.active) {
+            background: var(--bg-hover);
+        }
+        
+        .auth-form {
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid var(--border-primary);
+            border-radius: 6px;
+            font-size: 14px;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(0, 124, 186, 0.1);
+        }
+        
+        /* Password strength indicator */
+        .password-strength {
+            margin-top: 8px;
+            font-size: 12px;
+        }
+        
+        .strength-bar {
+            height: 4px;
+            background: var(--border-primary);
+            border-radius: 2px;
+            margin: 5px 0;
+            overflow: hidden;
+        }
+        
+        .strength-fill {
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease, background-color 0.3s ease;
+            border-radius: 2px;
+        }
+        
+        .strength-weak { background-color: #f44336; width: 25%; }
+        .strength-fair { background-color: #ff9800; width: 50%; }
+        .strength-good { background-color: #2196f3; width: 75%; }
+        .strength-strong { background-color: #4caf50; width: 100%; }
+        
+        .auth-button {
+            width: 100%;
+            padding: 14px;
+            background: var(--accent-primary);
+            color: var(--text-light);
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.1s ease;
+        }
+        
+        .auth-button:hover:not(:disabled) {
+            background: var(--accent-secondary);
+            transform: translateY(-1px);
+        }
+        
+        .auth-button:disabled {
+            background: var(--text-secondary);
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .password-requirements {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 8px;
+            line-height: 1.4;
+        }
+        
+        .requirement {
+            display: block;
+            margin: 2px 0;
+        }
+        
+        .requirement.met {
+            color: var(--text-success);
+        }
+        
+        .requirement.unmet {
+            color: var(--text-error);
+        }
+        
+        /* Security notice */
+        .security-notice {
+            background: #e8f5e8;
+            border: 1px solid #c8e6c9;
+            border-radius: 6px;
+            padding: 12px;
+            margin: 20px 0;
+            font-size: 13px;
+            color: #2e7d32;
+        }
+        
+        [data-theme="dark"] .security-notice {
+            background: #1b2e1b;
+            border-color: #2d4a2d;
+            color: #81c784;
+        }
+        
+        .security-icon {
+            color: var(--text-success);
+            margin-right: 6px;
+        }
+        
+        /* Theme toggle enhancement */
+        .theme-toggle-auth {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--bg-tertiary);
+            border: 2px solid var(--border-primary);
+            color: var(--text-primary);
+            padding: 10px 14px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .theme-toggle-auth:hover {
+            background: var(--bg-hover);
+            transform: scale(1.05);
+        }
+        
+        /* Toast notifications with security styling */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--accent-primary);
+            color: var(--text-light);
+            padding: 15px 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            z-index: 2000;
+            font-weight: 500;
+            max-width: 400px;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        .toast.error {
+            background: var(--text-error) !important;
+        }
+        
+        .toast.success {
+            background: var(--text-success) !important;
+        }
+        
+        .toast.warning {
+            background: #ff9800 !important;
+        }
+        
+        /* Loading states */
+        .loading {
+            position: relative;
+            pointer-events: none;
+        }
+        
+        .loading::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 20px;
+            height: 20px;
+            margin: -10px 0 0 -10px;
+            border: 2px solid transparent;
+            border-top: 2px solid var(--accent-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Hide elements by default */
+        .app-container {
+            display: none;
+        }
+        
+        .app-container.authenticated {
+            display: block;
+        }
+        
+        /* Responsive design with security considerations */
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+            
+            .auth-container {
+                margin: 20px auto;
+                padding: 20px;
+                border-radius: 8px;
+            }
+            
+            .auth-header h1 {
+                font-size: 24px;
+            }
+            
+            .theme-toggle-auth {
+                top: 10px;
+                right: 10px;
+                padding: 8px 12px;
+                font-size: 14px;
+            }
+        }
+        
+        /* Prevent common attack vectors */
+        iframe, object, embed, applet {
+            display: none !important;
+        }
+        
+        /* Hide potentially dangerous elements */
+        script, style, link[rel="import"] {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Theme toggle for auth screen -->
+    <button id="authThemeToggle" class="theme-toggle-auth" onclick="toggleTheme()" style="display: block;" title="Toggle theme">🌙</button>
+    
+    <!-- Authentication Screen with Enhanced Security -->
+    <div id="authScreen" class="auth-container">
+        <div class="auth-header">
+            <h1>Kitchen Chat</h1>
+            <p>Secure, simple messaging</p>
+            <div class="security-badge">🔒 Secured with bcrypt + TLS</div>
+        </div>
+        
+        <!-- Security Notice -->
+        <div class="security-notice">
+            <span class="security-icon">🛡️</span>
+            <strong>Security Features:</strong>
+            <br>• Bcrypt password encryption
+            <br>• Brute force protection
+            <br>• XSS/injection prevention
+            <br>• Secure session management
+        </div>
+        
+        <div class="auth-tabs">
+            <button class="auth-tab active" onclick="switchAuthTab('login')">Login</button>
+            <button class="auth-tab" onclick="switchAuthTab('register')">Register</button>
+        </div>
+        
+        <!-- Login Form -->
+        <div id="loginForm" class="auth-form">
+            <div class="form-group">
+                <label for="loginUsername">Username:</label>
+                <input type="text" id="loginUsername" placeholder="Enter your username" 
+                       autocomplete="username" spellcheck="false" maxlength="32">
+            </div>
+            <div class="form-group">
+                <label for="loginPassword">Password:</label>
+                <input type="password" id="loginPassword" placeholder="Enter your password" 
+                       autocomplete="current-password" maxlength="128">
+            </div>
+            <button class="auth-button" onclick="login()" id="loginBtn">Login</button>
+        </div>
+        
+        <!-- Register Form with Enhanced Security -->
+        <div id="registerForm" class="auth-form" style="display: none;">
+            <div class="form-group">
+                <label for="registerUsername">Username:</label>
+                <input type="text" id="registerUsername" placeholder="Choose a username (3-32 chars)" 
+                       autocomplete="username" spellcheck="false" maxlength="32" 
+                       oninput="validateUsername()">
+                <div id="usernameValidation" class="password-requirements"></div>
+            </div>
+            <div class="form-group">
+                <label for="registerEmail">Email (optional):</label>
+                <input type="email" id="registerEmail" placeholder="your@email.com" 
+                       autocomplete="email" maxlength="254">
+            </div>
+            <div class="form-group">
+                <label for="registerPassword">Password:</label>
+                <input type="password" id="registerPassword" placeholder="Choose a secure password" 
+                       autocomplete="new-password" maxlength="128" 
+                       oninput="validatePassword()">
+                
+                <!-- Password strength indicator -->
+                <div class="password-strength">
+                    <div class="strength-bar">
+                        <div id="strengthFill" class="strength-fill"></div>
+                    </div>
+                    <div id="strengthText">Password strength: <span id="strengthLevel">None</span></div>
+                </div>
+                
+                <div class="password-requirements">
+                    <div class="requirement" id="req-length">• At least 8 characters</div>
+                    <div class="requirement" id="req-letter">• Contains letters</div>
+                    <div class="requirement" id="req-number">• Contains numbers</div>
+                    <div class="requirement" id="req-special">• Contains special characters (recommended)</div>
+                    <div class="requirement" id="req-common">• Not a common password</div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="registerPasswordConfirm">Confirm Password:</label>
+                <input type="password" id="registerPasswordConfirm" placeholder="Confirm your password" 
+                       autocomplete="new-password" maxlength="128" 
+                       oninput="validatePasswordConfirm()">
+                <div id="confirmValidation" class="password-requirements"></div>
+            </div>
+            <button class="auth-button" onclick="register()" id="registerBtn" disabled>Create Account</button>
+        </div>
+    </div>
+    
+    <!-- Main App Placeholder -->
+    <div id="mainApp" class="app-container">
+        <div class="container">
+            <!-- App content would go here -->
+            <div style="padding: 40px; text-align: center;">
+                <h2>🔒 Secure Kitchen Chat</h2>
+                <p>Enhanced security implementation loaded successfully!</p>
+                <p><strong>Security Features Active:</strong></p>
+                <ul style="display: inline-block; text-align: left;">
+                    <li>✅ Bcrypt password hashing</li>
+                    <li>✅ XSS/SQL injection protection</li>
+                    <li>✅ Brute force protection</li>
+                    <li>✅ Secure CORS policy</li>
+                    <li>✅ Content Security Policy</li>
+                    <li>✅ Input validation & sanitization</li>
+                    <li>✅ Session security</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Enhanced JavaScript with security focus
+        'use strict';
+        
+        // Security configuration
+        const SECURITY_CONFIG = {
+            MAX_LOGIN_ATTEMPTS: 5,
+            LOCKOUT_DURATION: 15 * 60 * 1000, // 15 minutes
+            PASSWORD_MIN_LENGTH: 8,
+            PASSWORD_MAX_LENGTH: 128,
+            USERNAME_MIN_LENGTH: 3,
+            USERNAME_MAX_LENGTH: 32,
+            API_TIMEOUT: 10000 // 10 seconds
+        };
+        
+        // Global state
+        let currentUser = null;
+        let isAuthenticated = false;
+        let loginAttempts = 0;
+        let lockoutEndTime = null;
+        let currentTheme = localStorage.getItem('kitchenChatTheme') || 'light';
+        
+        // Common passwords list (for validation)
+        const COMMON_PASSWORDS = new Set([
+            'password', 'password123', '123456', '123456789', 'qwerty',
+            'abc123', 'password1', 'admin', 'letmein', 'welcome',
+            'monkey', '1234567890', 'qwerty123', 'password12345'
+        ]);
+        
+        // Input sanitization function
+        function sanitizeInput(input) {
+            if (typeof input !== 'string') return '';
+            
+            // Remove null bytes and control characters
+            let sanitized = input.replace(/[\x00-\x1F\x7F]/g, '');
+            
+            // Normalize whitespace
+            sanitized = sanitized.replace(/\s+/g, ' ').trim();
+            
+            return sanitized;
+        }
+        
+        // XSS prevention
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Enhanced input validation
+        function validateUsername() {
+            const username = document.getElementById('registerUsername').value;
+            const validation = document.getElementById('usernameValidation');
+            const errors = [];
+            
+            if (!username) {
+                validation.innerHTML = '';
+                return false;
+            }
+            
+            if (username.length < SECURITY_CONFIG.USERNAME_MIN_LENGTH) {
+                errors.push('Too short (min 3 chars)');
+            }
+            
+            if (username.length > SECURITY_CONFIG.USERNAME_MAX_LENGTH) {
+                errors.push('Too long (max 32 chars)');
+            }
+            
+            if (!/^[a-zA-Z0-9._-]+$/.test(username)) {
+                errors.push('Only letters, numbers, dots, underscores, and hyphens allowed');
+            }
+            
+            if (/^[0-9]+$/.test(username)) {
+                errors.push('Cannot be only numbers');
+            }
+            
+            const forbidden = ['admin', 'administrator', 'root', 'system', 'mod', 'moderator'];
+            if (forbidden.includes(username.toLowerCase())) {
+                errors.push('Username not allowed');
+            }
+            
+            validation.innerHTML = errors.length > 0 
+                ? `<span style="color: var(--text-error)">• ${errors.join('<br>• ')}</span>`
+                : `<span style="color: var(--text-success)">✓ Username looks good</span>`;
+            
+            return errors.length === 0;
+        }
+        
+        // Enhanced password validation with strength checking
+        function validatePassword() {
+            const password = document.getElementById('registerPassword').value;
+            const strengthFill = document.getElementById('strengthFill');
+            const strengthLevel = document.getElementById('strengthLevel');
+            
+            // Requirements elements
+            const reqLength = document.getElementById('req-length');
+            const reqLetter = document.getElementById('req-letter');
+            const reqNumber = document.getElementById('req-number');
+            const reqSpecial = document.getElementById('req-special');
+            const reqCommon = document.getElementById('req-common');
+            
+            if (!password) {
+                strengthFill.className = 'strength-fill';
+                strengthLevel.textContent = 'None';
+                resetRequirements();
+                return false;
+            }
+            
+            let score = 0;
+            let issues = [];
+            
+            // Length check
+            const hasLength = password.length >= SECURITY_CONFIG.PASSWORD_MIN_LENGTH;
+            updateRequirement(reqLength, hasLength);
+            if (hasLength) score += 1;
+            else issues.push('too short');
+            
+            // Letter check
+            const hasLetter = /[a-zA-Z]/.test(password);
+            updateRequirement(reqLetter, hasLetter);
+            if (hasLetter) score += 1;
+            else issues.push('needs letters');
+            
+            // Number check
+            const hasNumber = /[0-9]/.test(password);
+            updateRequirement(reqNumber, hasNumber);
+            if (hasNumber) score += 1;
+            else issues.push('needs numbers');
+            
+            // Special character check
+            const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+            updateRequirement(reqSpecial, hasSpecial);
+            if (hasSpecial) score += 1;
+            
+            // Common password check
+            const notCommon = !COMMON_PASSWORDS.has(password.toLowerCase());
+            updateRequirement(reqCommon, notCommon);
+            if (!notCommon) {
+                score = Math.min(score, 1); // Cap at weak if common
+                issues.push('too common');
+            }
+            
+            // Additional scoring
+            if (password.length >= 12) score += 0.5;
+            if (/[A-Z]/.test(password) && /[a-z]/.test(password)) score += 0.5;
+            
+            // Update strength indicator
+            if (score <= 1.5) {
+                strengthFill.className = 'strength-fill strength-weak';
+                strengthLevel.textContent = 'Weak';
+            } else if (score <= 2.5) {
+                strengthFill.className = 'strength-fill strength-fair';
+                strengthLevel.textContent = 'Fair';
+            } else if (score <= 3.5) {
+                strengthFill.className = 'strength-fill strength-good';
+                strengthLevel.textContent = 'Good';
+            } else {
+                strengthFill.className = 'strength-fill strength-strong';
+                strengthLevel.textContent = 'Strong';
+            }
+            
+            validatePasswordConfirm();
+            updateRegisterButton();
+            
+            return score >= 2; // At least fair strength required
+        }
+        
+        function validatePasswordConfirm() {
+            const password = document.getElementById('registerPassword').value;
+            const confirm = document.getElementById('registerPasswordConfirm').value;
+            const validation = document.getElementById('confirmValidation');
+            
+            if (!confirm) {
+                validation.innerHTML = '';
+                return false;
+            }
+            
+            const matches = password === confirm;
+            validation.innerHTML = matches
+                ? `<span style="color: var(--text-success)">✓ Passwords match</span>`
+                : `<span style="color: var(--text-error)">✗ Passwords don't match</span>`;
+            
+            updateRegisterButton();
+            return matches;
+        }
+        
+        function updateRequirement(element, met) {
+            element.className = met ? 'requirement met' : 'requirement unmet';
+        }
+        
+        function resetRequirements() {
+            ['req-length', 'req-letter', 'req-number', 'req-special', 'req-common'].forEach(id => {
+                document.getElementById(id).className = 'requirement unmet';
+            });
+        }
+        
+        function updateRegisterButton() {
+            const username = validateUsername();
+            const password = validatePassword();
+            const confirm = validatePasswordConfirm();
+            
+            const registerBtn = document.getElementById('registerBtn');
+            registerBtn.disabled = !(username && password && confirm);
+        }
+        
+        // Authentication functions
+        function switchAuthTab(tab) {
+            document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+            document.querySelector(`[onclick="switchAuthTab('${tab}')"]`).classList.add('active');
+            
+            if (tab === 'login') {
+                document.getElementById('loginForm').style.display = 'block';
+                document.getElementById('registerForm').style.display = 'none';
+            } else {
+                document.getElementById('loginForm').style.display = 'none';
+                document.getElementById('registerForm').style.display = 'block';
+            }
+        }
+        
+        // Enhanced login with security checks
+        async function login() {
+            // Check lockout
+            if (lockoutEndTime && Date.now() < lockoutEndTime) {
+                const remainingMinutes = Math.ceil((lockoutEndTime - Date.now()) / 60000);
+                showToast(`Account locked. Try again in ${remainingMinutes} minutes.`, 'error');
+                return;
+            }
+            
+            const username = sanitizeInput(document.getElementById('loginUsername').value);
+            const password = document.getElementById('loginPassword').value;
+            
+            if (!username || !password) {
+                showToast('Please enter username and password', 'error');
+                return;
+            }
+            
+            const loginBtn = document.getElementById('loginBtn');
+            loginBtn.classList.add('loading');
+            loginBtn.disabled = true;
+            
+            try {
+                const response = await fetchWithTimeout('/api/auth-v2', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        action: 'login',
+                        username: username,
+                        password: password
+                    })
+                }, SECURITY_CONFIG.API_TIMEOUT);
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    currentUser = result.user;
+                    isAuthenticated = true;
+                    loginAttempts = 0;
+                    lockoutEndTime = null;
+                    
+                    showToast('Login successful!', 'success');
+                    showMainApp();
+                } else {
+                    handleLoginFailure(result.error || 'Login failed');
+                }
+                
+            } catch (error) {
+                console.error('Login error:', error);
+                handleLoginFailure('Network error. Please try again.');
+            } finally {
+                loginBtn.classList.remove('loading');
+                loginBtn.disabled = false;
+            }
+        }
+        
+        function handleLoginFailure(message) {
+            loginAttempts++;
+            
+            if (loginAttempts >= SECURITY_CONFIG.MAX_LOGIN_ATTEMPTS) {
+                lockoutEndTime = Date.now() + SECURITY_CONFIG.LOCKOUT_DURATION;
+                showToast(`Too many failed attempts. Account locked for 15 minutes.`, 'error');
+            } else {
+                const remainingAttempts = SECURITY_CONFIG.MAX_LOGIN_ATTEMPTS - loginAttempts;
+                showToast(`${message}. ${remainingAttempts} attempts remaining.`, 'error');
+            }
+        }
+        
+        // Enhanced register with comprehensive validation
+        async function register() {
+            const username = sanitizeInput(document.getElementById('registerUsername').value);
+            const email = sanitizeInput(document.getElementById('registerEmail').value);
+            const password = document.getElementById('registerPassword').value;
+            const confirmPassword = document.getElementById('registerPasswordConfirm').value;
+            
+            // Client-side validation
+            if (!validateUsername()) {
+                showToast('Please fix username issues', 'error');
+                return;
+            }
+            
+            if (!validatePassword()) {
+                showToast('Please choose a stronger password', 'error');
+                return;
+            }
+            
+            if (password !== confirmPassword) {
+                showToast('Passwords do not match', 'error');
+                return;
+            }
+            
+            if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                showToast('Please enter a valid email address', 'error');
+                return;
+            }
+            
+            const registerBtn = document.getElementById('registerBtn');
+            registerBtn.classList.add('loading');
+            registerBtn.disabled = true;
+            
+            try {
+                const response = await fetchWithTimeout('/api/auth-v2', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        action: 'register',
+                        username: username,
+                        email: email,
+                        password: password
+                    })
+                }, SECURITY_CONFIG.API_TIMEOUT);
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    showToast('Registration successful! Please login.', 'success');
+                    
+                    // Switch to login tab and prefill username
+                    switchAuthTab('login');
+                    document.getElementById('loginUsername').value = username;
+                    document.getElementById('loginPassword').focus();
+                    
+                    // Clear register form
+                    document.getElementById('registerForm').reset();
+                    resetRequirements();
+                } else {
+                    showToast(result.error || 'Registration failed', 'error');
+                }
+                
+            } catch (error) {
+                console.error('Registration error:', error);
+                showToast('Network error. Please try again.', 'error');
+            } finally {
+                registerBtn.classList.remove('loading');
+                registerBtn.disabled = false;
+            }
+        }
+        
+        // Fetch with timeout
+        async function fetchWithTimeout(url, options, timeout) {
+            const controller = new AbortController();
+            const id = setTimeout(() => controller.abort(), timeout);
+            
+            try {
+                const response = await fetch(url, {
+                    ...options,
+                    signal: controller.signal
+                });
+                clearTimeout(id);
+                return response;
+            } catch (error) {
+                clearTimeout(id);
+                if (error.name === 'AbortError') {
+                    throw new Error('Request timed out');
+                }
+                throw error;
+            }
+        }
+        
+        // Theme management
+        function initializeTheme() {
+            applyTheme(currentTheme);
+        }
+        
+        function applyTheme(theme) {
+            currentTheme = theme;
+            document.documentElement.setAttribute('data-theme', theme);
+            
+            // Update toggle button
+            const toggleBtn = document.getElementById('authThemeToggle');
+            if (toggleBtn) {
+                toggleBtn.textContent = theme === 'dark' ? '☀️' : '🌙';
+                toggleBtn.title = theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme';
+            }
+            
+            localStorage.setItem('kitchenChatTheme', theme);
+        }
+        
+        function toggleTheme() {
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            applyTheme(newTheme);
+            showToast(`Switched to ${newTheme} theme`, 'success');
+        }
+        
+        // Enhanced toast notifications
+        function showToast(message, type = 'info', duration = 4000) {
+            // Remove existing toasts
+            document.querySelectorAll('.toast').forEach(toast => toast.remove());
+            
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            
+            // Add security icon for security-related messages
+            if (type === 'success' && message.includes('secure')) {
+                toast.innerHTML = `🔒 ${escapeHtml(message)}`;
+            } else {
+                toast.textContent = message;
+            }
+            
+            document.body.appendChild(toast);
+            
+            // Auto-remove
+            setTimeout(() => {
+                if (document.body.contains(toast)) {
+                    toast.style.animation = 'slideIn 0.3s ease reverse';
+                    setTimeout(() => toast.remove(), 300);
+                }
+            }, duration);
+        }
+        
+        // Show main app (placeholder)
+        function showMainApp() {
+            document.getElementById('authScreen').style.display = 'none';
+            document.getElementById('mainApp').classList.add('authenticated');
+            document.getElementById('authThemeToggle').style.display = 'none';
+            
+            // In a real app, you would initialize the main application here
+            console.log('Main app loaded with user:', currentUser);
+        }
+        
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeTheme();
+            
+            // Add enter key listeners
+            document.getElementById('loginPassword').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') login();
+            });
+            
+            document.getElementById('registerPasswordConfirm').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && !document.getElementById('registerBtn').disabled) {
+                    register();
+                }
+            });
+            
+            // Form validation listeners
+            document.getElementById('registerUsername').addEventListener('input', validateUsername);
+            document.getElementById('registerPassword').addEventListener('input', validatePassword);
+            document.getElementById('registerPasswordConfirm').addEventListener('input', validatePasswordConfirm);
+        });
+        
+        // Security: Prevent right-click context menu on sensitive elements
+        document.addEventListener('contextmenu', function(e) {
+            if (e.target.type === 'password') {
+                e.preventDefault();
+            }
+        });
+        
+        // Security: Clear sensitive data on page unload
+        window.addEventListener('beforeunload', function() {
+            // Clear form data
+            const forms = document.querySelectorAll('input[type="password"]');
+            forms.forEach(input => input.value = '');
+        });
+        
+        // Console security message
+        console.log(`
+🔒 Kitchen Chat Security v2.0
+
+✅ Security Features Active:
+• Bcrypt password hashing
+• XSS/SQL injection protection  
+• Brute force protection
+• Input validation & sanitization
+• Secure session management
+• Content Security Policy
+• Enhanced CORS protection
+
+⚠️  Developer Warning:
+This application implements comprehensive security measures.
+Do not attempt to bypass or circumvent security features.
+`);
+    </script>
+</body>
+</html>

@@ -1226,7 +1226,7 @@
                     currentUser = result.user;
                     isAuthenticated = true;
                     
-                    // Check if user is admin (Daan25)
+                    // Check if user is admin (Daan25 or Gasfornuis)
                     isAdmin = checkAdminPermissions(currentUser);
                     
                     showToast('Login successful!', 'success');
@@ -1245,7 +1245,11 @@
             if (!user) return false;
             const username = user.username?.toLowerCase() || '';
             const displayName = user.displayName?.toLowerCase() || '';
-            return username === 'daan25' || displayName === 'daan25';
+            
+            // Admin users: daan25 en gasfornuis
+            const adminUsernames = ['daan25', 'gasfornuis'];
+            
+            return adminUsernames.includes(username) || adminUsernames.includes(displayName);
         }
         
         async function register() {

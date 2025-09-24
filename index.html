@@ -623,7 +623,7 @@
             background: #9e9e9e;
         }
         
-        /* DM Window Styles */
+        /* DM Window Styles - Nu sleepbaar */
         .dm-window {
             position: fixed;
             bottom: 20px;
@@ -635,6 +635,12 @@
             z-index: 1000;
             display: none;
             flex-direction: column;
+            transition: box-shadow 0.3s ease;
+        }
+        
+        .dm-window.dragging {
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+            transform: scale(1.02);
         }
         
         .dm-header {
@@ -646,6 +652,16 @@
             align-items: center;
             font-weight: bold;
             font-size: 14px;
+            cursor: move; /* Cursor geeft aan dat header sleepbaar is */
+            user-select: none; /* Voorkom tekstselectie tijdens slepen */
+        }
+        
+        .dm-header:hover {
+            background: color-mix(in srgb, var(--dm-accent) 85%, black 15%);
+        }
+        
+        .dm-header.dragging {
+            cursor: grabbing;
         }
         
         .dm-messages {
@@ -994,9 +1010,9 @@
             </div>
         </div>
         
-        <!-- DM Window -->
+        <!-- DM Window - Nu met sleepfunctionaliteit -->
         <div id="dmWindow" class="dm-window">
-            <div class="dm-header">
+            <div id="dmHeader" class="dm-header">
                 <span id="dmTitle">Direct Message</span>
                 <button onclick="closeDMWindow()" style="background: transparent; border: none; color: white; cursor: pointer;">&times;</button>
             </div>
@@ -1023,6 +1039,13 @@
         let announcements = [];
         let isAdmin = false;
         let currentTheme = localStorage.getItem('kitchenChatTheme') || 'light';
+        
+        // Variabelen voor DM window slepen
+        let isDragging = false;
+        let dragStartX = 0;
+        let dragStartY = 0;
+        let windowStartX = 0;
+        let windowStartY = 0;
         
         // FIXED: Activity tracking for more accurate online status
         let lastActivity = Date.now();
@@ -1054,6 +1077,113 @@
         ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'].forEach(function(event) {
             document.addEventListener(event, updateActivity, true);
         });
+        
+        // DM Window Drag functionaliteit
+        function initializeDMDrag() {
+            const dmWindow = document.getElementById('dmWindow');
+            const dmHeader = document.getElementById('dmHeader');
+            
+            dmHeader.addEventListener('mousedown', startDrag);
+            dmHeader.addEventListener('touchstart', startDrag, { passive: false });
+        }
+        
+        function startDrag(e) {
+            e.preventDefault();
+            isDragging = true;
+            
+            const dmWindow = document.getElementById('dmWindow');
+            const dmHeader = document.getElementById('dmHeader');
+            
+            // Voeg dragging class toe voor visuele feedback
+            dmWindow.classList.add('dragging');
+            dmHeader.classList.add('dragging');
+            
+            // Krijg huidige positie van het venster
+            const rect = dmWindow.getBoundingClientRect();
+            windowStartX = rect.left;
+            windowStartY = rect.top;
+            
+            // Krijg startpositie van de muis/touch
+            if (e.type === 'touchstart') {
+                dragStartX = e.touches[0].clientX;
+                dragStartY = e.touches[0].clientY;
+            } else {
+                dragStartX = e.clientX;
+                dragStartY = e.clientY;
+            }
+            
+            // Voeg event listeners toe
+            document.addEventListener('mousemove', drag);
+            document.addEventListener('mouseup', stopDrag);
+            document.addEventListener('touchmove', drag, { passive: false });
+            document.addEventListener('touchend', stopDrag);
+            
+            // Voorkom tekstselectie
+            document.body.style.userSelect = 'none';
+        }
+        
+        function drag(e) {
+            if (!isDragging) return;
+            
+            e.preventDefault();
+            
+            let currentX, currentY;
+            
+            // Krijg huidige muis/touch positie
+            if (e.type === 'touchmove') {
+                currentX = e.touches[0].clientX;
+                currentY = e.touches[0].clientY;
+            } else {
+                currentX = e.clientX;
+                currentY = e.clientY;
+            }
+            
+            // Bereken nieuwe positie
+            const deltaX = currentX - dragStartX;
+            const deltaY = currentY - dragStartY;
+            
+            let newX = windowStartX + deltaX;
+            let newY = windowStartY + deltaY;
+            
+            // Beperk tot viewport grenzen
+            const dmWindow = document.getElementById('dmWindow');
+            const windowWidth = dmWindow.offsetWidth;
+            const windowHeight = dmWindow.offsetHeight;
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+            
+            // Voorkom dat venster buiten het scherm wordt gesleept
+            newX = Math.max(0, Math.min(newX, viewportWidth - windowWidth));
+            newY = Math.max(0, Math.min(newY, viewportHeight - windowHeight));
+            
+            // Update positie
+            dmWindow.style.left = newX + 'px';
+            dmWindow.style.top = newY + 'px';
+            dmWindow.style.right = 'auto';
+            dmWindow.style.bottom = 'auto';
+        }
+        
+        function stopDrag() {
+            if (!isDragging) return;
+            
+            isDragging = false;
+            
+            const dmWindow = document.getElementById('dmWindow');
+            const dmHeader = document.getElementById('dmHeader');
+            
+            // Verwijder dragging classes
+            dmWindow.classList.remove('dragging');
+            dmHeader.classList.remove('dragging');
+            
+            // Verwijder event listeners
+            document.removeEventListener('mousemove', drag);
+            document.removeEventListener('mouseup', stopDrag);
+            document.removeEventListener('touchmove', drag);
+            document.removeEventListener('touchend', stopDrag);
+            
+            // Herstel tekstselectie
+            document.body.style.userSelect = '';
+        }
         
         // Authentication Functions (same as before)
         function switchAuthTab(tab) {
@@ -1289,6 +1419,9 @@
             ]);
             
             setupEventListeners();
+            
+            // Initialiseer DM drag functionaliteit
+            initializeDMDrag();
             
             // FIXED: More frequent updates for better online status accuracy
             setInterval(loadOnlineUsers, 20000); // Update every 20 seconds (reduced from 30)
@@ -1740,6 +1873,13 @@
             document.getElementById('dmTitle').textContent = `DM with ${displayName}`;
             document.getElementById('dmWindow').style.display = 'flex';
             
+            // Reset positie naar standaard locatie als het venster geopend wordt
+            const dmWindow = document.getElementById('dmWindow');
+            dmWindow.style.left = '';
+            dmWindow.style.top = '';
+            dmWindow.style.right = '20px';
+            dmWindow.style.bottom = '20px';
+            
             loadDMMessages();
         }
         
@@ -1830,6 +1970,13 @@
             document.getElementById('dmWindow').style.display = 'none';
             currentDMUser = null;
             dmMessages = [];
+            
+            // Reset positie naar standaard
+            const dmWindow = document.getElementById('dmWindow');
+            dmWindow.style.left = '';
+            dmWindow.style.top = '';
+            dmWindow.style.right = '20px';
+            dmWindow.style.bottom = '20px';
         }
         
         async function openDMListModal() {

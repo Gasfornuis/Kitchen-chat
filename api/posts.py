@@ -8,9 +8,30 @@ from firebase_admin import credentials, firestore
 import base64
 import uuid
 from datetime import datetime
+import logging
+
+# Import security utilities
+try:
+    from .security_utils import (
+        SecureAPIHandler, get_client_ip, log_security_event,
+        validate_json_input, validate_user_input, sanitize_string_input
+    )
+except ImportError:
+    # Fallback voor als security_utils nog niet bestaat
+    from security_utils import (
+        SecureAPIHandler, get_client_ip, log_security_event,
+        validate_json_input, validate_user_input, sanitize_string_input
+    )
 
 # Import authentication functions from auth.py
-from .auth import require_authentication
+try:
+    from .auth import require_authentication
+except ImportError:
+    from auth import require_authentication
+
+# Configure logging
+logger = logging.getLogger(__name__)
+security_logger = logging.getLogger('security')
 
 if not firebase_admin._apps:
     # Load service account from environment variable
@@ -19,205 +40,240 @@ if not firebase_admin._apps:
         cred = credentials.Certificate(json.loads(sa_json))
         firebase_admin.initialize_app(cred)
     else:
-        # Fallback for demo mode
-        print("Warning: Running in demo mode without Firebase")
+        logger.warning("Warning: Running in demo mode without Firebase")
 
 db = firestore.client() if firebase_admin._apps else None
 FIREBASE_SECRET = os.environ.get("FIREBASE_SECRET")
 
-def send_auth_error(handler):
-    """Send authentication error response"""
-    handler.send_response(401)
-    handler.send_header("Content-type", "application/json")
-    handler.send_header("Access-Control-Allow-Origin", "*")
-    handler.send_header("Access-Control-Allow-Credentials", "true")
-    handler.end_headers()
-    handler.wfile.write(json.dumps({"error": "Authentication required"}).encode())
+def validate_message_content(content, message_type='text'):
+    """Validate message content for security and policy compliance"""
+    if not content or not isinstance(content, str):
+        return False, "Message content is required"
+    
+    content = content.strip()
+    
+    if len(content) == 0:
+        return False, "Message cannot be empty"
+    
+    if len(content) > 2000:
+        return False, "Message too long (max 2000 characters)"
+    
+    # Check for spam patterns
+    spam_patterns = [
+        r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+',  # URLs
+        r'(.)\1{10,}',  # Repeated characters
+        r'[A-Z]{10,}',  # All caps spam
+    ]
+    
+    for pattern in spam_patterns:
+        if re.search(pattern, content):
+            return False, "Message contains spam-like content"
+    
+    return True, None
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
+        """Get messages with security and rate limiting"""
+        client_ip = get_client_ip(self.headers)
+        
+        # Rate limiting
+        if not SecureAPIHandler.check_rate_limit_or_block(self, 'posts_get', max_requests=100, time_window=60):
+            return
+        
         try:
             # Require authentication for reading posts
             current_user = require_authentication(self)
             if not current_user:
-                return send_auth_error(self)
+                return SecureAPIHandler.send_error_securely(self, "Authentication required", 401)
             
             parsed_url = urlparse(self.path)
             query = parse_qs(parsed_url.query)
             subject_id = query.get("SubjectId", [None])[0]
 
             if not subject_id:
-                self.send_response(400)
-                self.send_header("Access-Control-Allow-Origin", "*")
-                self.send_header("Access-Control-Allow-Credentials", "true")
-                self.end_headers()
-                self.wfile.write(json.dumps({"error": "Missing SubjectId"}).encode())
-                return
+                return SecureAPIHandler.send_error_securely(self, "Missing SubjectId parameter", 400)
+            
+            # Validate subject ID format
+            if not isinstance(subject_id, str) or len(subject_id) > 50:
+                return SecureAPIHandler.send_error_securely(self, "Invalid SubjectId format", 400)
 
             if not db:
                 # Demo mode - return empty messages
-                self.send_response(200)
-                self.send_header("Content-type", "application/json")
-                self.send_header("Access-Control-Allow-Origin", "*")
-                self.send_header("Access-Control-Allow-Credentials", "true")
-                self.end_headers()
-                self.wfile.write(json.dumps([]).encode())
-                return
+                return SecureAPIHandler.send_json_securely(self, [])
 
             # Query Firestore for messages
-            posts_ref = db.collection("Posts").where("SubjectId", "==", f"/subjects/{subject_id}").order_by("CreatedAt")
+            posts_ref = db.collection("Posts").where(
+                "SubjectId", "==", f"/subjects/{subject_id}"
+            ).order_by("CreatedAt").limit(500)  # Limit voor performance
+            
             docs = posts_ref.stream()
 
             posts = []
             for doc in docs:
                 data = doc.to_dict()
-                posts.append({
+                
+                # Sanitize output data
+                clean_post = {
                     "id": doc.id,
-                    "Content": data.get("Content", ""),
+                    "Content": sanitize_string_input(data.get("Content", ""), 2000),
                     "CreatedAt": str(data.get("CreatedAt", datetime.now())),
-                    "PostedBy": data.get("PostedBy", "Anonymous"),
+                    "PostedBy": sanitize_string_input(data.get("PostedBy", "Anonymous"), 50),
                     "SubjectId": data.get("SubjectId", ""),
                     "MessageType": data.get("MessageType", "text"),
                     "MediaData": data.get("MediaData", None),
                     "AttachmentUrl": data.get("AttachmentUrl", None),
                     "AttachmentType": data.get("AttachmentType", None)
-                })
+                }
+                
+                # Remove sensitive data
+                if 'secret' in data:
+                    del clean_post['secret']
+                
+                posts.append(clean_post)
 
-            self.send_response(200)
-            self.send_header("Content-type", "application/json")
-            self.send_header("Access-Control-Allow-Origin", "*")
-            self.send_header("Access-Control-Allow-Credentials", "true")
-            self.end_headers()
-            self.wfile.write(json.dumps(posts).encode())
+            log_security_event(
+                'posts_retrieved',
+                f'Retrieved {len(posts)} messages for subject {subject_id}',
+                client_ip,
+                current_user
+            )
+            
+            return SecureAPIHandler.send_json_securely(self, posts)
 
         except Exception as e:
-            print(f"Posts GET error: {str(e)}")
-            self.send_response(500)
-            self.send_header("Access-Control-Allow-Origin", "*")
-            self.send_header("Access-Control-Allow-Credentials", "true")
-            self.end_headers()
-            self.wfile.write(json.dumps({"error": str(e)}).encode())
+            logger.error(f"Posts GET error: {str(e)}")
+            return SecureAPIHandler.send_error_securely(self, "Failed to retrieve messages", 500, str(e))
 
     def do_POST(self):
+        """Create message with comprehensive security"""
+        client_ip = get_client_ip(self.headers)
+        
+        # Stricter rate limiting voor POST
+        if not SecureAPIHandler.check_rate_limit_or_block(self, 'posts_create', max_requests=30, time_window=60):
+            return
+        
         try:
-            # Require authentication for posting messages
+            # Require authentication
             current_user = require_authentication(self)
             if not current_user:
-                return send_auth_error(self)
+                return SecureAPIHandler.send_error_securely(self, "Authentication required", 401)
             
-            content_length = int(self.headers.get("Content-Length", 0))
-            body = self.rfile.read(content_length)
-            data = json.loads(body)
-
-            content = data.get("Content", "")
-            subject_id = data.get("SubjectId")
-            posted_by = data.get("PostedBy", current_user["displayName"])  # Default to authenticated user
-            message_type = data.get("MessageType", "text")
+            # Validate and parse JSON input
+            data = validate_json_input(self, required_fields=['Content', 'SubjectId'], max_content_length=5000)
+            if data is None:
+                return  # Error already sent
+            
+            # Extract and validate fields
+            content = data.get("Content", "").strip()
+            subject_id = data.get("SubjectId", "").strip()
+            posted_by = data.get("PostedBy", current_user["displayName"]).strip()
+            message_type = data.get("MessageType", "text").strip()
             media_data = data.get("MediaData", None)
             
-            if not subject_id:
-                self.send_response(400)
-                self.send_header("Access-Control-Allow-Origin", "*")
-                self.send_header("Access-Control-Allow-Credentials", "true")
-                self.end_headers()
-                self.wfile.write(json.dumps({"error": "Missing SubjectId"}).encode())
-                return
+            # SECURITY CHECK - user can only post as themselves
+            current_display = current_user.get("displayName", "").lower()
+            current_username = current_user.get("username", "").lower()
             
-            # Security check - user can only post as themselves
-            if posted_by.lower() != current_user["displayName"].lower() and posted_by.lower() != current_user["username"].lower():
-                self.send_response(403)
-                self.send_header("Access-Control-Allow-Origin", "*")
-                self.send_header("Access-Control-Allow-Credentials", "true")
-                self.end_headers()
-                self.wfile.write(json.dumps({"error": "You can only post as yourself"}).encode())
-                return
-
+            if (posted_by.lower() != current_display and 
+                posted_by.lower() != current_username):
+                log_security_event(
+                    'impersonation_attempt',
+                    f'User {current_username} tried to post as {posted_by}',
+                    client_ip,
+                    current_user,
+                    'WARNING'
+                )
+                return SecureAPIHandler.send_error_securely(self, "You can only post messages as yourself", 403)
+            
+            # Validate message content
+            is_valid, error_msg = validate_message_content(content, message_type)
+            if not is_valid:
+                return SecureAPIHandler.send_error_securely(self, error_msg, 400)
+            
+            # Sanitize inputs
+            content = sanitize_string_input(content, 2000)
+            subject_id = sanitize_string_input(subject_id, 50)
+            posted_by = sanitize_string_input(posted_by, 50)
+            message_type = sanitize_string_input(message_type, 20)
+            
             if not db:
                 # Demo mode - just return success
-                self.send_response(201)
-                self.send_header("Content-type", "application/json")
-                self.send_header("Access-Control-Allow-Origin", "*")
-                self.send_header("Access-Control-Allow-Credentials", "true")
-                self.end_headers()
-                self.wfile.write(json.dumps({
-                    "message": "Message created (demo mode)",
+                log_security_event(
+                    'message_created',
+                    f'Demo message created in subject {subject_id}',
+                    client_ip,
+                    current_user
+                )
+                
+                return SecureAPIHandler.send_json_securely(self, {
+                    "message": "Message created successfully (demo mode)",
                     "id": str(uuid.uuid4()),
                     "timestamp": datetime.now().isoformat()
-                }).encode())
-                return
+                }, 201)
 
-            # Prepare document data
+            # Prepare secure document data
             doc_data = {
                 "Content": content,
                 "CreatedAt": firestore.SERVER_TIMESTAMP,
                 "PostedBy": posted_by,
                 "SubjectId": f"/subjects/{subject_id}",
                 "MessageType": message_type,
+                "ClientIP": client_ip,  # For abuse tracking
                 "secret": FIREBASE_SECRET
             }
 
-            # Handle media data
-            if media_data:
+            # Handle media data securely
+            if media_data and isinstance(media_data, dict):
                 if message_type == "voice":
-                    # Store voice message metadata
+                    # Validate voice data
+                    duration = sanitize_string_input(str(media_data.get("duration", "0:05")), 10)
+                    size = sanitize_string_input(str(media_data.get("size", "0 KB")), 20)
+                    
                     doc_data["MediaData"] = {
-                        "duration": media_data.get("duration", "0:05"),
-                        "size": media_data.get("size", "0 KB"),
-                        "waveform": media_data.get("waveform", [])
+                        "duration": duration,
+                        "size": size,
+                        "waveform": media_data.get("waveform", [])[:100]  # Limit array size
                     }
-                    # Note: In production, you'd upload the audio blob to Firebase Storage
-                    # and store the download URL in AttachmentUrl
                     doc_data["AttachmentType"] = "audio/webm"
                     
                 elif message_type == "image":
-                    # Store image metadata
-                    doc_data["MediaData"] = {
-                        "name": media_data.get("name", "image.jpg"),
-                        "size": media_data.get("size", "0 KB")
-                    }
-                    # For demo, we'll store the base64 data directly (not recommended for production)
-                    if "src" in media_data and media_data["src"].startswith("data:"):
-                        doc_data["AttachmentUrl"] = media_data["src"]
-                    doc_data["AttachmentType"] = "image/*"
+                    # Validate image data
+                    name = sanitize_string_input(str(media_data.get("name", "image.jpg")), 100)
+                    size = sanitize_string_input(str(media_data.get("size", "0 KB")), 20)
                     
-                elif message_type == "file":
-                    # Store file metadata
                     doc_data["MediaData"] = {
-                        "name": media_data.get("name", "file.txt"),
-                        "size": media_data.get("size", "0 KB"),
-                        "extension": media_data.get("extension", "FILE"),
-                        "icon": media_data.get("icon", "fas fa-file")
+                        "name": name,
+                        "size": size
                     }
-                    doc_data["AttachmentUrl"] = media_data.get("url", "#")
-                    doc_data["AttachmentType"] = "application/octet-stream"
+                    
+                    # Validate base64 image data
+                    if "src" in media_data and media_data["src"].startswith("data:image/"):
+                        # In productie: upload naar secure storage in plaats van base64
+                        src = str(media_data["src"])[:50000]  # Limit base64 size
+                        doc_data["AttachmentUrl"] = src
+                    
+                    doc_data["AttachmentType"] = "image/*"
 
             # Add to Firestore
             doc_ref = db.collection("Posts").add(doc_data)
             
-            self.send_response(201)
-            self.send_header("Content-type", "application/json")
-            self.send_header("Access-Control-Allow-Origin", "*")
-            self.send_header("Access-Control-Allow-Credentials", "true")
-            self.end_headers()
-            self.wfile.write(json.dumps({
+            log_security_event(
+                'message_created',
+                f'Message created in subject {subject_id} (ID: {doc_ref[1].id})',
+                client_ip,
+                current_user
+            )
+            
+            return SecureAPIHandler.send_json_securely(self, {
                 "message": "Message created successfully",
                 "id": doc_ref[1].id,
                 "type": message_type
-            }).encode())
+            }, 201)
 
         except Exception as e:
-            print(f"Error creating post: {str(e)}")  # Server-side logging
-            self.send_response(500)
-            self.send_header("Access-Control-Allow-Origin", "*")
-            self.send_header("Access-Control-Allow-Credentials", "true")
-            self.end_headers()
-            self.wfile.write(json.dumps({"error": str(e)}).encode())
+            logger.error(f"Error creating post: {str(e)}")
+            return SecureAPIHandler.send_error_securely(self, "Failed to create message", 500, str(e))
 
     def do_OPTIONS(self):
-        self.send_response(204)
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization, Cookie")
-        self.send_header("Access-Control-Allow-Credentials", "true")
-        self.send_header("Access-Control-Max-Age", "86400")
-        self.end_headers()
+        """Handle OPTIONS with secure CORS"""
+        SecureAPIHandler.handle_options_securely(self, 'GET, POST, OPTIONS')

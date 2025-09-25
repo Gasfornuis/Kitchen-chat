@@ -129,12 +129,13 @@ class handler(BaseHTTPRequestHandler):
                 ]
                 return send_response_with_cors(self, demo_data, 200)
             
-            # Real Firestore query
+            # Real Firestore query with ORDER BY CreatedAt
             try:
                 logger.info(f"Querying Firestore for subject: {subject_id}")
                 posts_ref = (
                     db.collection("Posts")
                     .where("SubjectId", "==", f"/subjects/{subject_id}")
+                    .order_by("CreatedAt", direction=admin_firestore.Query.ASCENDING)  # Sorteer op tijd, oudste eerst
                     .limit(100)
                 )
                 
@@ -169,7 +170,7 @@ class handler(BaseHTTPRequestHandler):
                         logger.error(f"Error processing doc {doc.id}: {doc_error}")
                         continue
                 
-                logger.info(f"Returning {len(posts)} messages")
+                logger.info(f"Returning {len(posts)} messages in chronological order")
                 return send_response_with_cors(self, posts, 200)
                 
             except Exception as firestore_error:

@@ -1,3 +1,12 @@
+"""Secure Admin Status API - CRITICAL SECURITY FIX
+
+FIXES PRIVILEGE ESCALATION VULNERABILITY:
+- No more hardcoded admin lists
+- No more displayName-based admin checks  
+- Uses immutable UID-based role checking
+- Server-side only validation
+"""
+
 from http.server import BaseHTTPRequestHandler
 import json
 from datetime import datetime, timezone
@@ -9,14 +18,16 @@ import logging
 import time
 from collections import defaultdict
 
+# Import secure RBAC system
+from .rbac import is_admin, has_permission, log_admin_action, RBACError
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-security_logger = logging.getLogger('security')
+security_logger = logging.getLogger('security.admin')
 
 # Initialize Firebase (consistent with other files)
 if not firebase_admin._apps:
-    # Load service account from environment variable
     sa_json = os.environ.get("FIREBASE_SERVICE_ACCOUNT")
     if sa_json:
         cred = credentials.Certificate(json.loads(sa_json))
@@ -27,21 +38,26 @@ if not firebase_admin._apps:
 
 db = fb_firestore.client() if firebase_admin._apps else None
 
-# VEILIGE CORS CONFIGURATIE
-ALLOWED_ORIGINS = [
-    'http://localhost:3000',
-    'http://127.0.0.1:3000',
-    'https://kitchen-chat.vercel.app',
-    'https://gasfornuis.github.io'
-    'https://kitchenchat.live'
-    'https://www.kitchenchat.live'
-]
+# SECURE CORS CONFIGURATION - No wildcards!
+ENVIRONMENT = os.environ.get("ENVIRONMENT", "development")
+
+if ENVIRONMENT == "production":
+    ALLOWED_ORIGINS = [
+        'https://kitchenchat.live',
+        'https://www.kitchenchat.live',
+        'https://kitchen-chat.vercel.app'
+    ]
+else:
+    ALLOWED_ORIGINS = [
+        'http://localhost:3000',
+        'http://127.0.0.1:3000',
+        'https://kitchen-chat.vercel.app',
+        'https://kitchenchat.live',
+        'https://www.kitchenchat.live'
+    ]
 
 # Rate limiting storage
 rate_limit_storage = defaultdict(list)
-
-# VEILIGE SERVER-SIDE ADMIN CONFIGURATIE
-ADMIN_USERS = ['daan25', 'gasfornuis']
 
 def get_client_ip(headers):
     """Get real client IP from headers"""
@@ -50,8 +66,8 @@ def get_client_ip(headers):
         return forwarded.split(',')[0].strip()
     return headers.get('x-real-ip', headers.get('remote-addr', 'unknown'))
 
-def check_rate_limit(client_ip, endpoint, max_requests=30, time_window=60):
-    """Rate limiting voor API calls"""
+def check_rate_limit(client_ip, endpoint, max_requests=20, time_window=60):
+    """Rate limiting for API calls"""
     now = time.time()
     key = f"{client_ip}:{endpoint}"
     
@@ -66,14 +82,19 @@ def check_rate_limit(client_ip, endpoint, max_requests=30, time_window=60):
     return True
 
 def get_safe_origin(request_headers):
-    """Get safe CORS origin instead of wildcard"""
+    """Get safe CORS origin instead of wildcard - NO VULNERABILITIES!"""
     origin = request_headers.get('Origin', '')
     if origin in ALLOWED_ORIGINS:
         return origin
+    
+    # Log suspicious origin attempts
+    if origin:
+        security_logger.warning(f"Blocked suspicious origin: {origin}")
+    
     return ALLOWED_ORIGINS[0] if ALLOWED_ORIGINS else 'null'
 
 def sha256_hash(text):
-    """SHA-256 hash utility"""
+    """SHA-256 hash utility for session tokens (not passwords!)"""
     return hashlib.sha256(text.encode()).hexdigest()
 
 def get_session_token_from_request(request):
@@ -101,7 +122,7 @@ def hash_session_token(token):
     return sha256_hash(token)
 
 def verify_session_token(token):
-    """Verify session token and return user info"""
+    """Verify session token and return user info with UID"""
     if not token:
         return None
     
@@ -110,6 +131,7 @@ def verify_session_token(token):
     if not db:
         # Demo mode - return demo user for testing
         return {
+            "uid": "demo_admin_uid",  # Demo UID for testing
             "username": "demo",
             "displayName": "Demo User"
         }
@@ -128,8 +150,10 @@ def verify_session_token(token):
             # Lazy cleanup - delete expired session
             doc.reference.delete()
             return None
-            
+        
+        # CRITICAL: Return UID for RBAC, not just username/displayName!
         return {
+            "uid": session_data.get('uid'),  # Must be stored in session!
             "username": session_data.get('username'),
             "displayName": session_data.get('displayName')
         }
@@ -139,25 +163,9 @@ def verify_session_token(token):
         return None
 
 def require_authentication(request):
-    """Require valid authentication, return user info or None"""
+    """Require valid authentication, return user info with UID or None"""
     token = get_session_token_from_request(request)
     return verify_session_token(token)
-
-def check_admin_permissions(user):
-    """Check if user has admin permissions (server-side veilige controle)"""
-    if not user:
-        return False
-    
-    # Check if user is in de admin lijst (case insensitive)
-    username = user.get('username', '').lower()
-    display_name = user.get('displayName', '').lower()
-    
-    # Controleer beide username en displayName tegen de admin lijst
-    for admin_user in ADMIN_USERS:
-        if username == admin_user.lower() or display_name == admin_user.lower():
-            return True
-    
-    return False
 
 class handler(BaseHTTPRequestHandler):
     def do_OPTIONS(self):
@@ -170,39 +178,65 @@ class handler(BaseHTTPRequestHandler):
         self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie')
         self.send_header('Access-Control-Allow-Credentials', 'true')
         self.send_header('Access-Control-Max-Age', '86400')
-        # Security headers
-        self.send_header('X-Content-Type-Options', 'nosniff')
-        self.send_header('X-Frame-Options', 'DENY')
-        self.end_headers()
-    
-    def send_json_response(self, data, status=200):
-        """Send JSON response with secure CORS headers"""
-        safe_origin = get_safe_origin(self.headers)
         
-        self.send_response(status)
-        self.send_header('Content-Type', 'application/json')
-        self.send_header('Access-Control-Allow-Origin', safe_origin)
-        self.send_header('Access-Control-Allow-Credentials', 'true')
         # Security headers
         self.send_header('X-Content-Type-Options', 'nosniff')
         self.send_header('X-Frame-Options', 'DENY')
         self.send_header('X-XSS-Protection', '1; mode=block')
+        self.send_header('Referrer-Policy', 'strict-origin-when-cross-origin')
+        
         self.end_headers()
-        self.wfile.write(json.dumps(data).encode())
+    
+    def send_json_response(self, data, status=200):
+        """Send JSON response with comprehensive security headers"""
+        safe_origin = get_safe_origin(self.headers)
+        
+        self.send_response(status)
+        self.send_header('Content-Type', 'application/json; charset=utf-8')
+        self.send_header('Access-Control-Allow-Origin', safe_origin)
+        self.send_header('Access-Control-Allow-Credentials', 'true')
+        
+        # Comprehensive security headers
+        security_headers = {
+            'X-Content-Type-Options': 'nosniff',
+            'X-Frame-Options': 'DENY',
+            'X-XSS-Protection': '1; mode=block',
+            'Referrer-Policy': 'strict-origin-when-cross-origin',
+            'X-Permitted-Cross-Domain-Policies': 'none',
+            'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+            'Pragma': 'no-cache'
+        }
+        
+        # Apply security headers
+        for header, value in security_headers.items():
+            self.send_header(header, value)
+        
+        # Production-only headers
+        if ENVIRONMENT == 'production':
+            self.send_header('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload')
+        
+        self.end_headers()
+        
+        # Ensure UTF-8 encoding
+        json_str = json.dumps(data, ensure_ascii=False)
+        self.wfile.write(json_str.encode('utf-8'))
     
     def send_error_response(self, error, status=500):
-        """Send secure error response"""
-        logger.error(f"Admin Status API Error {status}: {error}")
+        """Send secure error response without information disclosure"""
+        client_ip = get_client_ip(self.headers)
+        logger.error(f"Admin Status API Error {status} from {client_ip}: {error}")
         
-        # Generic error for client security
+        # Sanitize error for client security
         public_error = error
-        if status == 500:
+        if status >= 500:
             public_error = "Internal server error. Please try again."
+        elif 'database' in str(error).lower() or 'firestore' in str(error).lower():
+            public_error = "Service temporarily unavailable."
         
         self.send_json_response({'error': public_error}, status)
     
     def do_GET(self):
-        """Check admin status for authenticated user with rate limiting"""
+        """SECURE admin status check - UID-based RBAC only!"""
         client_ip = get_client_ip(self.headers)
         
         # Rate limiting - admin status checks
@@ -210,35 +244,61 @@ class handler(BaseHTTPRequestHandler):
             return self.send_error_response("Too many requests. Please slow down.", 429)
         
         try:
-            # Get user from session
+            # Get authenticated user with UID
             current_user = require_authentication(self)
             
             if not current_user:
                 return self.send_error_response("Authentication required", 401)
             
-            # Check admin permissions
-            is_admin = check_admin_permissions(current_user)
+            # SECURE: Check admin permissions by UID only!
+            user_uid = current_user.get('uid')
+            if not user_uid:
+                security_logger.error(f"Session missing UID for user: {current_user.get('username')}")
+                return self.send_error_response("Invalid session data", 401)
             
-            # Return admin status with user info (no sensitive data)
+            # Server-side RBAC check - NO displayName, NO hardcoded lists!
+            is_user_admin = is_admin(user_uid)
+            
+            # Build permissions based on role
+            permissions = {}
+            if is_user_admin:
+                permissions = {
+                    'canCreateAnnouncements': True,
+                    'canDeleteAnnouncements': True,
+                    'canUpdateAnnouncements': True,
+                    'canModeratePosts': True,
+                    'canManageUsers': True
+                }
+            else:
+                # Check granular permissions for non-admins
+                permissions = {
+                    'canCreateAnnouncements': has_permission(user_uid, 'announcements'),
+                    'canDeleteAnnouncements': has_permission(user_uid, 'announcements'),
+                    'canUpdateAnnouncements': has_permission(user_uid, 'announcements'),
+                    'canModeratePosts': has_permission(user_uid, 'moderation'),
+                    'canManageUsers': has_permission(user_uid, 'users')
+                }
+            
+            # Return ONLY boolean and permissions - no sensitive data!
             response_data = {
                 'success': True,
+                'isAdmin': is_user_admin,
+                'permissions': permissions,
                 'user': {
                     'username': current_user.get('username'),
                     'displayName': current_user.get('displayName')
-                },
-                'isAdmin': is_admin,
-                'permissions': {
-                    'canCreateAnnouncements': is_admin,
-                    'canDeleteAnnouncements': is_admin,
-                    'canUpdateAnnouncements': is_admin
+                    # NOTE: UID is NOT returned to client for security
                 }
             }
             
-            # Log admin status check (but not too verbose)
-            if is_admin:
-                logger.info(f"Admin status confirmed for user: {current_user.get('username')}")
+            # Log admin status checks (but not too verbose)
+            if is_user_admin:
+                security_logger.info(f"Admin status confirmed for UID: {user_uid[:8]}...")
             
             return self.send_json_response(response_data)
         
+        except RBACError as e:
+            return self.send_error_response(str(e), 403)
         except Exception as e:
-            return self.send_error_response(f"Failed to check admin status", 500)
+            logger.error(f"Admin status check failed: {e}")
+            return self.send_error_response("Failed to check admin status", 500)

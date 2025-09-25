@@ -243,30 +243,43 @@ class handler(BaseHTTPRequestHandler):
             step = "firestore_write"
             logger.info("Writing to Firestore...")
             
-            # FIXED: Use only ONE method to write to Firestore
+            # FIXED: Correct Firestore write with proper timestamp handling
             doc_data = {
                 "Content": content,
-                "CreatedAt": datetime.now(),  # Use regular datetime
+                "CreatedAt": admin_firestore.SERVER_TIMESTAMP,  # Use SERVER_TIMESTAMP for proper Firestore handling
                 "PostedBy": posted_by,
                 "SubjectId": f"/subjects/{subject_id}",
                 "MessageType": "text"
             }
             
-            logger.info(f"Document data: {doc_data}")
+            logger.info(f"Document data prepared with SERVER_TIMESTAMP")
             
-            # Single write operation - no fallback methods that could cause duplicates
+            # Single write operation - correctly handle Firestore response
             try:
-                doc_ref, write_result = db.collection("Posts").add(doc_data)
+                # Method 1: Use add() which returns (doc_ref, write_result) tuple
+                update_time, doc_ref = db.collection("Posts").add(doc_data)
                 doc_id = doc_ref.id
-                logger.info(f"SUCCESS: Document saved with ID: {doc_id}")
+                logger.info(f"SUCCESS: Document saved with ID: {doc_id} at {update_time}")
                 
             except Exception as write_error:
-                logger.error(f"Firestore write failed: {write_error}")
-                logger.error(traceback.format_exc())
-                return send_response_with_cors(self, {
-                    "error": "Failed to save message",
-                    "details": str(write_error)
-                }, 500)
+                logger.error(f"Firestore add() failed, trying alternative method: {write_error}")
+                
+                # Method 2: Use document().set() as fallback
+                try:
+                    doc_ref = db.collection("Posts").document()
+                    doc_data["CreatedAt"] = datetime.now()  # Use regular datetime for set method
+                    doc_ref.set(doc_data)
+                    doc_id = doc_ref.id
+                    logger.info(f"SUCCESS: Document saved with set() method, ID: {doc_id}")
+                    
+                except Exception as set_error:
+                    logger.error(f"All Firestore write methods failed: {set_error}")
+                    logger.error(f"Original add() error: {write_error}")
+                    logger.error(traceback.format_exc())
+                    return send_response_with_cors(self, {
+                        "error": "Failed to save message",
+                        "details": f"add() failed: {str(write_error)}, set() failed: {str(set_error)}"
+                    }, 500)
             
             step = "success_response"
             response_data = {

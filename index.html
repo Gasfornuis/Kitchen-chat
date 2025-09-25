@@ -1743,8 +1743,17 @@
                 return;
             }
             
+            // EXTRA FRONTEND SORTING - Sorteer berichten op tijdstempel als extra zekerheid
+            const sortedMessages = [...messages].sort((a, b) => {
+                const timeA = new Date(a.CreatedAt).getTime();
+                const timeB = new Date(b.CreatedAt).getTime();
+                return timeA - timeB; // Oudste berichten eerst
+            });
+            
+            console.log('Frontend sorting applied to', sortedMessages.length, 'messages');
+            
             let html = '';
-            messages.forEach(msg => {
+            sortedMessages.forEach(msg => {
                 const isOwn = msg.PostedBy === (currentUser?.displayName || '');
                 const authorName = msg.PostedBy || 'Anonymous';
                 const initials = getInitials(authorName);
@@ -1947,8 +1956,15 @@
                 return;
             }
             
+            // EXTRA FRONTEND SORTING voor DM berichten ook
+            const sortedDMMessages = [...dmMessages].sort((a, b) => {
+                const timeA = new Date(a.createdAt).getTime();
+                const timeB = new Date(b.createdAt).getTime();
+                return timeA - timeB; // Oudste berichten eerst
+            });
+            
             let html = '';
-            dmMessages.forEach(msg => {
+            sortedDMMessages.forEach(msg => {
                 const isOwn = msg.sender === (currentUser?.displayName || currentUser?.username || '');
                 const authorName = msg.sender || 'Anonymous';
                 const initials = getInitials(authorName);

@@ -243,72 +243,30 @@ class handler(BaseHTTPRequestHandler):
             step = "firestore_write"
             logger.info("Writing to Firestore...")
             
-            # Try multiple approaches to Firestore writing
-            doc_id = None
+            # FIXED: Use only ONE method to write to Firestore
+            doc_data = {
+                "Content": content,
+                "CreatedAt": datetime.now(),  # Use regular datetime
+                "PostedBy": posted_by,
+                "SubjectId": f"/subjects/{subject_id}",
+                "MessageType": "text"
+            }
             
-            # Method 1: Use regular datetime instead of SERVER_TIMESTAMP
+            logger.info(f"Document data: {doc_data}")
+            
+            # Single write operation - no fallback methods that could cause duplicates
             try:
-                logger.info("Attempting write with regular datetime...")
-                doc_data = {
-                    "Content": content,
-                    "CreatedAt": datetime.now(),  # Use regular datetime first
-                    "PostedBy": posted_by,
-                    "SubjectId": f"/subjects/{subject_id}",
-                    "MessageType": "text"
-                }
-                
-                logger.info(f"Document data: {doc_data}")
                 doc_ref, write_result = db.collection("Posts").add(doc_data)
                 doc_id = doc_ref.id
-                logger.info(f"SUCCESS: Method 1 worked! Document ID: {doc_id}")
+                logger.info(f"SUCCESS: Document saved with ID: {doc_id}")
                 
-            except Exception as method1_error:
-                logger.error(f"Method 1 failed: {method1_error}")
-                
-                # Method 2: Try with SERVER_TIMESTAMP
-                try:
-                    logger.info("Attempting write with SERVER_TIMESTAMP...")
-                    doc_data = {
-                        "Content": content,
-                        "CreatedAt": admin_firestore.SERVER_TIMESTAMP,
-                        "PostedBy": posted_by,
-                        "SubjectId": f"/subjects/{subject_id}",
-                        "MessageType": "text"
-                    }
-                    
-                    doc_ref, write_result = db.collection("Posts").add(doc_data)
-                    doc_id = doc_ref.id
-                    logger.info(f"SUCCESS: Method 2 worked! Document ID: {doc_id}")
-                    
-                except Exception as method2_error:
-                    logger.error(f"Method 2 failed: {method2_error}")
-                    
-                    # Method 3: Try with document().set() instead of add()
-                    try:
-                        logger.info("Attempting write with document().set()...")
-                        doc_ref = db.collection("Posts").document()
-                        doc_data = {
-                            "Content": content,
-                            "CreatedAt": datetime.now().isoformat(),  # ISO string
-                            "PostedBy": posted_by,
-                            "SubjectId": f"/subjects/{subject_id}",
-                            "MessageType": "text"
-                        }
-                        
-                        doc_ref.set(doc_data)
-                        doc_id = doc_ref.id
-                        logger.info(f"SUCCESS: Method 3 worked! Document ID: {doc_id}")
-                        
-                    except Exception as method3_error:
-                        logger.error(f"Method 3 failed: {method3_error}")
-                        logger.error(f"All Firestore write methods failed!")
-                        logger.error(f"Method 1 error: {method1_error}")
-                        logger.error(f"Method 2 error: {method2_error}")
-                        logger.error(f"Method 3 error: {method3_error}")
-                        raise Exception(f"All Firestore write attempts failed. Last error: {method3_error}")
-            
-            if not doc_id:
-                raise Exception("No document ID returned from any write method")
+            except Exception as write_error:
+                logger.error(f"Firestore write failed: {write_error}")
+                logger.error(traceback.format_exc())
+                return send_response_with_cors(self, {
+                    "error": "Failed to save message",
+                    "details": str(write_error)
+                }, 500)
             
             step = "success_response"
             response_data = {

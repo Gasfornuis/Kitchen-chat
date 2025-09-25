@@ -1041,6 +1041,11 @@
         let userPermissions = {}; // Gedetailleerde permissies van server
         let currentTheme = localStorage.getItem('kitchenChatTheme') || 'light';
         
+        // ANTI-SPAM PROTECTION VARIABLES
+        let isSending = false; // Prevent multiple simultaneous sends
+        let lastSentMessage = null; // Track last message to prevent duplicates
+        let lastSentTime = 0; // Rate limiting
+        
         // Variabelen voor DM window slepen
         let isDragging = false;
         let dragStartX = 0;
@@ -1358,6 +1363,11 @@
             currentDMUser = null;
             dmMessages = [];
             announcements = [];
+            
+            // RESET ANTI-SPAM VARIABLES
+            isSending = false;
+            lastSentMessage = null;
+            lastSentTime = 0;
             
             // Close any open modals/windows
             closeModal();
@@ -1766,13 +1776,48 @@
             container.scrollTop = container.scrollHeight;
         }
         
+        // IMPROVED SENDMESSAGE WITH ANTI-SPAM PROTECTION
         async function sendMessage() {
             const text = document.getElementById('messageText').value.trim();
             if (!isAuthenticated || !text || !currentConversationId) return;
             
+            // ANTI-SPAM PROTECTION
+            const now = Date.now();
+            
+            // 1. Check if already sending (prevent double-clicks)
+            if (isSending) {
+                console.log('Already sending a message, ignoring duplicate request');
+                return;
+            }
+            
+            // 2. Rate limiting: max 1 message per second
+            if (now - lastSentTime < 1000) {
+                showToast('Please wait before sending another message', 'error');
+                return;
+            }
+            
+            // 3. Prevent exact duplicate messages
+            if (lastSentMessage === text) {
+                showToast('Cannot send identical message consecutively', 'error');
+                return;
+            }
+            
+            // Set sending state
+            isSending = true;
+            lastSentMessage = text;
+            lastSentTime = now;
+            
+            // Disable send button and show loading state
+            const sendBtn = document.getElementById('sendBtn');
+            const originalText = sendBtn.textContent;
+            sendBtn.disabled = true;
+            sendBtn.textContent = 'Sending...';
+            
             updateActivity(); // Update activity when sending message
             
             try {
+                console.log('Sending message:', text);
+                
                 await apiCall('/api/posts', 'POST', {
                     Content: text,
                     SubjectId: currentConversationId,
@@ -1780,15 +1825,26 @@
                     MessageType: 'text'
                 });
                 
+                // Clear input on successful send
                 document.getElementById('messageText').value = '';
                 document.getElementById('charCount').textContent = '0/500 characters';
-                document.getElementById('sendBtn').disabled = true;
                 
                 showToast('Message sent!', 'success');
-                loadMessages();
+                
+                // Reload messages after a delay to ensure backend has processed
+                setTimeout(() => {
+                    loadMessages();
+                }, 1000);
                 
             } catch (error) {
                 console.error('Error sending message:', error);
+                // Reset lastSentMessage on error so user can retry
+                lastSentMessage = null;
+            } finally {
+                // Always reset sending state and restore button
+                isSending = false;
+                sendBtn.disabled = !text.trim() || !currentConversationId;
+                sendBtn.textContent = originalText;
             }
         }
         
@@ -1971,11 +2027,39 @@
             container.scrollTop = container.scrollHeight;
         }
         
+        // IMPROVED SENDDM WITH SAME ANTI-SPAM PROTECTION
         async function sendDM() {
             const text = document.getElementById('dmMessageText').value.trim();
             if (!isAuthenticated || !text || !currentDMUser) return;
             
-            updateActivity(); // Update activity when sending DM
+            // ANTI-SPAM PROTECTION (same as sendMessage)
+            const now = Date.now();
+            
+            if (isSending) {
+                console.log('Already sending a DM, ignoring duplicate request');
+                return;
+            }
+            
+            if (now - lastSentTime < 1000) {
+                showToast('Please wait before sending another message', 'error');
+                return;
+            }
+            
+            if (lastSentMessage === text) {
+                showToast('Cannot send identical message consecutively', 'error');
+                return;
+            }
+            
+            isSending = true;
+            lastSentMessage = text;
+            lastSentTime = now;
+            
+            const sendBtn = document.getElementById('dmSendBtn');
+            const originalText = sendBtn.textContent;
+            sendBtn.disabled = true;
+            sendBtn.textContent = 'Sending...';
+            
+            updateActivity();
             
             try {
                 const currentUserName = currentUser?.displayName || currentUser?.username || '';
@@ -1989,15 +2073,19 @@
                 });
                 
                 document.getElementById('dmMessageText').value = '';
-                document.getElementById('dmSendBtn').disabled = true;
                 
                 showToast('DM sent!', 'success');
                 
-                // Reload DM messages after a short delay
-                setTimeout(() => loadDMMessages(), 500);
+                // Reload DM messages after a delay
+                setTimeout(() => loadDMMessages(), 1000);
                 
             } catch (error) {
                 console.error('Error sending DM:', error);
+                lastSentMessage = null; // Reset on error
+            } finally {
+                isSending = false;
+                sendBtn.disabled = !text.trim() || !currentDMUser;
+                sendBtn.textContent = originalText;
             }
         }
         

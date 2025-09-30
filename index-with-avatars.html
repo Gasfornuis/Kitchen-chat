@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kitchen Chat - Simple Chat Website</title>
+    <style>
+        /* CSS Custom Properties for Theme Support */
+        :root {
+            /* Light Theme Colors (default) */
+            --bg-primary: #f0f0f0;
+            --bg-secondary: white;
+            --bg-tertiary: #f5f5f5;
+            --bg-quaternary: #f8f8f8;
+            --bg-accent: #ddd;
+            --bg-message: #fafafa;
+            --bg-message-own: #e7f3ff;
+            --bg-hover: #f0f0f0;
+            --bg-active: #007cba;
+            --bg-modal: rgba(0,0,0,0.5);
+            --bg-announcement: #fff3cd;
+            
+            --text-primary: #333;
+            --text-secondary: #666;
+            --text-tertiary: #444;
+            --text-light: white;
+            --text-error: #d32f2f;
+            --text-success: #388e3c;
+            --text-announcement: #856404;
+            
+            --border-primary: #ccc;
+            --border-secondary: #bbb;
+            --border-tertiary: #ddd;
+            --border-announcement: #ffeaa7;
+            
+            --accent-primary: #007cba;
+            --accent-secondary: #005a87;
+            --dm-accent: #9c27b0;
+            --announcement-accent: #f39c12;
+        }
+        
+        /* Dark Theme Colors */
+        [data-theme="dark"] {
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #2d2d2d;
+            --bg-tertiary: #3d3d3d;
+            --bg-quaternary: #4d4d4d;
+            --bg-accent: #555;
+            --bg-message: #2a2a2a;
+            --bg-message-own: #1e3a52;
+            --bg-hover: #404040;
+            --bg-active: #007cba;
+            --bg-modal: rgba(0,0,0,0.8);
+            --bg-announcement: #2d2419;
+            
+            --text-primary: #e0e0e0;
+            --text-secondary: #b0b0b0;
+            --text-tertiary: #c0c0c0;
+            --text-light: white;
+            --text-error: #f44336;
+            --text-success: #4caf50;
+            --text-announcement: #ffeaa7;
+            
+            --border-primary: #555;
+            --border-secondary: #666;
+            --border-tertiary: #444;
+            --border-announcement: #3d3020;
+            
+            --accent-primary: #4dabf7;
+            --accent-secondary: #3498db;
+            --dm-accent: #e91e63;
+            --announcement-accent: #f39c12;
+        }
+        
+        /* Basic styles from original file */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-primary);
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+        
+        /* Avatar upload section styling */
+        .avatar-section {
+            border-top: 1px solid var(--border-tertiary);
+            padding-top: 15px;
+            margin-top: 15px;
+        }
+        
+        .avatar-upload-area {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .current-avatar {
+            position: relative;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 2px solid var(--border-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-tertiary);
+        }
+        
+        .current-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .avatar-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            font-weight: bold;
+            color: var(--text-light);
+            background: var(--accent-primary);
+        }
+        
+        .avatar-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .avatar-controls button {
+            padding: 6px 12px;
+            font-size: 13px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .upload-info {
+            flex: 1;
+        }
+        
+        .upload-info small {
+            color: var(--text-secondary);
+            font-size: 11px;
+            line-height: 1.3;
+        }
+        
+        /* Message avatar styling */
+        .message-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--accent-primary);
+            color: var(--text-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: bold;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+        
+        .user-avatar-img {
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        
+        /* Form group styling */
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--border-primary);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        
+        .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+        }
+        
+        /* Basic button styling */
+        button {
+            background: var(--accent-primary);
+            color: var(--text-light);
+            border: none;
+            padding: 8px 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        
+        button:hover {
+            background: var(--accent-secondary);
+        }
+        
+        button:disabled {
+            background: var(--text-secondary);
+            cursor: not-allowed;
+        }
+        
+        /* Modal styling */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-modal);
+            z-index: 1500;
+        }
+        
+        .modal-content {
+            background: var(--bg-secondary);
+            margin: 100px auto;
+            padding: 20px;
+            width: 500px;
+            border: 1px solid var(--border-primary);
+        }
+        
+        /* Toast notification styling */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--accent-primary);
+            color: var(--text-light);
+            padding: 10px 20px;
+            z-index: 2000;
+            border-radius: 4px;
+        }
+        
+        .toast.error {
+            background: var(--text-error) !important;
+        }
+        
+        .toast.success {
+            background: var(--text-success) !important;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 600px) {
+            .avatar-upload-area {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+            
+            .current-avatar {
+                width: 100px;
+                height: 100px;
+            }
+            
+            .avatar-placeholder {
+                font-size: 36px;
+            }
+            
+            .modal-content {
+                width: 90%;
+                margin: 50px auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Kitchen Chat - Avatar Test</h1>
+        <p>This is a test page for the avatar upload functionality.</p>
+        
+        <button onclick="openProfileModal()">Test Profile Modal</button>
+        
+        <!-- Profile Modal with Avatar Upload -->
+        <div id="profileModal" class="modal">
+            <div class="modal-content">
+                <h3>Profile Settings</h3>
+                
+                <!-- Avatar Upload Section -->
+                <div class="form-group avatar-section">
+                    <label>Profile Picture:</label>
+                    <div class="avatar-upload-area">
+                        <div class="current-avatar" id="currentAvatar">
+                            <img id="avatarPreview" src="" alt="Profile" style="display: none;">
+                            <div id="avatarInitials" class="avatar-placeholder">JD</div>
+                        </div>
+                        <div class="avatar-controls">
+                            <input type="file" id="avatarInput" accept="image/jpeg,image/png,image/gif" style="display: none;">
+                            <button type="button" onclick="selectAvatar()">Upload Photo</button>
+                            <button type="button" onclick="removeAvatar()" id="removeAvatarBtn" style="display: none;">Remove</button>
+                        </div>
+                        <div class="upload-info">
+                            <small>Max 5MB • JPG, PNG, GIF • Will be resized to 200x200px</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Display Name:</label>
+                    <input type="text" id="profileDisplayName" maxlength="50" value="John Doe">
+                </div>
+                <div class="form-group">
+                    <label>Bio:</label>
+                    <textarea id="profileBio" maxlength="200" placeholder="Tell others about yourself..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Status:</label>
+                    <select id="profileStatus">
+                        <option value="online">Online</option>
+                        <option value="away">Away</option>
+                        <option value="busy">Busy</option>
+                        <option value="offline">Offline</option>
+                    </select>
+                </div>
+                
+                <br>
+                <button onclick="updateProfile()">Save Changes</button>
+                <button onclick="closeProfileModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Mock current user for testing
+        let currentUser = {
+            id: 'test-user-123',
+            username: 'john_doe',
+            displayName: 'John Doe',
+            avatarUrl: null,
+            pendingAvatar: null,
+            removeAvatar: false
+        };
+        
+        let isAuthenticated = true;
+        
+        // Avatar management functions
+        function selectAvatar() {
+            document.getElementById('avatarInput').click();
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            const avatarInput = document.getElementById('avatarInput');
+            if (avatarInput) {
+                avatarInput.addEventListener('change', handleAvatarSelection);
+            }
+        });
+        
+        function handleAvatarSelection(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            // Validate file
+            const validation = validateAvatarFile(file);
+            if (!validation.valid) {
+                showToast(validation.error, 'error');
+                return;
+            }
+            
+            // Show preview
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                showAvatarPreview(e.target.result);
+            };
+            reader.readAsDataURL(file);
+            
+            // Store file for upload
+            currentUser.pendingAvatar = file;
+            currentUser.removeAvatar = false;
+        }
+        
+        function validateAvatarFile(file) {
+            // Check file type
+            const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+            if (!allowedTypes.includes(file.type)) {
+                return {
+                    valid: false,
+                    error: 'Please select a JPG, PNG, or GIF image'
+                };
+            }
+            
+            // Check file size (5MB limit)
+            if (file.size > 5 * 1024 * 1024) {
+                return {
+                    valid: false,
+                    error: 'Image must be smaller than 5MB'
+                };
+            }
+            
+            return { valid: true };
+        }
+        
+        function showAvatarPreview(imageSrc) {
+            const preview = document.getElementById('avatarPreview');
+            const initials = document.getElementById('avatarInitials');
+            const removeBtn = document.getElementById('removeAvatarBtn');
+            
+            preview.src = imageSrc;
+            preview.style.display = 'block';
+            initials.style.display = 'none';
+            removeBtn.style.display = 'inline-block';
+        }
+        
+        function removeAvatar() {
+            const preview = document.getElementById('avatarPreview');
+            const initials = document.getElementById('avatarInitials');
+            const removeBtn = document.getElementById('removeAvatarBtn');
+            const input = document.getElementById('avatarInput');
+            
+            preview.style.display = 'none';
+            initials.style.display = 'flex';
+            removeBtn.style.display = 'none';
+            input.value = '';
+            
+            currentUser.pendingAvatar = null;
+            currentUser.removeAvatar = true;
+        }
+        
+        async function loadCurrentAvatar() {
+            if (!currentUser.avatarUrl) return;
+            
+            try {
+                // Check if avatar URL is still valid
+                const response = await fetch(currentUser.avatarUrl, { method: 'HEAD' });
+                if (response.ok) {
+                    showAvatarPreview(currentUser.avatarUrl);
+                }
+            } catch (error) {
+                console.log('Avatar not found, using initials');
+            }
+        }
+        
+        // Update profile function to handle avatar upload
+        async function updateProfile() {
+            if (!isAuthenticated) return;
+            
+            try {
+                let avatarUrl = currentUser.avatarUrl;
+                
+                // Handle avatar upload
+                if (currentUser.pendingAvatar) {
+                    showToast('Uploading avatar...', 'info');
+                    avatarUrl = await uploadAvatar(currentUser.pendingAvatar);
+                } else if (currentUser.removeAvatar) {
+                    avatarUrl = null;
+                }
+                
+                const updates = {
+                    displayName: document.getElementById('profileDisplayName').value.trim(),
+                    bio: document.getElementById('profileBio').value.trim(),
+                    status: document.getElementById('profileStatus').value,
+                    avatarUrl: avatarUrl
+                };
+                
+                // Simulate API call
+                console.log('Profile updates:', updates);
+                
+                // Update current user data
+                if (updates.displayName) {
+                    currentUser.displayName = updates.displayName;
+                }
+                if (updates.avatarUrl !== undefined) {
+                    currentUser.avatarUrl = updates.avatarUrl;
+                }
+                
+                // Reset avatar flags
+                currentUser.pendingAvatar = null;
+                currentUser.removeAvatar = false;
+                
+                showToast('Profile updated successfully!', 'success');
+                closeProfileModal();
+                
+            } catch (error) {
+                console.error('Error updating profile:', error);
+                showToast('Profile update failed: ' + error.message, 'error');
+            }
+        }
+        
+        async function uploadAvatar(file) {
+            const formData = new FormData();
+            formData.append('avatar', file);
+            formData.append('userId', currentUser.id || currentUser.username);
+            
+            try {
+                const response = await fetch('/api/avatar-upload', {
+                    method: 'POST',
+                    credentials: 'include',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Upload failed: ' + response.statusText);
+                }
+                
+                const result = await response.json();
+                if (!result.success) {
+                    throw new Error(result.error || 'Upload failed');
+                }
+                
+                return result.avatarUrl;
+                
+            } catch (error) {
+                console.error('Avatar upload error:', error);
+                showToast('Avatar upload failed: ' + error.message, 'error');
+                throw error;
+            }
+        }
+        
+        // Modal functions
+        function openProfileModal() {
+            loadCurrentAvatar();
+            document.getElementById('profileModal').style.display = 'block';
+        }
+        
+        function closeProfileModal() {
+            document.getElementById('profileModal').style.display = 'none';
+            
+            // Reset form
+            document.getElementById('avatarInput').value = '';
+            currentUser.pendingAvatar = null;
+            currentUser.removeAvatar = false;
+        }
+        
+        // Utility functions
+        function getInitials(name) {
+            if (!name) return '?';
+            return name.split(' ').map(word => word[0]).join('').toUpperCase().substring(0, 2);
+        }
+        
+        function getAvatarHtml(user, size = 32) {
+            if (user.avatarUrl) {
+                return `<img src="${user.avatarUrl}" alt="${user.displayName}" class="user-avatar-img" style="width: ${size}px; height: ${size}px; border-radius: 50%; object-fit: cover;">`;
+            } else {
+                const initials = getInitials(user.displayName || user.username);
+                return `<div class="user-avatar" style="width: ${size}px; height: ${size}px; font-size: ${Math.floor(size/2.5)}px; background: var(--accent-primary); color: var(--text-light); display: flex; align-items: center; justify-content: center; border-radius: 50%; font-weight: bold;">${initials}</div>`;
+            }
+        }
+        
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = 'toast ' + type;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                if (document.body.contains(toast)) {
+                    document.body.removeChild(toast);
+                }
+            }, 3000);
+        }
+        
+        // Modal click handlers
+        document.getElementById('profileModal').onclick = function(e) {
+            if (e.target === this) closeProfileModal();
+        };
+        
+        // Initialize
+        window.onload = function() {
+            console.log('Avatar test page loaded');
+            console.log('Current user:', currentUser);
+        };
+    </script>
+</body>
+</html>

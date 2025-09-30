@@ -12,16 +12,6 @@ No complex design, no advanced web-app features, just straightforward, real-time
 - **Notifications** for connection and sent messages
 - **Works in any browser, desktop and mobile**
 
-## 🚀 Usage
-
-1. **Clone or download the repository**
-2. Open `index.html` in your browser
-3. Start chatting!
-
-**(Or go to kitchenchat.live)**
-
-No installation, no dependencies: one HTML file contains everything.
-
 ## 🖥️ Interface Overview
 
 - **Left sidebar**: Your conversations

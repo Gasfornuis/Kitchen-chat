@@ -106,7 +106,7 @@ class handler(BaseHTTPRequestHandler):
                             'status': status,
                             'lastSeen': profile.get('lastSeen', ''),
                             'bio': profile.get('bio', ''),
-                            'photoURL': profile.get('photoURL', '')
+                            'avatarUrl': profile.get('avatarUrl', None)  # Include avatar URL
                         })
                 
                 send_success_response(self, {'users': online_users})
@@ -143,7 +143,7 @@ class handler(BaseHTTPRequestHandler):
                         'status': status,
                         'lastSeen': data.get('lastSeen', ''),
                         'bio': data.get('bio', ''),
-                        'photoURL': data.get('photoURL', '')
+                        'avatarUrl': data.get('avatarUrl', None)  # Include avatar URL
                     })
             
             # Sort by last seen (most recent first)
@@ -169,7 +169,7 @@ class handler(BaseHTTPRequestHandler):
                         'status': 'online',
                         'joinedAt': datetime.now().isoformat(),
                         'lastSeen': datetime.now().isoformat(),
-                        'photoURL': '',
+                        'avatarUrl': None,  # Include avatar URL
                         'preferences': {
                             'theme': 'light',
                             'notifications': True,
@@ -200,7 +200,7 @@ class handler(BaseHTTPRequestHandler):
                         'status': 'offline',  # Start as offline instead of online
                         'joinedAt': str(user_data.get('createdAt', datetime.now())),
                         'lastSeen': str(user_data.get('lastLogin', datetime.now())),
-                        'photoURL': '',
+                        'avatarUrl': None,  # Include avatar URL
                         'preferences': {
                             'theme': 'light',
                             'notifications': True,
@@ -254,8 +254,8 @@ class handler(BaseHTTPRequestHandler):
                         'joinedAt': datetime.now().isoformat()
                     }
                 
-                # Update allowed fields
-                allowed_fields = ['displayName', 'bio', 'status', 'photoURL']
+                # Update allowed fields (including avatarUrl)
+                allowed_fields = ['displayName', 'bio', 'status', 'avatarUrl']
                 for field in allowed_fields:
                     if field in updates:
                         demo_profiles[username][field] = updates[field]
@@ -289,7 +289,7 @@ class handler(BaseHTTPRequestHandler):
                     'bio': '',
                     'status': 'online',
                     'joinedAt': datetime.now().isoformat(),
-                    'photoURL': '',
+                    'avatarUrl': None,  # Include avatar URL
                     'preferences': {
                         'theme': 'light',
                         'notifications': True,
@@ -297,13 +297,22 @@ class handler(BaseHTTPRequestHandler):
                     }
                 }
             
-            # Update allowed fields
-            allowed_fields = ['displayName', 'bio', 'status', 'photoURL']
+            # Update allowed fields (including avatarUrl)
+            allowed_fields = ['displayName', 'bio', 'status', 'avatarUrl']
             update_data = {}
             
             for field in allowed_fields:
                 if field in updates:
                     update_data[field] = updates[field]
+            
+            # Handle avatar URL update
+            if 'avatarUrl' in updates:
+                avatar_url = updates['avatarUrl']
+                if avatar_url:
+                    update_data['avatarUrl'] = avatar_url
+                else:
+                    # Remove avatar URL if null
+                    update_data['avatarUrl'] = None
             
             # Update preferences
             pref_fields = ['theme', 'notifications', 'soundEnabled']

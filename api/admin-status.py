@@ -32,8 +32,8 @@ ALLOWED_ORIGINS = [
     'http://localhost:3000',
     'http://127.0.0.1:3000',
     'https://kitchen-chat.vercel.app',
-    'https://gasfornuis.github.io'
-    'https://kitchenchat.live'
+    'https://gasfornuis.github.io',
+    'https://kitchenchat.live',
     'https://www.kitchenchat.live'
 ]
 
@@ -230,7 +230,11 @@ class handler(BaseHTTPRequestHandler):
                 'permissions': {
                     'canCreateAnnouncements': is_admin,
                     'canDeleteAnnouncements': is_admin,
-                    'canUpdateAnnouncements': is_admin
+                    'canUpdateAnnouncements': is_admin,
+                    'canManageBanlist': is_admin,
+                    'canBanUsers': is_admin,
+                    'canUnbanUsers': is_admin,
+                    'canViewBanlist': is_admin
                 }
             }
             

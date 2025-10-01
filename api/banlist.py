@@ -179,34 +179,54 @@ def is_user_banned(username):
         logger.error(f"Error checking ban status: {e}")
         return False
 
-async def get_banned_users():
+def get_banned_users():
     """Get list of all banned users"""
     if not db:
+        logger.warning("Database not available")
         return []
     
     try:
         banned_users = []
-        docs = db.collection("BannedUsers").where("active", "==", True).order_by("createdAt", direction=fb_firestore.Query.DESCENDING).get()
+        # Get all banned users that are active
+        docs = db.collection("BannedUsers").where("active", "==", True).get()
+        
+        logger.info(f"Found {len(docs)} banned users documents")
         
         for doc in docs:
             ban_data = doc.to_dict()
+            logger.info(f"Processing ban record: {doc.id} - {ban_data.get('username')}")
+            
+            # Convert Firestore timestamp to ISO string if needed
+            created_at = ban_data.get("createdAt")
+            if hasattr(created_at, 'isoformat'):
+                created_at_str = created_at.isoformat()
+            elif hasattr(created_at, 'seconds'):
+                # Firestore Timestamp object
+                created_at_str = datetime.fromtimestamp(created_at.seconds, tz=timezone.utc).isoformat()
+            else:
+                created_at_str = str(created_at) if created_at else None
+            
             banned_users.append({
                 "id": doc.id,
-                "username": ban_data.get("username"),
+                "username": ban_data.get("username", "Unknown"),
                 "displayName": ban_data.get("displayName", ""),
                 "reason": ban_data.get("reason", "No reason provided"),
-                "bannedBy": ban_data.get("bannedBy"),
-                "createdAt": ban_data.get("createdAt"),
+                "bannedBy": ban_data.get("bannedBy", "Unknown"),
+                "createdAt": created_at_str,
                 "active": ban_data.get("active", True)
             })
         
+        # Sort by createdAt descending (most recent first)
+        banned_users.sort(key=lambda x: x.get('createdAt', ''), reverse=True)
+        
+        logger.info(f"Returning {len(banned_users)} banned users")
         return banned_users
         
     except Exception as e:
         logger.error(f"Error getting banned users: {e}")
         return []
 
-async def ban_user(username, display_name, reason, banned_by):
+def ban_user(username, display_name, reason, banned_by):
     """Ban a user"""
     if not db:
         return False, "Database not available"
@@ -230,7 +250,9 @@ async def ban_user(username, display_name, reason, banned_by):
             "active": True
         }
         
-        db.collection("BannedUsers").add(ban_data)
+        # Add to Firestore
+        doc_ref = db.collection("BannedUsers").add(ban_data)
+        logger.info(f"Added ban record with ID: {doc_ref[1].id}")
         
         # Optionally: Terminate all active sessions for this user
         # This would require querying Sessions collection and deleting matching sessions
@@ -244,7 +266,7 @@ async def ban_user(username, display_name, reason, banned_by):
         logger.error(f"Error banning user {username}: {e}")
         return False, f"Failed to ban user: {str(e)}"
 
-async def unban_user(ban_id, unbanned_by):
+def unban_user(ban_id, unbanned_by):
     """Unban a user by deactivating their ban record"""
     if not db:
         return False, "Database not available"
@@ -330,25 +352,32 @@ class handler(BaseHTTPRequestHandler):
         try:
             # Get user from session
             current_user = require_authentication(self)
+            logger.info(f"Banlist GET request from user: {current_user}")
             
             if not current_user:
                 return self.send_error_response("Authentication required", 401)
             
             # Check admin permissions
             if not check_admin_permissions(current_user):
+                logger.warning(f"Non-admin user {current_user.get('username')} tried to access banlist")
                 return self.send_error_response("Admin access required", 403)
             
-            # Get banned users
-            import asyncio
-            banned_users = asyncio.run(get_banned_users())
+            logger.info(f"Admin user {current_user.get('username')} accessing banlist")
+            
+            # Get banned users (removed asyncio.run)
+            banned_users = get_banned_users()
+            
+            logger.info(f"Returning {len(banned_users)} banned users to client")
             
             return self.send_json_response({
                 'success': True,
-                'bannedUsers': banned_users
+                'bannedUsers': banned_users,
+                'count': len(banned_users)
             })
         
         except Exception as e:
-            return self.send_error_response(f"Failed to get banned users", 500)
+            logger.error(f"Error in banlist GET: {e}")
+            return self.send_error_response(f"Failed to get banned users: {str(e)}", 500)
     
     def do_POST(self):
         """Ban a user - Admin only"""
@@ -391,14 +420,13 @@ class handler(BaseHTTPRequestHandler):
             if len(reason) > 500:
                 return self.send_error_response("Reason must be less than 500 characters", 400)
             
-            # Ban the user
-            import asyncio
-            success, message = asyncio.run(ban_user(
+            # Ban the user (removed asyncio.run)
+            success, message = ban_user(
                 username=username,
                 display_name=display_name, 
                 reason=reason,
                 banned_by=current_user.get('displayName', current_user.get('username'))
-            ))
+            )
             
             if success:
                 return self.send_json_response({
@@ -411,6 +439,7 @@ class handler(BaseHTTPRequestHandler):
         except json.JSONDecodeError:
             return self.send_error_response("Invalid JSON", 400)
         except Exception as e:
+            logger.error(f"Error in banlist POST: {e}")
             return self.send_error_response("Failed to ban user", 500)
     
     def do_DELETE(self):
@@ -446,12 +475,11 @@ class handler(BaseHTTPRequestHandler):
             if not ban_id:
                 return self.send_error_response("Ban ID is required", 400)
             
-            # Unban the user
-            import asyncio
-            success, message = asyncio.run(unban_user(
+            # Unban the user (removed asyncio.run)
+            success, message = unban_user(
                 ban_id=ban_id,
                 unbanned_by=current_user.get('displayName', current_user.get('username'))
-            ))
+            )
             
             if success:
                 return self.send_json_response({
@@ -464,4 +492,5 @@ class handler(BaseHTTPRequestHandler):
         except json.JSONDecodeError:
             return self.send_error_response("Invalid JSON", 400)
         except Exception as e:
+            logger.error(f"Error in banlist DELETE: {e}")
             return self.send_error_response("Failed to unban user", 500)

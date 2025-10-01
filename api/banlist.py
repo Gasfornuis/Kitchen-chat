@@ -159,6 +159,19 @@ def check_admin_permissions(user):
     
     return False
 
+def is_admin_user(username_or_display_name):
+    """Check if a username or display name belongs to an admin user"""
+    if not username_or_display_name:
+        return False
+    
+    name_lower = username_or_display_name.lower().strip()
+    
+    for admin_user in ADMIN_USERS:
+        if name_lower == admin_user.lower():
+            return True
+    
+    return False
+
 def is_user_banned(username):
     """Check if a user is banned"""
     if not db:
@@ -227,18 +240,42 @@ def get_banned_users():
         return []
 
 def ban_user(username, display_name, reason, banned_by):
-    """Ban a user"""
+    """Ban a user with comprehensive admin protection"""
     if not db:
         return False, "Database not available"
     
     try:
+        # VERBETERDE ADMIN BESCHERMING
+        # Check if target user is admin (multiple checks)
+        if is_admin_user(username) or is_admin_user(display_name):
+            security_logger.warning(f"Attempt to ban admin user {username}/{display_name} by {banned_by}")
+            return False, f"Cannot ban admin user '{username}'. Admin users are protected from being banned."
+        
+        # Extra check: Prevent banning users with admin-like names
+        admin_variants = []
+        for admin in ADMIN_USERS:
+            admin_variants.extend([
+                admin.lower(),
+                admin.lower().replace('25', ''),  # Handle daan25 -> daan
+                admin.lower() + '25',  # Handle daan -> daan25
+                'admin' + admin.lower(),
+                admin.lower() + 'admin'
+            ])
+        
+        if username.lower() in admin_variants or display_name.lower() in admin_variants:
+            security_logger.warning(f"Attempt to ban admin-like user {username}/{display_name} by {banned_by}")
+            return False, f"Cannot ban user '{username}'. Username too similar to admin accounts."
+        
         # Check if user is already banned
         if is_user_banned(username):
-            return False, f"User {username} is already banned"
+            return False, f"User '{username}' is already banned"
         
-        # Don't allow banning admins
-        if username.lower() in [admin.lower() for admin in ADMIN_USERS] or display_name.lower() in [admin.lower() for admin in ADMIN_USERS]:
-            return False, "Cannot ban admin users"
+        # Validate input lengths
+        if len(username) < 2:
+            return False, "Username must be at least 2 characters"
+        
+        if len(reason) > 500:
+            return False, "Ban reason must be less than 500 characters"
         
         # Create ban record
         ban_data = {
@@ -254,13 +291,11 @@ def ban_user(username, display_name, reason, banned_by):
         doc_ref = db.collection("BannedUsers").add(ban_data)
         logger.info(f"Added ban record with ID: {doc_ref[1].id}")
         
-        # Optionally: Terminate all active sessions for this user
-        # This would require querying Sessions collection and deleting matching sessions
-        
-        logger.info(f"User {username} banned by {banned_by}")
+        # Log successful ban
+        logger.info(f"User '{username}' (display: '{display_name}') banned by '{banned_by}'")
         security_logger.info(f"User banned: {username} by {banned_by} - reason: {reason}")
         
-        return True, f"User {username} has been banned successfully"
+        return True, f"User '{username}' has been banned successfully"
         
     except Exception as e:
         logger.error(f"Error banning user {username}: {e}")
@@ -283,17 +318,18 @@ def unban_user(ban_id, unbanned_by):
         if not ban_data.get("active", False):
             return False, "User is not currently banned"
         
-        # Deactivate ban
+        # Deactivate ban (don't delete for audit trail)
         db.collection("BannedUsers").document(ban_id).update({
             "active": False,
             "unbannedBy": unbanned_by,
             "unbannedAt": datetime.now(timezone.utc)
         })
         
-        logger.info(f"User {ban_data.get('username')} unbanned by {unbanned_by}")
-        security_logger.info(f"User unbanned: {ban_data.get('username')} by {unbanned_by}")
+        banned_username = ban_data.get('username', 'Unknown')
+        logger.info(f"User '{banned_username}' unbanned by '{unbanned_by}'")
+        security_logger.info(f"User unbanned: {banned_username} by {unbanned_by}")
         
-        return True, f"User {ban_data.get('username')} has been unbanned successfully"
+        return True, f"User '{banned_username}' has been unbanned successfully"
         
     except Exception as e:
         logger.error(f"Error unbanning user: {e}")
@@ -364,15 +400,17 @@ class handler(BaseHTTPRequestHandler):
             
             logger.info(f"Admin user {current_user.get('username')} accessing banlist")
             
-            # Get banned users (removed asyncio.run)
+            # Get banned users
             banned_users = get_banned_users()
             
             logger.info(f"Returning {len(banned_users)} banned users to client")
             
+            # Also return admin users list for frontend protection
             return self.send_json_response({
                 'success': True,
                 'bannedUsers': banned_users,
-                'count': len(banned_users)
+                'count': len(banned_users),
+                'adminUsers': ADMIN_USERS  # Send admin list to frontend for UI protection
             })
         
         except Exception as e:
@@ -380,7 +418,7 @@ class handler(BaseHTTPRequestHandler):
             return self.send_error_response(f"Failed to get banned users: {str(e)}", 500)
     
     def do_POST(self):
-        """Ban a user - Admin only"""
+        """Ban a user - Admin only with enhanced protection"""
         client_ip = get_client_ip(self.headers)
         
         # Rate limiting
@@ -409,10 +447,13 @@ class handler(BaseHTTPRequestHandler):
             # Validate required fields
             username = data.get('username', '').strip()
             display_name = data.get('displayName', '').strip() or username
-            reason = data.get('reason', '').strip() or 'No reason provided'
+            reason = data.get('reason', '').strip()
             
             if not username:
                 return self.send_error_response("Username is required", 400)
+            
+            if not reason:
+                return self.send_error_response("Ban reason is required", 400)
             
             if len(username) < 2:
                 return self.send_error_response("Username must be at least 2 characters", 400)
@@ -420,7 +461,7 @@ class handler(BaseHTTPRequestHandler):
             if len(reason) > 500:
                 return self.send_error_response("Reason must be less than 500 characters", 400)
             
-            # Ban the user (removed asyncio.run)
+            # Ban the user (comprehensive protection included)
             success, message = ban_user(
                 username=username,
                 display_name=display_name, 
@@ -475,7 +516,7 @@ class handler(BaseHTTPRequestHandler):
             if not ban_id:
                 return self.send_error_response("Ban ID is required", 400)
             
-            # Unban the user (removed asyncio.run)
+            # Unban the user
             success, message = unban_user(
                 ban_id=ban_id,
                 unbanned_by=current_user.get('displayName', current_user.get('username'))

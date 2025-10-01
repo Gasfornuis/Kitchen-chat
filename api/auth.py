@@ -58,6 +58,30 @@ def get_client_ip(headers):
         return forwarded.split(',')[0].strip()
     return headers.get('x-real-ip', 'unknown')
 
+def is_user_banned(username, display_name=None):
+    """Check if a user is banned"""
+    if not db:
+        return False
+    
+    try:
+        # Check by username (case insensitive)
+        banned_query = db.collection("BannedUsers").where("username", "==", username.lower()).where("active", "==", True).get()
+        
+        if len(banned_query) > 0:
+            return True
+        
+        # Also check by display name if provided
+        if display_name and display_name.lower() != username.lower():
+            banned_query_display = db.collection("BannedUsers").where("username", "==", display_name.lower()).where("active", "==", True).get()
+            if len(banned_query_display) > 0:
+                return True
+        
+        return False
+        
+    except Exception as e:
+        print(f"Error checking ban status: {e}")
+        return False
+
 def create_session_firestore(username, display_name, user_agent, client_ip):
     """Create session in Firestore"""
     token = generate_session_token()
@@ -115,6 +139,15 @@ def verify_session_token(token):
             # Lazy cleanup - remove expired session
             del demo_sessions[token_hash]
             return None
+        
+        # Check if user is banned (even in demo mode)
+        username = session["username"]
+        display_name = session["displayName"]
+        
+        if is_user_banned(username, display_name):
+            # Delete session if user is banned
+            del demo_sessions[token_hash]
+            return None
             
         return {
             "username": session["username"],
@@ -133,6 +166,15 @@ def verify_session_token(token):
         
         if expires_at and expires_at.timestamp() < time.time():
             # Lazy cleanup - delete expired session
+            doc.reference.delete()
+            return None
+        
+        # Check if user is banned
+        username = session_data.get('username')
+        display_name = session_data.get('displayName')
+        
+        if is_user_banned(username, display_name):
+            # Delete session if user is banned
             doc.reference.delete()
             return None
         
@@ -282,6 +324,15 @@ class handler(BaseHTTPRequestHandler):
         
         username_lower = username.lower()
         
+        # Check if user is banned before allowing registration
+        if is_user_banned(username_lower, username):
+            self.send_response(403)
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Access-Control-Allow-Credentials", "true")
+            self.end_headers()
+            self.wfile.write(json.dumps({"error": "This user is banned and cannot register"}).encode())
+            return
+        
         try:
             if not db:
                 # Demo mode
@@ -377,6 +428,15 @@ class handler(BaseHTTPRequestHandler):
         username_lower = username.lower()
         user_agent = self.headers.get('User-Agent', '')
         client_ip = get_client_ip(self.headers)
+        
+        # Check if user is banned before allowing login
+        if is_user_banned(username_lower, username):
+            self.send_response(403)
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Access-Control-Allow-Credentials", "true")
+            self.end_headers()
+            self.wfile.write(json.dumps({"error": "Your account has been banned. Please contact an administrator."}).encode())
+            return
         
         try:
             if not db:

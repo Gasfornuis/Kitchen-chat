@@ -261,7 +261,7 @@ class handler(BaseHTTPRequestHandler):
             }
             
             # Add media data if present
-            if media_data and message_type in ("image", "video", "file"):
+            if media_data and message_type in ("image", "video", "file", "document"):
                 doc_data["MediaData"] = {
                     "name": media_data.get("name", ""),
                     "size": media_data.get("size", ""),

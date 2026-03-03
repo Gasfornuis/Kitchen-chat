@@ -3096,12 +3096,21 @@
             const icon = media.icon || '📁';
             
             if (category === 'image') {
-                return `<div class="message-media"><img src="${escapeHtml(url)}" alt="${escapeHtml(name)}" onclick="openLightbox('${escapeHtml(url)}')" loading="lazy" onerror="this.style.display='none';this.parentElement.innerHTML='<a href=\\'${escapeHtml(url)}\\' target=\\'_blank\\' class=\\'file-attachment\\'><span class=\\'file-icon\\'>🖼️</span><div class=\\'file-details\\'><div>${escapeHtml(name)}</div><small>${escapeHtml(size)}</small></div></a>'"></div>`;
+                return `<div class="message-media"><img src="${escapeHtml(url)}" alt="${escapeHtml(name)}" onclick="openLightbox('${escapeHtml(url)}')" loading="lazy"></div>`;
             }
             if (category === 'video') {
                 return `<div class="message-media"><video src="${escapeHtml(url)}" controls preload="metadata" style="max-width:300px;border-radius:6px;">Your browser does not support video.</video></div>`;
             }
-            return `<div class="message-media"><a href="${escapeHtml(url)}" target="_blank" rel="noopener" class="file-attachment"><span class="file-icon">${icon}</span><div class="file-details"><div>${escapeHtml(name)}</div><small>${escapeHtml(size)}</small></div></a></div>`;
+            return `<div class="message-media"><a href="#" onclick="downloadDataFile('${escapeHtml(url)}','${escapeHtml(name)}');return false;" class="file-attachment"><span class="file-icon">${icon}</span><div class="file-details"><div>${escapeHtml(name)}</div><small>${escapeHtml(size)}</small></div></a></div>`;
+        }
+        
+        function downloadDataFile(dataUrl, fileName) {
+            const a = document.createElement('a');
+            a.href = dataUrl;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
         }
         
         function openLightbox(url) {

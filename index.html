@@ -885,6 +885,158 @@
                 margin: 20px auto;
             }
         }
+        
+        /* File Upload Styles */
+        .attach-btn {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-primary);
+            color: var(--text-primary);
+            cursor: pointer;
+            padding: 8px 12px;
+            font-size: 18px;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+        .attach-btn:hover { background: var(--bg-hover); }
+        
+        .file-preview {
+            display: none;
+            padding: 8px;
+            margin: 5px 0;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-tertiary);
+            border-radius: 4px;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+        }
+        .file-preview.active { display: flex; }
+        .file-preview img, .file-preview video {
+            max-width: 120px;
+            max-height: 80px;
+            border-radius: 4px;
+            object-fit: cover;
+        }
+        .file-preview .file-info {
+            flex: 1;
+            overflow: hidden;
+        }
+        .file-preview .file-name {
+            font-weight: bold;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .file-preview .file-size {
+            color: var(--text-secondary);
+            font-size: 11px;
+        }
+        .file-preview .remove-file {
+            background: none;
+            border: none;
+            color: var(--text-error);
+            cursor: pointer;
+            font-size: 18px;
+            padding: 4px;
+        }
+        
+        .upload-progress {
+            display: none;
+            height: 3px;
+            background: var(--bg-accent);
+            border-radius: 2px;
+            margin: 4px 0;
+            overflow: hidden;
+        }
+        .upload-progress.active { display: block; }
+        .upload-progress .bar {
+            height: 100%;
+            background: var(--accent-primary);
+            width: 0%;
+            transition: width 0.3s;
+            border-radius: 2px;
+        }
+        
+        /* Media in messages */
+        .message-media { margin-top: 6px; }
+        .message-media img {
+            max-width: 300px;
+            max-height: 250px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .message-media img:hover { opacity: 0.9; }
+        .message-media video {
+            max-width: 300px;
+            max-height: 250px;
+            border-radius: 6px;
+        }
+        .message-media .file-attachment {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-tertiary);
+            border-radius: 6px;
+            text-decoration: none;
+            color: var(--text-primary);
+            font-size: 13px;
+            transition: background 0.2s;
+        }
+        .message-media .file-attachment:hover { background: var(--bg-hover); }
+        .message-media .file-attachment .file-icon { font-size: 20px; }
+        .message-media .file-attachment .file-details { line-height: 1.3; }
+        .message-media .file-attachment .file-details small {
+            color: var(--text-secondary);
+            font-size: 11px;
+        }
+        
+        /* Lightbox */
+        .lightbox {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.9);
+            z-index: 10000;
+            cursor: pointer;
+            align-items: center;
+            justify-content: center;
+        }
+        .lightbox.active { display: flex; }
+        .lightbox img {
+            max-width: 90vw;
+            max-height: 90vh;
+            object-fit: contain;
+            border-radius: 4px;
+        }
+        .lightbox .close-lightbox {
+            position: absolute;
+            top: 15px; right: 20px;
+            color: white;
+            font-size: 32px;
+            cursor: pointer;
+            background: none;
+            border: none;
+        }
+        
+        /* Drag-and-drop overlay */
+        .drop-overlay {
+            display: none;
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 124, 186, 0.1);
+            border: 2px dashed var(--accent-primary);
+            border-radius: 8px;
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            color: var(--accent-primary);
+            pointer-events: none;
+        }
+        .drop-overlay.active { display: flex; }
     </style>
 </head>
 <body>
@@ -1004,12 +1156,25 @@
                         <h2 id="chatTitle">Conversation</h2>
                         <button onclick="refreshMessages()" style="float: right;">Refresh</button>
                         
-                        <div id="messages" class="messages">
+                        <div id="messages" class="messages" style="position: relative;">
                             <p>Loading messages...</p>
+                            <div id="chatDropOverlay" class="drop-overlay">📎 Drop file to share</div>
                         </div>
                         
+                        <div id="chatFilePreview" class="file-preview">
+                            <div id="chatFileThumb"></div>
+                            <div class="file-info">
+                                <div id="chatFileName" class="file-name"></div>
+                                <div id="chatFileSize" class="file-size"></div>
+                            </div>
+                            <button class="remove-file" onclick="clearFileUpload('chat')">&times;</button>
+                        </div>
+                        <div id="chatUploadProgress" class="upload-progress"><div class="bar"></div></div>
+                        
                         <div>
-                            <input type="text" id="messageText" placeholder="Type your message..." style="width: 60%;" maxlength="500" onkeypress="checkEnter(event)">
+                            <input type="file" id="chatFileInput" style="display:none;" accept="image/*,video/*,.pdf,.txt,.doc,.docx" onchange="handleFileSelect(event, 'chat')">
+                            <button class="attach-btn" onclick="document.getElementById('chatFileInput').click()" title="Attach file">📎</button>
+                            <input type="text" id="messageText" placeholder="Type your message..." style="width: 55%;" maxlength="500" onkeypress="checkEnter(event)">
                             <button id="sendBtn" onclick="sendMessage()" disabled>Send</button>
                             
                             <div style="font-size: 12px; color: var(--text-secondary); margin: 5px 0;">
@@ -1178,10 +1343,22 @@
                 <span id="dmTitle">Direct Message</span>
                 <button onclick="closeDMWindow()" style="background: transparent; border: none; color: white; cursor: pointer;">&times;</button>
             </div>
-            <div id="dmMessages" class="dm-messages">
+            <div id="dmMessages" class="dm-messages" style="position: relative;">
                 <p>Loading messages...</p>
+                <div id="dmDropOverlay" class="drop-overlay">📎 Drop file to share</div>
             </div>
+            <div id="dmFilePreview" class="file-preview">
+                <div id="dmFileThumb"></div>
+                <div class="file-info">
+                    <div id="dmFileName" class="file-name"></div>
+                    <div id="dmFileSize" class="file-size"></div>
+                </div>
+                <button class="remove-file" onclick="clearFileUpload('dm')">&times;</button>
+            </div>
+            <div id="dmUploadProgress" class="upload-progress"><div class="bar"></div></div>
             <div class="dm-input">
+                <input type="file" id="dmFileInput" style="display:none;" accept="image/*,video/*,.pdf,.txt,.doc,.docx" onchange="handleFileSelect(event, 'dm')">
+                <button class="attach-btn" onclick="document.getElementById('dmFileInput').click()" title="Attach file" style="padding: 6px 10px; font-size: 16px;">📎</button>
                 <input type="text" id="dmMessageText" placeholder="Type a message..." maxlength="500" onkeypress="checkDMEnter(event)">
                 <button id="dmSendBtn" onclick="sendDM()" disabled>Send</button>
             </div>
@@ -1208,6 +1385,16 @@
         let isSending = false; // Prevent multiple simultaneous sends
         let lastSentMessage = null; // Track last message to prevent duplicates
         let lastSentTime = 0; // Rate limiting
+        
+        // FILE UPLOAD STATE
+        let pendingFile = { chat: null, dm: null }; // { file, dataUrl, base64 }
+        const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+        const ALLOWED_MIME_TYPES = [
+            'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+            'video/mp4', 'video/quicktime', 'video/webm',
+            'application/pdf', 'text/plain', 'application/msword',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        ];
         
         // Variabelen voor DM window slepen
         let isDragging = false;
@@ -1633,6 +1820,10 @@
             
             // Initialiseer DM drag functionaliteit
             initializeDMDrag();
+            
+            // Initialize drag-and-drop for file uploads
+            initDragDrop('#messages', 'chatDropOverlay', 'chat');
+            initDragDrop('#dmMessages', 'dmDropOverlay', 'dm');
             
             // FIXED: More frequent updates for better online status accuracy
             setInterval(loadOnlineUsers, 20000); // Update every 20 seconds (reduced from 30)
@@ -2087,6 +2278,7 @@
                 const isOwn = msg.PostedBy === (currentUser?.displayName || '');
                 const authorName = msg.PostedBy || 'Anonymous';
                 const initials = getInitials(authorName);
+                const mediaHtml = renderMediaContent(msg, 'AttachmentUrl', 'MediaData');
                 
                 html += `<div class="message ${isOwn ? 'own' : ''}">`;
                 html += `<div class="message-avatar">${initials}</div>`;
@@ -2095,7 +2287,10 @@
                 html += `<span class="message-author">${escapeHtml(authorName)}</span>`;
                 html += `<span class="message-time">${formatTime(msg.CreatedAt)}</span>`;
                 html += `</div>`;
-                html += `<div class="message-text">${escapeHtml(msg.Content)}</div>`;
+                if (msg.Content) {
+                    html += `<div class="message-text">${escapeHtml(msg.Content)}</div>`;
+                }
+                html += mediaHtml;
                 html += `</div>`;
                 html += `</div>`;
             });
@@ -2107,71 +2302,92 @@
         // IMPROVED SENDMESSAGE WITH ANTI-SPAM PROTECTION
         async function sendMessage() {
             const text = document.getElementById('messageText').value.trim();
-            if (!isAuthenticated || !text || !currentConversationId) return;
+            const hasFile = !!pendingFile.chat;
+            if (!isAuthenticated || (!text && !hasFile) || !currentConversationId) return;
             
             // ANTI-SPAM PROTECTION
             const now = Date.now();
             
-            // 1. Check if already sending (prevent double-clicks)
             if (isSending) {
                 console.log('Already sending a message, ignoring duplicate request');
                 return;
             }
             
-            // 2. Rate limiting: max 1 message per second
             if (now - lastSentTime < 1000) {
                 showToast('Please wait before sending another message', 'error');
                 return;
             }
             
-            // 3. Prevent exact duplicate messages
-            if (lastSentMessage === text) {
+            if (lastSentMessage === text && !hasFile) {
                 showToast('Cannot send identical message consecutively', 'error');
                 return;
             }
             
-            // Set sending state
             isSending = true;
             lastSentMessage = text;
             lastSentTime = now;
             
-            // Disable send button and show loading state
             const sendBtn = document.getElementById('sendBtn');
             const originalText = sendBtn.textContent;
             sendBtn.disabled = true;
-            sendBtn.textContent = 'Sending...';
+            sendBtn.textContent = hasFile ? 'Uploading...' : 'Sending...';
             
-            updateActivity(); // Update activity when sending message
+            updateActivity();
             
             try {
-                console.log('Sending message:', text);
+                let messageType = 'text';
+                let mediaData = null;
+                let attachmentUrl = null;
+                
+                // Upload file first if present
+                if (hasFile) {
+                    const uploadResult = await uploadFile('chat');
+                    if (!uploadResult) {
+                        isSending = false;
+                        sendBtn.disabled = false;
+                        sendBtn.textContent = originalText;
+                        return;
+                    }
+                    messageType = uploadResult.fileCategory || 'file';
+                    attachmentUrl = uploadResult.url;
+                    mediaData = {
+                        name: uploadResult.fileName,
+                        size: uploadResult.fileSize,
+                        type: uploadResult.fileType,
+                        category: uploadResult.fileCategory,
+                        icon: uploadResult.fileIcon
+                    };
+                }
+                
+                const content = text || (mediaData ? mediaData.name : '');
+                
+                sendBtn.textContent = 'Sending...';
                 
                 await apiCall('/api/posts', 'POST', {
-                    Content: text,
+                    Content: content,
                     SubjectId: currentConversationId,
                     PostedBy: currentUser?.displayName || 'Anonymous',
-                    MessageType: 'text'
+                    MessageType: messageType,
+                    MediaData: mediaData,
+                    AttachmentUrl: attachmentUrl
                 });
                 
-                // Clear input on successful send
                 document.getElementById('messageText').value = '';
                 document.getElementById('charCount').textContent = '0/500 characters';
+                clearFileUpload('chat');
                 
                 showToast('Message sent!', 'success');
                 
-                // Reload messages after a delay to ensure backend has processed
                 setTimeout(() => {
                     loadMessages();
                 }, 1000);
                 
             } catch (error) {
                 console.error('Error sending message:', error);
-                // Reset lastSentMessage on error so user can retry
                 lastSentMessage = null;
             } finally {
-                // Always reset sending state and restore button
                 isSending = false;
-                sendBtn.disabled = !text.trim() || !currentConversationId;
+                sendBtn.disabled = !document.getElementById('messageText').value.trim() && !pendingFile.chat;
                 sendBtn.textContent = originalText;
             }
         }
@@ -2377,6 +2593,7 @@
                 const isOwn = msg.sender === (currentUser?.displayName || currentUser?.username || '');
                 const authorName = msg.sender || 'Anonymous';
                 const initials = getInitials(authorName);
+                const mediaHtml = renderMediaContent(msg, 'attachmentUrl', 'mediaData');
                 
                 html += `<div class="message dm ${isOwn ? 'own' : ''}" style="margin-bottom: 8px; padding: 4px; font-size: 13px;">`;
                 html += `<div class="message-avatar" style="width: 24px; height: 24px; font-size: 11px;">${initials}</div>`;
@@ -2385,7 +2602,10 @@
                 html += `<span class="message-author" style="font-size: 12px;">${escapeHtml(authorName)}</span>`;
                 html += `<span class="message-time" style="font-size: 10px;">${formatTime(msg.createdAt)}</span>`;
                 html += `</div>`;
-                html += `<div class="message-text" style="font-size: 13px;">${escapeHtml(msg.content)}</div>`;
+                if (msg.content) {
+                    html += `<div class="message-text" style="font-size: 13px;">${escapeHtml(msg.content)}</div>`;
+                }
+                html += mediaHtml;
                 html += `</div>`;
                 html += `</div>`;
             });
@@ -2397,7 +2617,8 @@
         // IMPROVED SENDDM WITH SAME ANTI-SPAM PROTECTION
         async function sendDM() {
             const text = document.getElementById('dmMessageText').value.trim();
-            if (!isAuthenticated || !text || !currentDMUser) return;
+            const hasFile = !!pendingFile.dm;
+            if (!isAuthenticated || (!text && !hasFile) || !currentDMUser) return;
             
             // ANTI-SPAM PROTECTION (same as sendMessage)
             const now = Date.now();
@@ -2412,7 +2633,7 @@
                 return;
             }
             
-            if (lastSentMessage === text) {
+            if (lastSentMessage === text && !hasFile) {
                 showToast('Cannot send identical message consecutively', 'error');
                 return;
             }
@@ -2424,7 +2645,7 @@
             const sendBtn = document.getElementById('dmSendBtn');
             const originalText = sendBtn.textContent;
             sendBtn.disabled = true;
-            sendBtn.textContent = 'Sending...';
+            sendBtn.textContent = hasFile ? 'Uploading...' : 'Sending...';
             
             updateActivity();
             
@@ -2432,26 +2653,56 @@
                 const currentUserName = currentUser?.displayName || currentUser?.username || '';
                 const recipient = currentDMUser.displayName || currentDMUser.username;
                 
+                let messageType = 'text';
+                let mediaData = null;
+                let attachmentUrl = null;
+                
+                // Upload file first if present
+                if (hasFile) {
+                    const uploadResult = await uploadFile('dm');
+                    if (!uploadResult) {
+                        isSending = false;
+                        sendBtn.disabled = false;
+                        sendBtn.textContent = originalText;
+                        return;
+                    }
+                    messageType = uploadResult.fileCategory || 'file';
+                    attachmentUrl = uploadResult.url;
+                    mediaData = {
+                        name: uploadResult.fileName,
+                        size: uploadResult.fileSize,
+                        type: uploadResult.fileType,
+                        category: uploadResult.fileCategory,
+                        icon: uploadResult.fileIcon
+                    };
+                }
+                
+                const content = text || (mediaData ? mediaData.name : '');
+                
+                sendBtn.textContent = 'Sending...';
+                
                 await apiCall('/api/direct-messages', 'POST', {
                     sender: currentUserName,
                     recipient: recipient,
-                    content: text,
-                    messageType: 'text'
+                    content: content,
+                    messageType: messageType,
+                    mediaData: mediaData,
+                    attachmentUrl: attachmentUrl
                 });
                 
                 document.getElementById('dmMessageText').value = '';
+                clearFileUpload('dm');
                 
                 showToast('DM sent!', 'success');
                 
-                // Reload DM messages after a delay
                 setTimeout(() => loadDMMessages(), 1000);
                 
             } catch (error) {
                 console.error('Error sending DM:', error);
-                lastSentMessage = null; // Reset on error
+                lastSentMessage = null;
             } finally {
                 isSending = false;
-                sendBtn.disabled = !text.trim() || !currentDMUser;
+                sendBtn.disabled = !document.getElementById('dmMessageText').value.trim() && !pendingFile.dm;
                 sendBtn.textContent = originalText;
             }
         }
@@ -2687,6 +2938,234 @@
         }
         
         // Utility Functions
+        // ===== FILE UPLOAD FUNCTIONS =====
+        
+        function handleFileSelect(event, context) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+                showToast('File type not supported. Use images, videos, PDF, TXT, or DOC.', 'error');
+                event.target.value = '';
+                return;
+            }
+            if (file.size > MAX_FILE_SIZE) {
+                showToast('File too large. Maximum is 10 MB.', 'error');
+                event.target.value = '';
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const dataUrl = e.target.result;
+                const base64 = dataUrl.split(',')[1];
+                pendingFile[context] = { file, dataUrl, base64 };
+                showFilePreview(context);
+                
+                // Enable send button
+                const btnId = context === 'chat' ? 'sendBtn' : 'dmSendBtn';
+                document.getElementById(btnId).disabled = false;
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        function showFilePreview(context) {
+            const pf = pendingFile[context];
+            if (!pf) return;
+            
+            const prefix = context === 'chat' ? 'chat' : 'dm';
+            const preview = document.getElementById(prefix + 'FilePreview');
+            const thumb = document.getElementById(prefix + 'FileThumb');
+            const nameEl = document.getElementById(prefix + 'FileName');
+            const sizeEl = document.getElementById(prefix + 'FileSize');
+            
+            nameEl.textContent = pf.file.name;
+            sizeEl.textContent = formatFileSize(pf.file.size);
+            
+            thumb.innerHTML = '';
+            if (pf.file.type.startsWith('image/')) {
+                const img = document.createElement('img');
+                img.src = pf.dataUrl;
+                thumb.appendChild(img);
+            } else if (pf.file.type.startsWith('video/')) {
+                const vid = document.createElement('video');
+                vid.src = pf.dataUrl;
+                vid.muted = true;
+                thumb.appendChild(vid);
+            } else {
+                thumb.innerHTML = '<span style="font-size:32px;">' + getFileIcon(pf.file.type) + '</span>';
+            }
+            
+            preview.classList.add('active');
+        }
+        
+        function clearFileUpload(context) {
+            pendingFile[context] = null;
+            const prefix = context === 'chat' ? 'chat' : 'dm';
+            document.getElementById(prefix + 'FilePreview').classList.remove('active');
+            document.getElementById(prefix + 'FileInput').value = '';
+            
+            // Update send button state
+            if (context === 'chat') {
+                const text = document.getElementById('messageText').value.trim();
+                document.getElementById('sendBtn').disabled = !text && !currentConversationId;
+            } else {
+                const text = document.getElementById('dmMessageText').value.trim();
+                document.getElementById('dmSendBtn').disabled = !text && !currentDMUser;
+            }
+        }
+        
+        async function uploadFile(context) {
+            const pf = pendingFile[context];
+            if (!pf) return null;
+            
+            const prefix = context === 'chat' ? 'chat' : 'dm';
+            const progress = document.getElementById(prefix + 'UploadProgress');
+            const bar = progress.querySelector('.bar');
+            
+            progress.classList.add('active');
+            bar.style.width = '30%';
+            
+            try {
+                const convId = context === 'chat' ? currentConversationId : 
+                    ('dm_' + (currentUser?.displayName || '') + '_' + (currentDMUser?.displayName || currentDMUser?.username || ''));
+                
+                bar.style.width = '60%';
+                
+                const result = await apiCall('/api/upload', 'POST', {
+                    fileData: pf.base64,
+                    fileName: pf.file.name,
+                    fileType: pf.file.type,
+                    context: context,
+                    conversationId: convId
+                });
+                
+                bar.style.width = '100%';
+                
+                setTimeout(() => {
+                    progress.classList.remove('active');
+                    bar.style.width = '0%';
+                }, 500);
+                
+                return result;
+            } catch (error) {
+                console.error('Upload failed:', error);
+                progress.classList.remove('active');
+                bar.style.width = '0%';
+                showToast('File upload failed: ' + error.message, 'error');
+                return null;
+            }
+        }
+        
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+        
+        function getFileIcon(mimeType) {
+            if (mimeType.startsWith('image/')) return '🖼️';
+            if (mimeType.startsWith('video/')) return '🎬';
+            if (mimeType === 'application/pdf') return '📄';
+            if (mimeType === 'text/plain') return '📝';
+            if (mimeType.includes('word') || mimeType.includes('document')) return '📃';
+            return '📁';
+        }
+        
+        function getFileCategory(mimeType) {
+            if (mimeType.startsWith('image/')) return 'image';
+            if (mimeType.startsWith('video/')) return 'video';
+            return 'document';
+        }
+        
+        function renderMediaContent(msg, urlField, mediaField) {
+            const url = msg[urlField];
+            const media = msg[mediaField];
+            if (!url || !media) return '';
+            
+            const category = media.category || '';
+            const name = media.name || 'File';
+            const size = media.size || '';
+            const icon = media.icon || '📁';
+            
+            if (category === 'image') {
+                return `<div class="message-media"><img src="${escapeHtml(url)}" alt="${escapeHtml(name)}" onclick="openLightbox('${escapeHtml(url)}')" loading="lazy"></div>`;
+            }
+            if (category === 'video') {
+                return `<div class="message-media"><video src="${escapeHtml(url)}" controls preload="metadata"></video></div>`;
+            }
+            return `<div class="message-media"><a href="${escapeHtml(url)}" target="_blank" rel="noopener" class="file-attachment"><span class="file-icon">${icon}</span><div class="file-details"><div>${escapeHtml(name)}</div><small>${escapeHtml(size)}</small></div></a></div>`;
+        }
+        
+        function openLightbox(url) {
+            document.getElementById('lightboxImg').src = url;
+            document.getElementById('lightbox').classList.add('active');
+        }
+        
+        function closeLightbox() {
+            document.getElementById('lightbox').classList.remove('active');
+            document.getElementById('lightboxImg').src = '';
+        }
+        
+        // Drag-and-drop support
+        function initDragDrop(containerSelector, overlayId, context) {
+            const container = document.querySelector(containerSelector);
+            if (!container) return;
+            
+            container.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                document.getElementById(overlayId).classList.add('active');
+            });
+            container.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                document.getElementById(overlayId).classList.remove('active');
+            });
+            container.addEventListener('drop', (e) => {
+                e.preventDefault();
+                document.getElementById(overlayId).classList.remove('active');
+                const file = e.dataTransfer.files[0];
+                if (file) {
+                    const inputId = context === 'chat' ? 'chatFileInput' : 'dmFileInput';
+                    const dt = new DataTransfer();
+                    dt.items.add(file);
+                    document.getElementById(inputId).files = dt.files;
+                    handleFileSelect({ target: document.getElementById(inputId) }, context);
+                }
+            });
+        }
+        
+        // Paste image support
+        document.addEventListener('paste', function(e) {
+            const items = e.clipboardData?.items;
+            if (!items) return;
+            
+            for (const item of items) {
+                if (item.type.startsWith('image/')) {
+                    e.preventDefault();
+                    const file = item.getAsFile();
+                    if (!file) return;
+                    
+                    // Determine which context is active
+                    const dmWindow = document.getElementById('dmWindow');
+                    const context = (dmWindow && dmWindow.style.display !== 'none' && document.activeElement?.id === 'dmMessageText') ? 'dm' : 'chat';
+                    
+                    const inputId = context === 'chat' ? 'chatFileInput' : 'dmFileInput';
+                    const dt = new DataTransfer();
+                    dt.items.add(file);
+                    document.getElementById(inputId).files = dt.files;
+                    handleFileSelect({ target: document.getElementById(inputId) }, context);
+                    break;
+                }
+            }
+        });
+        
+        // Escape key closes lightbox
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeLightbox();
+        });
+        
+        // ===== END FILE UPLOAD FUNCTIONS =====
+        
         function getInitials(name) {
             if (!name) return '?';
             return name.split(' ').map(word => word[0]).join('').toUpperCase().substring(0, 2);
@@ -2793,5 +3272,11 @@
             }
         });
     </script>
+    
+    <!-- Lightbox for full-size images -->
+    <div id="lightbox" class="lightbox" onclick="closeLightbox()">
+        <button class="close-lightbox">&times;</button>
+        <img id="lightboxImg" src="" alt="Full size">
+    </div>
 </body>
 </html>

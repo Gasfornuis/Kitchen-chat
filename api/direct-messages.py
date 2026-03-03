@@ -255,13 +255,22 @@ class handler(BaseHTTPRequestHandler):
             content = data.get("content", "")
             message_type = data.get("messageType", "text")
             media_data = data.get("mediaData", None)
+            attachment_url = data.get("attachmentUrl", None)
             
-            if not sender or not recipient or not content:
+            if not sender or not recipient:
                 self.send_response(400)
                 self.send_header("Access-Control-Allow-Origin", "*")
                 self.send_header("Access-Control-Allow-Credentials", "true")
                 self.end_headers()
-                self.wfile.write(json.dumps({"error": "Missing sender, recipient, or content"}).encode())
+                self.wfile.write(json.dumps({"error": "Missing sender or recipient"}).encode())
+                return
+            
+            if not content and message_type == "text":
+                self.send_response(400)
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Access-Control-Allow-Credentials", "true")
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": "Missing content"}).encode())
                 return
             
             # Security check - authenticated user can only send as themselves
@@ -323,16 +332,18 @@ class handler(BaseHTTPRequestHandler):
                 "secret": FIREBASE_SECRET
             }
             
-            # Handle media data (similar to posts.py)
+            # Handle media data
             if media_data:
-                if message_type == "file":
-                    doc_data["mediaData"] = {
-                        "name": media_data.get("name", "file.txt"),
-                        "size": media_data.get("size", "0 KB"),
-                        "extension": media_data.get("extension", "FILE"),
-                        "icon": media_data.get("icon", "📁")
-                    }
-                    doc_data["attachmentUrl"] = media_data.get("url", "#")
+                doc_data["mediaData"] = {
+                    "name": media_data.get("name", "file"),
+                    "size": media_data.get("size", "0 KB"),
+                    "type": media_data.get("type", ""),
+                    "category": media_data.get("category", ""),
+                    "extension": media_data.get("extension", "FILE"),
+                    "icon": media_data.get("icon", "📁")
+                }
+            if attachment_url:
+                doc_data["attachmentUrl"] = attachment_url
             
             # Add to Firestore
             doc_ref = db.collection("DirectMessages").add(doc_data)

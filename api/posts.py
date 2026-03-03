@@ -162,7 +162,9 @@ class handler(BaseHTTPRequestHandler):
                             "CreatedAt": created_at_str,
                             "PostedBy": data.get("PostedBy", "Anonymous"),
                             "SubjectId": data.get("SubjectId", ""),
-                            "MessageType": data.get("MessageType", "text")
+                            "MessageType": data.get("MessageType", "text"),
+                            "MediaData": data.get("MediaData", None),
+                            "AttachmentUrl": data.get("AttachmentUrl", None)
                         }
                         posts.append(post)
                         
@@ -207,13 +209,19 @@ class handler(BaseHTTPRequestHandler):
             step = "validate_data"
             content = data.get("Content", "").strip()
             subject_id = data.get("SubjectId", "").strip()
+            message_type = data.get("MessageType", "text")
+            media_data = data.get("MediaData", None)
+            attachment_url = data.get("AttachmentUrl", None)
             
-            logger.info(f"Content: '{content[:50]}...' SubjectId: '{subject_id}'")
+            logger.info(f"Content: '{content[:50]}...' SubjectId: '{subject_id}' Type: '{message_type}'")
             
-            if not content:
+            # For file messages, content can be the filename
+            if not content and message_type == "text":
                 return send_response_with_cors(self, {"error": "Content is required"}, 400)
             if not subject_id:
                 return send_response_with_cors(self, {"error": "SubjectId is required"}, 400)
+            if message_type not in ("text", "image", "video", "file"):
+                return send_response_with_cors(self, {"error": "Invalid MessageType"}, 400)
             
             step = "auth_check"
             if require_authentication:
@@ -246,11 +254,23 @@ class handler(BaseHTTPRequestHandler):
             # FIXED: Correct Firestore write with proper timestamp handling
             doc_data = {
                 "Content": content,
-                "CreatedAt": admin_firestore.SERVER_TIMESTAMP,  # Use SERVER_TIMESTAMP for proper Firestore handling
+                "CreatedAt": admin_firestore.SERVER_TIMESTAMP,
                 "PostedBy": posted_by,
                 "SubjectId": f"/subjects/{subject_id}",
-                "MessageType": "text"
+                "MessageType": message_type
             }
+            
+            # Add media data if present
+            if media_data and message_type in ("image", "video", "file"):
+                doc_data["MediaData"] = {
+                    "name": media_data.get("name", ""),
+                    "size": media_data.get("size", ""),
+                    "type": media_data.get("type", ""),
+                    "category": media_data.get("category", ""),
+                    "icon": media_data.get("icon", "📁")
+                }
+            if attachment_url:
+                doc_data["AttachmentUrl"] = attachment_url
             
             logger.info(f"Document data prepared with SERVER_TIMESTAMP")
             
@@ -285,7 +305,7 @@ class handler(BaseHTTPRequestHandler):
             response_data = {
                 "ok": True,
                 "id": doc_id,
-                "type": "text",
+                "type": message_type,
                 "message": "Message saved successfully"
             }
             

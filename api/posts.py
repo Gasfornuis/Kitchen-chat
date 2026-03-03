@@ -220,7 +220,7 @@ class handler(BaseHTTPRequestHandler):
                 return send_response_with_cors(self, {"error": "Content is required"}, 400)
             if not subject_id:
                 return send_response_with_cors(self, {"error": "SubjectId is required"}, 400)
-            if message_type not in ("text", "image", "video", "file"):
+            if message_type not in ("text", "image", "video", "file", "document"):
                 return send_response_with_cors(self, {"error": "Invalid MessageType"}, 400)
             
             step = "auth_check"

@@ -3083,16 +3083,23 @@
             const media = msg[mediaField];
             if (!url || !media) return '';
             
-            const category = media.category || '';
+            // Determine category with fallback based on MIME type
+            let category = media.category || '';
+            if (!category && media.type) {
+                if (media.type.startsWith('image/')) category = 'image';
+                else if (media.type.startsWith('video/')) category = 'video';
+                else category = 'document';
+            }
+            
             const name = media.name || 'File';
             const size = media.size || '';
             const icon = media.icon || '📁';
             
             if (category === 'image') {
-                return `<div class="message-media"><img src="${escapeHtml(url)}" alt="${escapeHtml(name)}" onclick="openLightbox('${escapeHtml(url)}')" loading="lazy"></div>`;
+                return `<div class="message-media"><img src="${escapeHtml(url)}" alt="${escapeHtml(name)}" onclick="openLightbox('${escapeHtml(url)}')" loading="lazy" onerror="this.style.display='none';this.parentElement.innerHTML='<a href=\\'${escapeHtml(url)}\\' target=\\'_blank\\' class=\\'file-attachment\\'><span class=\\'file-icon\\'>🖼️</span><div class=\\'file-details\\'><div>${escapeHtml(name)}</div><small>${escapeHtml(size)}</small></div></a>'"></div>`;
             }
             if (category === 'video') {
-                return `<div class="message-media"><video src="${escapeHtml(url)}" controls preload="metadata"></video></div>`;
+                return `<div class="message-media"><video src="${escapeHtml(url)}" controls preload="metadata" style="max-width:300px;border-radius:6px;">Your browser does not support video.</video></div>`;
             }
             return `<div class="message-media"><a href="${escapeHtml(url)}" target="_blank" rel="noopener" class="file-attachment"><span class="file-icon">${icon}</span><div class="file-details"><div>${escapeHtml(name)}</div><small>${escapeHtml(size)}</small></div></a></div>`;
         }

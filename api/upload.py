@@ -9,6 +9,7 @@ from datetime import datetime
 from urllib.parse import urlparse, parse_qs
 import firebase_admin
 from firebase_admin import credentials, firestore as admin_firestore, storage
+from datetime import datetime, timedelta
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -206,9 +207,11 @@ class handler(BaseHTTPRequestHandler):
             blob = bucket.blob(storage_path)
             blob.upload_from_string(file_bytes, content_type=file_type)
 
-            # Make publicly accessible
-            blob.make_public()
-            download_url = blob.public_url
+            # Generate a signed URL (valid for 7 days)
+            download_url = blob.generate_signed_url(
+                expiration=timedelta(days=7),
+                method='GET'
+            )
 
             file_category = get_file_category(file_type)
 

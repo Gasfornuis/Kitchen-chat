@@ -5,3 +5,4 @@ bcrypt>=4.0.0
 requests>=2.31.0
 Pillow>=9.0.0
 python-multipart>=0.0.5
+google-generativeai>=0.4.0

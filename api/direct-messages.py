@@ -8,6 +8,7 @@ from firebase_admin import credentials, firestore
 import base64
 import uuid
 from datetime import datetime
+import threading
 
 # Import authentication functions from auth.py
 from .auth import require_authentication, get_session_token_from_request, verify_session_token
@@ -348,6 +349,43 @@ class handler(BaseHTTPRequestHandler):
             # Add to Firestore
             doc_ref = db.collection("DirectMessages").add(doc_data)
             
+            # Trigger AI response if messaging KitchenAI
+            ai_triggered = False
+            if recipient.lower() == "kitchenai" and content:
+                ai_triggered = True
+                try:
+                    from .ai_chat_helper import trigger_ai_response
+                    trigger_ai_response(sender, content, dm_id)
+                except ImportError:
+                    try:
+                        from ai_chat_helper import trigger_ai_response
+                        trigger_ai_response(sender, content, dm_id)
+                    except ImportError:
+                        # Fallback: call AI endpoint via internal import
+                        try:
+                            import google.generativeai as genai
+                            api_key = os.environ.get("GEMINI_API_KEY")
+                            if api_key:
+                                genai.configure(api_key=api_key)
+                                model = genai.GenerativeModel('gemini-2.0-flash')
+                                
+                                system = "You are KitchenAI, a friendly AI assistant in Kitchen Chat. Keep responses short (max 200 words). Reply in the same language as the user. Use emoji occasionally. Don't use markdown formatting."
+                                response = model.generate_content(f"{system}\n\nUser message: {content}")
+                                ai_text = response.text.strip()
+                                
+                                ai_doc = {
+                                    "content": ai_text,
+                                    "CreatedAt": firestore.SERVER_TIMESTAMP,
+                                    "sender": "KitchenAI",
+                                    "recipient": sender,
+                                    "conversationId": dm_id,
+                                    "messageType": "text",
+                                    "secret": FIREBASE_SECRET
+                                }
+                                db.collection("DirectMessages").add(ai_doc)
+                        except Exception as ai_err:
+                            print(f"AI response failed: {ai_err}")
+            
             self.send_response(201)
             self.send_header("Content-type", "application/json")
             self.send_header("Access-Control-Allow-Origin", "*")
@@ -356,7 +394,8 @@ class handler(BaseHTTPRequestHandler):
             self.wfile.write(json.dumps({
                 "message": "DM sent successfully",
                 "id": doc_ref[1].id,
-                "conversationId": dm_id
+                "conversationId": dm_id,
+                "aiTriggered": ai_triggered
             }).encode())
             
         except Exception as e:

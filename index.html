@@ -706,6 +706,15 @@
             background: #9e9e9e;
         }
         
+        @keyframes thinkingDots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+        .thinking-dots {
+            animation: thinkingDots 1.4s infinite steps(1);
+        }
+        
         .user-admin-controls {
             display: none;
         }
@@ -2461,15 +2470,26 @@
         function displayOnlineUsers() {
             const container = document.getElementById('usersList');
             
+            // Always show KitchenAI at the top
+            let html = `<div class="user-item" onclick="startDM('kitchenai', 'KitchenAI')" style="background: var(--bg-tertiary); border-left: 3px solid var(--accent-primary);">`;
+            html += `<div class="user-avatar" style="background: var(--accent-primary); color: white;">🤖</div>`;
+            html += `<div class="user-info">`;
+            html += `<div class="user-name">KitchenAI</div>`;
+            html += `<div class="user-status">AI Assistant — ask me anything!</div>`;
+            html += `</div>`;
+            html += `<div class="status-indicator online"></div>`;
+            html += `</div>`;
+            
             if (onlineUsers.length === 0) {
-                container.innerHTML = '<p>No users online</p>';
+                html += '<p style="padding: 8px; color: var(--text-secondary);">No other users online</p>';
+                container.innerHTML = html;
                 return;
             }
             
-            let html = '';
             onlineUsers.forEach(user => {
-                // Don't show current user in the list
+                // Don't show current user or KitchenAI (already shown above)
                 if (user.username === currentUser?.username) return;
+                if (user.username?.toLowerCase() === 'kitchenai') return;
                 
                 const initials = getInitials(user.displayName);
                 const statusClass = user.status || 'online';
@@ -2549,7 +2569,9 @@
             if (!isAuthenticated) return;
             
             currentDMUser = { username: username, displayName: displayName };
-            document.getElementById('dmTitle').textContent = `DM with ${displayName}`;
+            
+            const isAI = username.toLowerCase() === 'kitchenai';
+            document.getElementById('dmTitle').textContent = isAI ? '🤖 KitchenAI' : `DM with ${displayName}`;
             document.getElementById('dmWindow').style.display = 'flex';
             
             // Reset positie naar standaard locatie als het venster geopend wordt
@@ -2583,7 +2605,10 @@
             const container = document.getElementById('dmMessages');
             
             if (!dmMessages || dmMessages.length === 0) {
-                container.innerHTML = '<p>No messages yet. Start the conversation!</p>';
+                const isAI = currentDMUser?.username?.toLowerCase() === 'kitchenai';
+                container.innerHTML = isAI 
+                    ? '<p>👋 Hi! I\'m KitchenAI. Ask me anything!</p>'
+                    : '<p>No messages yet. Start the conversation!</p>';
                 return;
             }
             
@@ -2592,11 +2617,15 @@
             dmMessages.forEach(msg => {
                 const isOwn = msg.sender === (currentUser?.displayName || currentUser?.username || '');
                 const authorName = msg.sender || 'Anonymous';
-                const initials = getInitials(authorName);
+                const isAIMsg = authorName === 'KitchenAI';
+                const avatar = isAIMsg ? '🤖' : getInitials(authorName);
+                const avatarStyle = isAIMsg 
+                    ? 'width: 24px; height: 24px; font-size: 14px; background: var(--accent-primary); display: flex; align-items: center; justify-content: center;'
+                    : 'width: 24px; height: 24px; font-size: 11px;';
                 const mediaHtml = renderMediaContent(msg, 'attachmentUrl', 'mediaData');
                 
                 html += `<div class="message dm ${isOwn ? 'own' : ''}" style="margin-bottom: 8px; padding: 4px; font-size: 13px;">`;
-                html += `<div class="message-avatar" style="width: 24px; height: 24px; font-size: 11px;">${initials}</div>`;
+                html += `<div class="message-avatar" style="${avatarStyle}">${avatar}</div>`;
                 html += `<div class="message-content">`;
                 html += `<div class="message-header">`;
                 html += `<span class="message-author" style="font-size: 12px;">${escapeHtml(authorName)}</span>`;
@@ -2612,6 +2641,26 @@
             
             container.innerHTML = html;
             container.scrollTop = container.scrollHeight;
+        }
+        
+        function showAIThinking(show) {
+            const container = document.getElementById('dmMessages');
+            const existingIndicator = document.getElementById('aiThinking');
+            if (existingIndicator) existingIndicator.remove();
+            
+            if (show) {
+                const indicator = document.createElement('div');
+                indicator.id = 'aiThinking';
+                indicator.className = 'message dm';
+                indicator.style.cssText = 'margin-bottom: 8px; padding: 4px; font-size: 13px; opacity: 0.7;';
+                indicator.innerHTML = `
+                    <div class="message-avatar" style="width: 24px; height: 24px; font-size: 14px; background: var(--accent-primary); display: flex; align-items: center; justify-content: center;">🤖</div>
+                    <div class="message-content">
+                        <div class="message-text" style="font-size: 13px; font-style: italic;">KitchenAI is thinking<span class="thinking-dots">...</span></div>
+                    </div>`;
+                container.appendChild(indicator);
+                container.scrollTop = container.scrollHeight;
+            }
         }
         
         // IMPROVED SENDDM WITH SAME ANTI-SPAM PROTECTION
@@ -2695,7 +2744,32 @@
                 
                 showToast('DM sent!', 'success');
                 
-                setTimeout(() => loadDMMessages(), 1000);
+                // If messaging KitchenAI, show thinking indicator and poll for response
+                const isAI = (recipient.toLowerCase() === 'kitchenai');
+                if (isAI) {
+                    setTimeout(() => {
+                        loadDMMessages();
+                        showAIThinking(true);
+                        // Poll for AI response (may take a few seconds)
+                        let polls = 0;
+                        const pollInterval = setInterval(async () => {
+                            polls++;
+                            await loadDMMessages();
+                            // Check if AI has responded (last message from KitchenAI)
+                            const lastMsg = dmMessages[dmMessages.length - 1];
+                            if (lastMsg && lastMsg.sender === 'KitchenAI') {
+                                clearInterval(pollInterval);
+                                showAIThinking(false);
+                            }
+                            if (polls >= 15) { // Max 15 seconds
+                                clearInterval(pollInterval);
+                                showAIThinking(false);
+                            }
+                        }, 1000);
+                    }, 500);
+                } else {
+                    setTimeout(() => loadDMMessages(), 1000);
+                }
                 
             } catch (error) {
                 console.error('Error sending DM:', error);

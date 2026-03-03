@@ -30,21 +30,23 @@ except ImportError:
 # Firebase setup
 db = None
 bucket = None
+bucket_name = None
 try:
-    if not firebase_admin._apps:
-        sa_json = os.environ.get("FIREBASE_SERVICE_ACCOUNT")
-        if sa_json:
-            sa_data = json.loads(sa_json)
+    sa_json = os.environ.get("FIREBASE_SERVICE_ACCOUNT")
+    if sa_json:
+        sa_data = json.loads(sa_json)
+        project_id = sa_data.get("project_id", "")
+        bucket_name = os.environ.get("FIREBASE_STORAGE_BUCKET", f"{project_id}.appspot.com")
+
+        if not firebase_admin._apps:
             cred = credentials.Certificate(sa_data)
-            # Derive storage bucket from project_id in service account
-            project_id = sa_data.get("project_id", "")
-            bucket_name = os.environ.get("FIREBASE_STORAGE_BUCKET", f"{project_id}.appspot.com")
             firebase_admin.initialize_app(cred, {'storageBucket': bucket_name})
 
     if firebase_admin._apps:
         db = admin_firestore.client()
         try:
-            bucket = storage.bucket()
+            # Always pass bucket name explicitly in case app was initialized without storageBucket
+            bucket = storage.bucket(bucket_name) if bucket_name else storage.bucket()
             logger.info(f"Firebase Storage bucket initialized: {bucket.name}")
         except Exception as storage_err:
             logger.warning(f"Firebase Storage not available: {storage_err}")

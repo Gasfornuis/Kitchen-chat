@@ -1388,7 +1388,7 @@
         
         // FILE UPLOAD STATE
         let pendingFile = { chat: null, dm: null }; // { file, dataUrl, base64 }
-        const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+        const MAX_FILE_SIZE = 700 * 1024; // 700 KB (stored in database)
         const ALLOWED_MIME_TYPES = [
             'image/jpeg', 'image/png', 'image/gif', 'image/webp',
             'video/mp4', 'video/quicktime', 'video/webm',
@@ -2950,7 +2950,7 @@
                 return;
             }
             if (file.size > MAX_FILE_SIZE) {
-                showToast('File too large. Maximum is 10 MB.', 'error');
+                showToast('File too large. Maximum is 700 KB.', 'error');
                 event.target.value = '';
                 return;
             }

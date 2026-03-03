@@ -33,15 +33,18 @@ try:
     if not firebase_admin._apps:
         sa_json = os.environ.get("FIREBASE_SERVICE_ACCOUNT")
         if sa_json:
-            cred = credentials.Certificate(json.loads(sa_json))
-            storage_bucket = os.environ.get("FIREBASE_STORAGE_BUCKET", "")
-            firebase_admin.initialize_app(cred, {'storageBucket': storage_bucket})
+            sa_data = json.loads(sa_json)
+            cred = credentials.Certificate(sa_data)
+            # Derive storage bucket from project_id in service account
+            project_id = sa_data.get("project_id", "")
+            bucket_name = os.environ.get("FIREBASE_STORAGE_BUCKET", f"{project_id}.appspot.com")
+            firebase_admin.initialize_app(cred, {'storageBucket': bucket_name})
 
     if firebase_admin._apps:
         db = admin_firestore.client()
         try:
             bucket = storage.bucket()
-            logger.info("Firebase Storage bucket initialized")
+            logger.info(f"Firebase Storage bucket initialized: {bucket.name}")
         except Exception as storage_err:
             logger.warning(f"Firebase Storage not available: {storage_err}")
             bucket = None
